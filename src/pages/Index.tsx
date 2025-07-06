@@ -9,7 +9,7 @@ import SettingsPanel from '../components/SettingsPanel';
 import ClientManagement from '../components/ClientManagement';
 import ServiceManagement from '../components/ServiceManagement';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Settings, Calendar, Users, Briefcase, LogOut, User, Clock } from 'lucide-react';
+import { MoreHorizontal, Settings, Calendar, Users, Briefcase, LogOut, HelpCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,7 +78,7 @@ const Index = () => {
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard':
-        return <MerchantDashboard companyName={companyName} />;
+        return <MerchantDashboard companyName={companyName} onViewChange={setCurrentView} />;
       case 'agenda':
         return <MonthlyAgenda />;
       case 'settings':
@@ -88,7 +88,7 @@ const Index = () => {
       case 'services':
         return <ServiceManagement />;
       default:
-        return <MerchantDashboard companyName={companyName} />;
+        return <MerchantDashboard companyName={companyName} onViewChange={setCurrentView} />;
     }
   };
 
@@ -129,6 +129,11 @@ const Index = () => {
               <DropdownMenuItem onClick={() => setCurrentView('services')} className="hover:bg-gray-50">
                 <Briefcase className="w-4 h-4 mr-2" />
                 Gerenciar Serviços
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-whatsapp-border" />
+              <DropdownMenuItem className="hover:bg-gray-50">
+                <HelpCircle className="w-4 h-4 mr-2" />
+                Suporte
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-whatsapp-border" />
               <DropdownMenuItem onClick={handleLogout} className="text-red-600 hover:bg-red-50">

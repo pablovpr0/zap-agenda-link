@@ -13,13 +13,15 @@ import {
   ExternalLink,
   Phone,
   Copy,
-  CheckCircle
+  CheckCircle,
+  Share
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import NewAppointmentModal from './NewAppointmentModal';
 
 interface DashboardStats {
   todayAppointments: number;
@@ -42,7 +44,12 @@ interface CompanySettings {
   slug: string;
 }
 
-const MerchantDashboard = ({ companyName }: { companyName: string }) => {
+interface MerchantDashboardProps {
+  companyName: string;
+  onViewChange: (view: string) => void;
+}
+
+const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [stats, setStats] = useState<DashboardStats>({
@@ -55,6 +62,7 @@ const MerchantDashboard = ({ companyName }: { companyName: string }) => {
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -149,6 +157,30 @@ const MerchantDashboard = ({ companyName }: { companyName: string }) => {
     }
   };
 
+  const shareOnWhatsApp = () => {
+    const link = getPublicBookingLink();
+    if (link) {
+      const message = `Olá! Agende seu horário comigo através do link: ${link}`;
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+    }
+  };
+
+  const handleNewAppointment = () => {
+    setShowNewAppointmentModal(true);
+  };
+
+  const handleViewPublicPage = () => {
+    const link = getPublicBookingLink();
+    if (link) {
+      window.open(link, '_blank');
+    }
+  };
+
+  const handleManageClients = () => {
+    onViewChange('clients');
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       confirmed: { label: 'Confirmado', color: 'bg-green-100 text-green-800' },
@@ -194,18 +226,18 @@ const MerchantDashboard = ({ companyName }: { companyName: string }) => {
       {companySettings?.slug && (
         <Card className="border-green-200 bg-green-50">
           <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div className="flex-1">
+            <div className="flex flex-col gap-3">
+              <div>
                 <h3 className="font-medium text-green-800 mb-1">Link de Agendamento Público</h3>
                 <p className="text-sm text-green-600 break-all">
                   {getPublicBookingLink()}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => window.open(getPublicBookingLink(), '_blank')}
+                  onClick={handleViewPublicPage}
                   className="border-green-300 text-green-700 hover:bg-green-100"
                 >
                   <ExternalLink className="w-4 h-4 mr-1" />
@@ -223,6 +255,15 @@ const MerchantDashboard = ({ companyName }: { companyName: string }) => {
                     <Copy className="w-4 h-4 mr-1" />
                   )}
                   {linkCopied ? 'Copiado!' : 'Copiar'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={shareOnWhatsApp}
+                  className="border-green-300 text-green-700 hover:bg-green-100"
+                >
+                  <Share className="w-4 h-4 mr-1" />
+                  Compartilhar
                 </Button>
               </div>
             </div>
@@ -283,7 +324,10 @@ const MerchantDashboard = ({ companyName }: { companyName: string }) => {
 
       {/* Ações Rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
-        <Card className="hover:shadow-md transition-shadow cursor-pointer bg-white border-whatsapp">
+        <Card 
+          className="hover:shadow-md transition-shadow cursor-pointer bg-white border-whatsapp"
+          onClick={handleNewAppointment}
+        >
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
@@ -297,7 +341,10 @@ const MerchantDashboard = ({ companyName }: { companyName: string }) => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow cursor-pointer bg-white border-whatsapp">
+        <Card 
+          className="hover:shadow-md transition-shadow cursor-pointer bg-white border-whatsapp"
+          onClick={handleViewPublicPage}
+        >
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
@@ -311,7 +358,10 @@ const MerchantDashboard = ({ companyName }: { companyName: string }) => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow cursor-pointer bg-white border-whatsapp">
+        <Card 
+          className="hover:shadow-md transition-shadow cursor-pointer bg-white border-whatsapp"
+          onClick={handleManageClients}
+        >
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
@@ -371,6 +421,13 @@ const MerchantDashboard = ({ companyName }: { companyName: string }) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Novo Agendamento */}
+      <NewAppointmentModal
+        open={showNewAppointmentModal}
+        onClose={() => setShowNewAppointmentModal(false)}
+        onSuccess={loadDashboardData}
+      />
     </div>
   );
 };
