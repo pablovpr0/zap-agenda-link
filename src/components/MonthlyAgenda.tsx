@@ -13,7 +13,6 @@ const MonthlyAgenda = () => {
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
-  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
   // Dados mockados de agendamentos
   const appointments = [
@@ -54,20 +53,20 @@ const MonthlyAgenda = () => {
   const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
 
   return (
-    <div className="p-4 space-y-6 fade-in">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-800">Agenda Mensal</h2>
+          <h2 className="text-lg md:text-xl font-bold text-gray-800">Agenda Mensal</h2>
           <p className="text-gray-600 text-sm">Gerencie seus agendamentos do mês</p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center md:justify-end gap-2">
           <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <div className="text-center min-w-[140px]">
-            <p className="font-medium text-gray-800">
+          <div className="text-center min-w-[120px] md:min-w-[140px]">
+            <p className="font-medium text-gray-800 text-sm md:text-base">
               {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
             </p>
           </div>
@@ -79,17 +78,17 @@ const MonthlyAgenda = () => {
 
       {/* Calendar */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Calendar className="w-5 h-5 text-primary" />
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Calendar className="w-4 md:w-5 h-4 md:h-5 text-primary" />
             {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-2 md:p-6">
           {/* Days of week header */}
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day) => (
-              <div key={day} className="p-2 text-center text-sm font-medium text-gray-600">
+              <div key={day} className="p-1 md:p-2 text-center text-xs md:text-sm font-medium text-gray-600">
                 {day}
               </div>
             ))}
@@ -107,21 +106,21 @@ const MonthlyAgenda = () => {
                 <div
                   key={index}
                   className={`
-                    p-2 min-h-[60px] border rounded-lg cursor-pointer transition-colors
+                    p-1 md:p-2 min-h-[40px] md:min-h-[60px] border rounded-lg cursor-pointer transition-colors text-center
                     ${isCurrentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400'}
                     ${isTodayDate ? 'border-primary border-2 bg-primary/5' : 'border-gray-200'}
                     ${hasAppointments ? 'hover:bg-blue-50' : 'hover:bg-gray-100'}
                   `}
                   onClick={() => handleDateClick(date)}
                 >
-                  <div className="text-sm font-medium">
+                  <div className="text-xs md:text-sm font-medium">
                     {format(date, 'd')}
                   </div>
                   {hasAppointments && (
                     <div className="mt-1">
-                      <div className="w-2 h-2 bg-primary rounded-full"></div>
-                      <div className="text-xs text-primary mt-1">
-                        {dayAppointments.length} agend.
+                      <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-primary rounded-full mx-auto"></div>
+                      <div className="text-[10px] md:text-xs text-primary mt-1">
+                        {dayAppointments.length}
                       </div>
                     </div>
                   )}
@@ -134,23 +133,23 @@ const MonthlyAgenda = () => {
 
       {/* Dialog para mostrar agendamentos do dia */}
       <Dialog open={!!selectedDate} onOpenChange={() => setSelectedDate(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md mx-3">
           {selectedDate && (
             <>
               <DialogHeader>
-                <DialogTitle>
+                <DialogTitle className="text-base md:text-lg">
                   Agendamentos - {format(selectedDate, "d 'de' MMMM", { locale: ptBR })}
                 </DialogTitle>
               </DialogHeader>
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto">
                 {selectedDateAppointments.map((appointment) => (
                   <div key={appointment.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="font-medium">{appointment.client}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{appointment.client}</p>
                       <p className="text-sm text-gray-600">{appointment.time}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">{appointment.phone}</span>
+                    <div className="flex items-center gap-2 ml-2">
+                      <span className="text-xs md:text-sm text-gray-600 hidden md:inline">{appointment.phone}</span>
                       <Button
                         size="sm"
                         variant="outline"
