@@ -6,10 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Calendar, Clock, User, Phone, Mail } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, User, Phone, Mail } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import TimeSlotPicker from './TimeSlotPicker';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -46,7 +49,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
   // Form state
   const [selectedServiceId, setSelectedServiceId] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState('');
   const [notes, setNotes] = useState('');
   const [isNewClient, setIsNewClient] = useState(false);
@@ -146,6 +149,25 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       // Buscar duração do serviço
       const service = services.find(s => s.id === selectedServiceId);
       
+      // Verificar conflitos antes de criar (prevenção de race condition)
+      const appointmentDate = format(selectedDate, 'yyyy-MM-dd');
+      const { data: conflictCheck } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('company_id', user!.id)
+        .eq('appointment_date', appointmentDate)
+        .eq('appointment_time', selectedTime)
+        .neq('status', 'cancelled');
+
+      if (conflictCheck && conflictCheck.length > 0) {
+        toast({
+          title: "Horário indisponível",
+          description: "Este horário foi reservado por outro cliente. Escolha outro horário.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Criar agendamento
       const { error: appointmentError } = await supabase
         .from('appointments')
@@ -153,7 +175,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
           company_id: user!.id,
           client_id: clientId,
           service_id: selectedServiceId,
-          appointment_date: selectedDate,
+          appointment_date: appointmentDate,
           appointment_time: selectedTime,
           duration: service?.duration || 60,
           status: 'confirmed',
@@ -185,7 +207,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
   const handleClose = () => {
     setSelectedServiceId('');
     setSelectedClientId('');
-    setSelectedDate('');
+    setSelectedDate(undefined);
     setSelectedTime('');
     setNotes('');
     setIsNewClient(false);
@@ -195,21 +217,12 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
     onClose();
   };
 
-  // Gerar datas disponíveis (próximos 30 dias)
-  const availableDates = [];
-  const today = new Date();
-  for (let i = 0; i < 30; i++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() + i);
-    availableDates.push(date);
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-whatsapp-green" />
+            <CalendarIcon className="w-5 h-5 text-whatsapp-green" />
             Novo Agendamento
           </DialogTitle>
         </DialogHeader>
@@ -338,27 +351,39 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
               )}
             </div>
 
-            {/* Data */}
+            {/* Data com Calendar */}
             <div className="space-y-2">
-              <Label htmlFor="date">Data *</Label>
-              <Select value={selectedDate} onValueChange={setSelectedDate} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma data" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableDates.map((date) => (
-                    <SelectItem key={date.toISOString()} value={format(date, 'yyyy-MM-dd')}>
-                      {format(date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Data *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP", { locale: ptBR }) : <span>Selecione uma data</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Horário */}
             {selectedDate && user && (
               <TimeSlotPicker
-                selectedDate={selectedDate}
+                selectedDate={format(selectedDate, 'yyyy-MM-dd')}
                 selectedTime={selectedTime}
                 onTimeSelect={setSelectedTime}
                 companyId={user.id}

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Calendar, Phone } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, MessageCircle } from 'lucide-react';
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -94,6 +94,13 @@ const MonthlyAgenda = () => {
     if (dayAppointments.length > 0) {
       setSelectedDate(date);
     }
+  };
+
+  const handleWhatsAppClick = (phone: string, clientName: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const message = `Olá ${clientName}! Aqui é da ${window.location.hostname}. Como posso ajudá-lo(a)?`;
+    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const selectedDateAppointments = selectedDate ? getAppointmentsForDate(selectedDate) : [];
@@ -218,9 +225,10 @@ const MonthlyAgenda = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => window.open(`tel:${appointment.client_phone}`)}
+                        onClick={() => handleWhatsAppClick(appointment.client_phone, appointment.client_name)}
+                        className="border-whatsapp text-whatsapp-green hover:bg-whatsapp-green hover:text-white"
                       >
-                        <Phone className="w-4 h-4" />
+                        <MessageCircle className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>

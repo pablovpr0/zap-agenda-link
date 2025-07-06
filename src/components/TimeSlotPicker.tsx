@@ -52,14 +52,34 @@ const TimeSlotPicker = ({
         return;
       }
 
+      // Buscar duração do serviço selecionado
+      let serviceDuration = 60; // duração padrão
+      if (serviceId) {
+        const { data: service } = await supabase
+          .from('services')
+          .select('duration')
+          .eq('id', serviceId)
+          .eq('company_id', companyId)
+          .single();
+        
+        if (service) {
+          serviceDuration = service.duration;
+        }
+      }
+
       // Buscar agendamentos existentes para a data
-      const { data: existingAppointments } = await supabase
+      let query = supabase
         .from('appointments')
         .select('appointment_time, duration')
         .eq('company_id', companyId)
         .eq('appointment_date', selectedDate)
-        .neq('status', 'cancelled')
-        .neq('id', excludeAppointmentId || '');
+        .neq('status', 'cancelled');
+
+      if (excludeAppointmentId) {
+        query = query.neq('id', excludeAppointmentId);
+      }
+
+      const { data: existingAppointments } = await query;
 
       // Gerar slots de horário baseado nas configurações
       const slots: TimeSlot[] = [];
@@ -93,15 +113,25 @@ const TimeSlotPicker = ({
           reason = 'Horário já passou';
         }
 
-        // Verificar conflitos com agendamentos existentes
+        // Verificar se há tempo suficiente até o fim do expediente
+        const slotEndTime = addMinutes(currentTime, serviceDuration);
+        if (isAfter(slotEndTime, endTime)) {
+          available = false;
+          reason = 'Tempo insuficiente';
+        }
+
+        // Verificar conflitos com agendamentos existentes (inteligência de duração)
         if (available && existingAppointments) {
           const conflict = existingAppointments.some(apt => {
             const aptTime = parseISO(`${selectedDate}T${apt.appointment_time}`);
             const aptEndTime = addMinutes(aptTime, apt.duration);
+            const slotEndTime = addMinutes(currentTime, serviceDuration);
             
+            // Verifica sobreposição: o novo agendamento conflita se:
+            // 1. Começa antes do fim de um agendamento existente E termina depois do início dele
             return (
-              (isBefore(currentTime, aptEndTime) && isAfter(addMinutes(currentTime, settings.appointment_interval), aptTime)) ||
-              format(currentTime, 'HH:mm') === apt.appointment_time
+              (isBefore(currentTime, aptEndTime) && isAfter(slotEndTime, aptTime)) ||
+              (isBefore(aptTime, slotEndTime) && isAfter(aptEndTime, currentTime))
             );
           });
 

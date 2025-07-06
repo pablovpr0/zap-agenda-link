@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Calendar, Phone } from 'lucide-react';
+import { Clock, Calendar, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -35,6 +35,13 @@ const RecentAppointments = ({ appointments }: RecentAppointmentsProps) => {
         {config.label}
       </Badge>
     );
+  };
+
+  const handleWhatsAppClick = (phone: string, clientName: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const message = `Olá ${clientName}! Aqui é da ${window.location.hostname}. Como posso ajudá-lo(a)?`;
+    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   return (
@@ -70,10 +77,10 @@ const RecentAppointments = ({ appointments }: RecentAppointmentsProps) => {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => window.open(`tel:${appointment.client_phone}`)}
-                    className="border-whatsapp"
+                    onClick={() => handleWhatsAppClick(appointment.client_phone, appointment.client_name)}
+                    className="border-whatsapp text-whatsapp-green hover:bg-whatsapp-green hover:text-white"
                   >
-                    <Phone className="w-4 h-4" />
+                    <MessageCircle className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
