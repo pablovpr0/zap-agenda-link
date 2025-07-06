@@ -186,7 +186,7 @@ const MerchantDashboard = ({ companyName }: { companyName: string }) => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg md:text-xl font-bold text-gray-800">Dashboard</h2>
-          <p className="text-gray-600 text-sm">Visão geral do seu negócio</p>
+          <p className="text-whatsapp-muted text-sm">Visão geral do seu negócio</p>
         </div>
       </div>
 
@@ -232,50 +232,50 @@ const MerchantDashboard = ({ companyName }: { companyName: string }) => {
 
       {/* Cards de Estatísticas */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow bg-white border-whatsapp">
           <CardContent className="p-3 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm font-medium text-gray-600">Hoje</p>
-                <p className="text-lg md:text-2xl font-bold">{stats.todayAppointments}</p>
+                <p className="text-xs md:text-sm font-medium text-whatsapp-muted">Hoje</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-800">{stats.todayAppointments}</p>
               </div>
-              <Calendar className="w-6 md:w-8 h-6 md:h-8 text-blue-600" />
+              <Calendar className="w-6 md:w-8 h-6 md:h-8 text-whatsapp-green" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow bg-white border-whatsapp">
           <CardContent className="p-3 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm font-medium text-gray-600">Clientes</p>
-                <p className="text-lg md:text-2xl font-bold">{stats.totalClients}</p>
+                <p className="text-xs md:text-sm font-medium text-whatsapp-muted">Clientes</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-800">{stats.totalClients}</p>
               </div>
-              <Users className="w-6 md:w-8 h-6 md:h-8 text-green-600" />
+              <Users className="w-6 md:w-8 h-6 md:h-8 text-whatsapp-green" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow bg-white border-whatsapp">
           <CardContent className="p-3 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm font-medium text-gray-600">Receita</p>
-                <p className="text-lg md:text-2xl font-bold">R$ {stats.monthlyRevenue}</p>
+                <p className="text-xs md:text-sm font-medium text-whatsapp-muted">Receita</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-800">R$ {stats.monthlyRevenue}</p>
               </div>
-              <DollarSign className="w-6 md:w-8 h-6 md:h-8 text-yellow-600" />
+              <DollarSign className="w-6 md:w-8 h-6 md:h-8 text-whatsapp-green" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow bg-white border-whatsapp">
           <CardContent className="p-3 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm font-medium text-gray-600">Taxa</p>
-                <p className="text-lg md:text-2xl font-bold">{stats.completionRate}%</p>
+                <p className="text-xs md:text-sm font-medium text-whatsapp-muted">Taxa</p>
+                <p className="text-lg md:text-2xl font-bold text-gray-800">{stats.completionRate}%</p>
               </div>
-              <TrendingUp className="w-6 md:w-8 h-6 md:h-8 text-purple-600" />
+              <TrendingUp className="w-6 md:w-8 h-6 md:h-8 text-whatsapp-green" />
             </div>
           </CardContent>
         </Card>
@@ -283,43 +283,43 @@ const MerchantDashboard = ({ companyName }: { companyName: string }) => {
 
       {/* Ações Rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
-        <Card className="hover:shadow-md transition-shadow cursor-pointer">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Plus className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="font-medium">Novo Agendamento</h3>
-                <p className="text-sm text-gray-600">Criar agendamento manual</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer bg-white border-whatsapp">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
-                <ExternalLink className="w-5 h-5 text-green-600" />
+                <Plus className="w-5 h-5 text-whatsapp-green" />
               </div>
               <div>
-                <h3 className="font-medium">Página do Cliente</h3>
-                <p className="text-sm text-gray-600">Ver página pública</p>
+                <h3 className="font-medium text-gray-800">Novo Agendamento</h3>
+                <p className="text-sm text-whatsapp-muted">Criar agendamento manual</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer bg-white border-whatsapp">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Users className="w-5 h-5 text-purple-600" />
+              <div className="p-2 bg-green-100 rounded-lg">
+                <ExternalLink className="w-5 h-5 text-whatsapp-green" />
               </div>
               <div>
-                <h3 className="font-medium">Gerenciar Clientes</h3>
-                <p className="text-sm text-gray-600">Ver todos os clientes</p>
+                <h3 className="font-medium text-gray-800">Página do Cliente</h3>
+                <p className="text-sm text-whatsapp-muted">Ver página pública</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow cursor-pointer bg-white border-whatsapp">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Users className="w-5 h-5 text-whatsapp-green" />
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-800">Gerenciar Clientes</h3>
+                <p className="text-sm text-whatsapp-muted">Ver todos os clientes</p>
               </div>
             </div>
           </CardContent>
@@ -327,16 +327,16 @@ const MerchantDashboard = ({ companyName }: { companyName: string }) => {
       </div>
 
       {/* Agendamentos Recentes */}
-      <Card>
+      <Card className="bg-white border-whatsapp">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-            <Clock className="w-4 md:w-5 h-4 md:h-5 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg text-gray-800">
+            <Clock className="w-4 md:w-5 h-4 md:h-5 text-whatsapp-green" />
             Agendamentos Recentes
           </CardTitle>
         </CardHeader>
         <CardContent className="p-3 md:p-6 pt-0">
           {recentAppointments.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-whatsapp-muted">
               <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-300" />
               <p>Nenhum agendamento encontrado</p>
               <p className="text-sm">Os agendamentos aparecerão aqui quando forem criados</p>
@@ -344,13 +344,13 @@ const MerchantDashboard = ({ companyName }: { companyName: string }) => {
           ) : (
             <div className="space-y-3">
               {recentAppointments.map((appointment) => (
-                <div key={appointment.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                <div key={appointment.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 border border-whatsapp rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="flex-1 min-w-0 mb-2 md:mb-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="font-medium truncate">{appointment.client_name}</p>
+                      <p className="font-medium truncate text-gray-800">{appointment.client_name}</p>
                       {getStatusBadge(appointment.status)}
                     </div>
-                    <div className="text-sm text-gray-600 space-y-1">
+                    <div className="text-sm text-whatsapp-muted space-y-1">
                       <p>📅 {format(new Date(appointment.appointment_date), 'dd/MM/yyyy', { locale: ptBR })} às {appointment.appointment_time}</p>
                       <p>💇 {appointment.service_name}</p>
                     </div>
@@ -360,6 +360,7 @@ const MerchantDashboard = ({ companyName }: { companyName: string }) => {
                       size="sm"
                       variant="outline"
                       onClick={() => window.open(`tel:${appointment.client_phone}`)}
+                      className="border-whatsapp"
                     >
                       <Phone className="w-4 h-4" />
                     </Button>

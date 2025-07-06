@@ -6,8 +6,10 @@ import { supabase } from '@/integrations/supabase/client';
 import MerchantDashboard from '../components/MerchantDashboard';
 import MonthlyAgenda from '../components/MonthlyAgenda';
 import SettingsPanel from '../components/SettingsPanel';
+import ClientManagement from '../components/ClientManagement';
+import ServiceManagement from '../components/ServiceManagement';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Home, Settings, LogOut, Calendar } from 'lucide-react';
+import { MoreHorizontal, Settings, Calendar, Users, Briefcase, LogOut, User, Clock } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,10 +18,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+type ViewType = 'dashboard' | 'agenda' | 'settings' | 'clients' | 'services';
+
 const Index = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<'dashboard' | 'agenda' | 'settings'>('dashboard');
+  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [profileComplete, setProfileComplete] = useState(false);
   const [companyName, setCompanyName] = useState('');
 
@@ -58,10 +62,10 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-whatsapp-bg flex items-center justify-center">
         <div className="text-center">
-          <div className="text-xl font-bold text-green-600">ZapAgenda</div>
-          <div className="text-gray-600">Carregando...</div>
+          <div className="text-xl font-bold text-whatsapp-green">ZapAgenda</div>
+          <div className="text-whatsapp-muted">Carregando...</div>
         </div>
       </div>
     );
@@ -71,38 +75,63 @@ const Index = () => {
     return null; // Will redirect via useEffect
   }
 
+  const renderContent = () => {
+    switch (currentView) {
+      case 'dashboard':
+        return <MerchantDashboard companyName={companyName} />;
+      case 'agenda':
+        return <MonthlyAgenda />;
+      case 'settings':
+        return <SettingsPanel />;
+      case 'clients':
+        return <ClientManagement />;
+      case 'services':
+        return <ServiceManagement />;
+      default:
+        return <MerchantDashboard companyName={companyName} />;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-whatsapp-bg">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b p-3 md:p-4 sticky top-0 z-50">
+      <div className="bg-white shadow-sm border-b border-whatsapp p-3 md:p-4 sticky top-0 z-50">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
-            <h1 className="text-lg md:text-xl font-bold text-green-600">ZapAgenda</h1>
-            <p className="text-xs md:text-sm text-gray-600">{companyName}</p>
+            <h1 className="text-lg md:text-xl font-bold text-whatsapp-green">ZapAgenda</h1>
+            <p className="text-xs md:text-sm text-whatsapp-muted">{companyName}</p>
           </div>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="p-2">
+              <Button variant="ghost" size="sm" className="p-2 hover:bg-gray-50">
                 <MoreHorizontal className="w-5 h-5 text-gray-600" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => setCurrentView('dashboard')}>
-                <Home className="w-4 h-4 mr-2" />
+            <DropdownMenuContent align="end" className="w-56 bg-white border-whatsapp">
+              <DropdownMenuItem onClick={() => setCurrentView('dashboard')} className="hover:bg-gray-50">
+                <Briefcase className="w-4 h-4 mr-2" />
                 Dashboard
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setCurrentView('agenda')}>
+              <DropdownMenuItem onClick={() => setCurrentView('agenda')} className="hover:bg-gray-50">
                 <Calendar className="w-4 h-4 mr-2" />
                 Agenda Mensal
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setCurrentView('settings')}>
+              <DropdownMenuSeparator className="bg-whatsapp-border" />
+              <DropdownMenuItem onClick={() => setCurrentView('settings')} className="hover:bg-gray-50">
                 <Settings className="w-4 h-4 mr-2" />
-                Configurações
+                Configurações Gerais
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+              <DropdownMenuItem onClick={() => setCurrentView('clients')} className="hover:bg-gray-50">
+                <Users className="w-4 h-4 mr-2" />
+                Gerenciar Clientes
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setCurrentView('services')} className="hover:bg-gray-50">
+                <Briefcase className="w-4 h-4 mr-2" />
+                Gerenciar Serviços
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-whatsapp-border" />
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600 hover:bg-red-50">
                 <LogOut className="w-4 h-4 mr-2" />
                 Sair
               </DropdownMenuItem>
@@ -112,24 +141,8 @@ const Index = () => {
       </div>
 
       {/* Main Content */}
-      <div className="pb-4 md:pb-16">
-        {currentView === 'dashboard' && <MerchantDashboard companyName={companyName} />}
-        {currentView === 'agenda' && <MonthlyAgenda />}
-        {currentView === 'settings' && <SettingsPanel />}
-      </div>
-
-      {/* Bottom Navigation for Mobile - Only Dashboard */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-2 md:hidden">
-        <div className="flex justify-center">
-          <Button
-            variant={currentView === 'dashboard' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setCurrentView('dashboard')}
-            className="flex-1 mx-1"
-          >
-            Dashboard
-          </Button>
-        </div>
+      <div className="pb-4 md:pb-8">
+        {renderContent()}
       </div>
     </div>
   );
