@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +22,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import NewAppointmentModal from './NewAppointmentModal';
 
+type ViewType = 'dashboard' | 'agenda' | 'settings' | 'clients' | 'services';
+
 interface DashboardStats {
   todayAppointments: number;
   totalClients: number;
@@ -46,7 +47,7 @@ interface CompanySettings {
 
 interface MerchantDashboardProps {
   companyName: string;
-  onViewChange: (view: string) => void;
+  onViewChange: (view: ViewType) => void;
 }
 
 const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps) => {
