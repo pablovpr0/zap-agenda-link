@@ -1,272 +1,375 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, Users, Eye, MessageCircle, Copy, Share2, Phone, Plus } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Calendar, 
+  Users, 
+  DollarSign, 
+  TrendingUp, 
+  Clock,
+  Plus,
+  ExternalLink,
+  Phone,
+  Copy,
+  CheckCircle
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-interface MerchantDashboardProps {
-  companyName: string;
+interface DashboardStats {
+  todayAppointments: number;
+  totalClients: number;
+  monthlyRevenue: number;
+  completionRate: number;
 }
 
-const MerchantDashboard = ({ companyName }: MerchantDashboardProps) => {
-  const [showTodayAppointments, setShowTodayAppointments] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+interface RecentAppointment {
+  id: string;
+  appointment_date: string;
+  appointment_time: string;
+  client_name: string;
+  client_phone: string;
+  service_name: string;
+  status: string;
+}
 
-  // Dados mockados
-  const stats = {
-    todayAppointments: 8
-  };
+interface CompanySettings {
+  slug: string;
+}
 
-  const todayClients = [
-    { id: 1, name: 'Maria Silva', service: 'Corte Feminino', time: '09:00', phone: '(11) 99999-1111', status: 'confirmado' },
-    { id: 2, name: 'João Santos', service: 'Corte Masculino', time: '10:30', phone: '(11) 99999-2222', status: 'confirmado' },
-    { id: 3, name: 'Ana Costa', service: 'Escova', time: '14:00', phone: '(11) 99999-3333', status: 'pendente' },
-    { id: 4, name: 'Pedro Lima', service: 'Coloração', time: '15:30', phone: '(11) 99999-4444', status: 'confirmado' },
-  ];
+const MerchantDashboard = ({ companyName }: { companyName: string }) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [stats, setStats] = useState<DashboardStats>({
+    todayAppointments: 0,
+    totalClients: 0,
+    monthlyRevenue: 0,
+    completionRate: 0
+  });
+  const [recentAppointments, setRecentAppointments] = useState<RecentAppointment[]>([]);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [linkCopied, setLinkCopied] = useState(false);
 
-  const recentBookings = [
-    { id: 1, name: 'Maria Silva', service: 'Corte Feminino', time: '09:00', phone: '(11) 99999-1111', date: '15/01/2024', status: 'confirmado' },
-    { id: 2, name: 'João Santos', service: 'Corte Masculino', time: '10:30', phone: '(11) 99999-2222', date: '15/01/2024', status: 'confirmado' },
-    { id: 3, name: 'Ana Costa', service: 'Escova', time: '14:00', phone: '(11) 99999-3333', date: '16/01/2024', status: 'pendente' },
-    { id: 4, name: 'Pedro Lima', service: 'Coloração', time: '15:30', phone: '(11) 99999-4444', date: '17/01/2024', status: 'confirmado' },
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmado': return 'bg-green-100 text-green-800';
-      case 'pendente': return 'bg-yellow-100 text-yellow-800';
-      case 'cancelado': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+  useEffect(() => {
+    if (user) {
+      loadDashboardData();
     }
-  };
+  }, [user]);
 
-  const sendWhatsAppMessage = (client: any) => {
-    const message = encodeURIComponent(`Olá ${client.name}! Estou passando para confirmar se o horário hoje às ${client.time} está mantido. Posso confirmar?`);
-    const phone = client.phone.replace(/\D/g, '');
-    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
-  };
+  const loadDashboardData = async () => {
+    try {
+      // Buscar configurações da empresa
+      const { data: settings } = await supabase
+        .from('company_settings')
+        .select('slug')
+        .eq('company_id', user!.id)
+        .single();
 
-  const copyLink = () => {
-    const publicLink = `zapagenda.com/${companyName.toLowerCase().replace(/\s+/g, '-')}`;
-    navigator.clipboard.writeText(publicLink);
-  };
+      if (settings) {
+        setCompanySettings(settings);
+      }
 
-  const shareLink = () => {
-    const publicLink = `zapagenda.com/${companyName.toLowerCase().replace(/\s+/g, '-')}`;
-    if (navigator.share) {
-      navigator.share({
-        title: 'Agende seu horário',
-        text: 'Agende seu horário conosco através deste link:',
-        url: publicLink
+      // Buscar estatísticas dos agendamentos
+      const today = new Date().toISOString().split('T')[0];
+      const { data: todayAppointments } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('company_id', user!.id)
+        .eq('appointment_date', today);
+
+      // Buscar total de clientes
+      const { data: clients } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('company_id', user!.id);
+
+      // Buscar agendamentos recentes
+      const { data: appointments } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          appointment_date,
+          appointment_time,
+          status,
+          clients!inner(name, phone),
+          services!inner(name)
+        `)
+        .eq('company_id', user!.id)
+        .order('appointment_date', { ascending: false })
+        .order('appointment_time', { ascending: false })
+        .limit(5);
+
+      // Processar dados dos agendamentos
+      const processedAppointments = appointments?.map(apt => ({
+        id: apt.id,
+        appointment_date: apt.appointment_date,
+        appointment_time: apt.appointment_time,
+        client_name: apt.clients.name,
+        client_phone: apt.clients.phone,
+        service_name: apt.services.name,
+        status: apt.status
+      })) || [];
+
+      setStats({
+        todayAppointments: todayAppointments?.length || 0,
+        totalClients: clients?.length || 0,
+        monthlyRevenue: 0, // TODO: Calcular receita mensal
+        completionRate: 85 // TODO: Calcular taxa de conclusão real
       });
-    } else {
-      copyLink();
+
+      setRecentAppointments(processedAppointments);
+    } catch (error) {
+      console.error('Erro ao carregar dados do dashboard:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleNewAppointment = () => {
-    // Implementar modal ou navegação para novo agendamento
-    alert('Funcionalidade de novo agendamento será implementada em breve');
+  const getPublicBookingLink = () => {
+    if (!companySettings?.slug) return '';
+    return `${window.location.origin}/public/${companySettings.slug}`;
   };
 
-  const handleViewPublicLink = () => {
-    const publicLink = `zapagenda.com/${companyName.toLowerCase().replace(/\s+/g, '-')}`;
-    window.open(`https://${publicLink}`, '_blank');
+  const copyBookingLink = async () => {
+    const link = getPublicBookingLink();
+    if (link) {
+      await navigator.clipboard.writeText(link);
+      setLinkCopied(true);
+      toast({
+        title: "Link copiado!",
+        description: "O link de agendamento foi copiado para a área de transferência.",
+      });
+      setTimeout(() => setLinkCopied(false), 2000);
+    }
   };
 
-  const handleManageClients = () => {
-    // Implementar tela de gerenciar clientes
-    alert('Funcionalidade de gerenciar clientes será implementada em breve');
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      confirmed: { label: 'Confirmado', color: 'bg-green-100 text-green-800' },
+      cancelled: { label: 'Cancelado', color: 'bg-red-100 text-red-800' },
+      completed: { label: 'Concluído', color: 'bg-blue-100 text-blue-800' }
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.confirmed;
+    
+    return (
+      <Badge className={config.color}>
+        {config.label}
+      </Badge>
+    );
   };
+
+  if (loading) {
+    return (
+      <div className="p-3 md:p-6 space-y-4 md:space-y-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in">
-      {/* Welcome Section */}
-      <div className="mb-4 md:mb-6">
-        <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-2">Olá, {companyName}! 👋</h2>
-        <p className="text-gray-600 text-sm">Aqui está um resumo do seu negócio hoje.</p>
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg md:text-xl font-bold text-gray-800">Dashboard</h2>
+          <p className="text-gray-600 text-sm">Visão geral do seu negócio</p>
+        </div>
       </div>
 
-      {/* Stats Card */}
-      <Card className="border-l-4 border-l-primary">
-        <CardContent className="p-3 md:p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Agendamentos Hoje</p>
-              <p className="text-xl md:text-2xl font-bold text-primary">{stats.todayAppointments}</p>
+      {/* Link de Agendamento Público */}
+      {companySettings?.slug && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex-1">
+                <h3 className="font-medium text-green-800 mb-1">Link de Agendamento Público</h3>
+                <p className="text-sm text-green-600 break-all">
+                  {getPublicBookingLink()}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open(getPublicBookingLink(), '_blank')}
+                  className="border-green-300 text-green-700 hover:bg-green-100"
+                >
+                  <ExternalLink className="w-4 h-4 mr-1" />
+                  Visualizar
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={copyBookingLink}
+                  className="border-green-300 text-green-700 hover:bg-green-100"
+                >
+                  {linkCopied ? (
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                  ) : (
+                    <Copy className="w-4 h-4 mr-1" />
+                  )}
+                  {linkCopied ? 'Copiado!' : 'Copiar'}
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 md:w-6 h-5 md:h-6 text-primary/60" />
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowTodayAppointments(true)}
-              >
-                Ver Lista
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Quick Actions */}
+      {/* Cards de Estatísticas */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-3 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs md:text-sm font-medium text-gray-600">Hoje</p>
+                <p className="text-lg md:text-2xl font-bold">{stats.todayAppointments}</p>
+              </div>
+              <Calendar className="w-6 md:w-8 h-6 md:h-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-3 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs md:text-sm font-medium text-gray-600">Clientes</p>
+                <p className="text-lg md:text-2xl font-bold">{stats.totalClients}</p>
+              </div>
+              <Users className="w-6 md:w-8 h-6 md:h-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-3 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs md:text-sm font-medium text-gray-600">Receita</p>
+                <p className="text-lg md:text-2xl font-bold">R$ {stats.monthlyRevenue}</p>
+              </div>
+              <DollarSign className="w-6 md:w-8 h-6 md:h-8 text-yellow-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-3 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs md:text-sm font-medium text-gray-600">Taxa</p>
+                <p className="text-lg md:text-2xl font-bold">{stats.completionRate}%</p>
+              </div>
+              <TrendingUp className="w-6 md:w-8 h-6 md:h-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Ações Rápidas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Plus className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-medium">Novo Agendamento</h3>
+                <p className="text-sm text-gray-600">Criar agendamento manual</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <ExternalLink className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-medium">Página do Cliente</h3>
+                <p className="text-sm text-gray-600">Ver página pública</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Users className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="font-medium">Gerenciar Clientes</h3>
+                <p className="text-sm text-gray-600">Ver todos os clientes</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Agendamentos Recentes */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             <Clock className="w-4 md:w-5 h-4 md:h-5 text-primary" />
-            Ações Rápidas
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Button className="bg-primary hover:bg-primary/90 w-full" onClick={handleNewAppointment}>
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Agendamento
-          </Button>
-          <Button variant="outline" className="w-full" onClick={handleViewPublicLink}>
-            <Eye className="w-4 h-4 mr-2" />
-            Ver Página do Cliente
-          </Button>
-          <Button variant="outline" className="w-full" onClick={handleManageClients}>
-            <Users className="w-4 h-4 mr-2" />
-            Gerenciar Clientes
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Recent Bookings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-            <Calendar className="w-4 md:w-5 h-4 md:h-5 text-primary" />
             Agendamentos Recentes
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {recentBookings.map((booking) => (
-              <div 
-                key={booking.id} 
-                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                onClick={() => setSelectedBooking(booking)}
-              >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-8 md:w-10 h-8 md:h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Users className="w-4 md:w-5 h-4 md:h-5 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-800 text-sm md:text-base truncate">{booking.name}</p>
-                    <p className="text-xs md:text-sm text-gray-600">{booking.service}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-                  <div className="text-right">
-                    <p className="font-medium text-gray-800 text-sm md:text-base">{booking.date}</p>
-                    <p className="text-xs md:text-sm text-gray-600">{booking.time}</p>
-                    <Badge className={`${getStatusColor(booking.status)} text-xs`}>
-                      {booking.status}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Link Section */}
-      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-        <CardContent className="p-4 md:p-6">
-          <div className="text-center space-y-4">
-            <h3 className="text-base md:text-lg font-semibold text-gray-800">Seu Link de Agendamento</h3>
-            <p className="text-gray-600 text-sm">Compartilhe este link com seus clientes para que possam agendar facilmente:</p>
-            <div className="bg-white p-3 rounded-lg border">
-              <code className="text-primary font-mono text-xs md:text-sm break-all">
-                zapagenda.com/{companyName.toLowerCase().replace(/\s+/g, '-')}
-              </code>
+        <CardContent className="p-3 md:p-6 pt-0">
+          {recentAppointments.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p>Nenhum agendamento encontrado</p>
+              <p className="text-sm">Os agendamentos aparecerão aqui quando forem criados</p>
             </div>
-            <div className="flex flex-col md:flex-row gap-2 justify-center">
-              <Button className="bg-primary hover:bg-primary/90" onClick={copyLink}>
-                <Copy className="w-4 h-4 mr-2" />
-                Copiar Link
-              </Button>
-              <Button variant="outline" onClick={shareLink}>
-                <Share2 className="w-4 h-4 mr-2" />
-                Compartilhar
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Dialog para lista de agendamentos de hoje */}
-      <Dialog open={showTodayAppointments} onOpenChange={setShowTodayAppointments}>
-        <DialogContent className="max-w-md mx-3">
-          <DialogHeader>
-            <DialogTitle>Agendamentos de Hoje</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            {todayClients.map((client) => (
-              <div key={client.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{client.name}</p>
-                  <p className="text-sm text-gray-600">{client.time} - {client.service}</p>
-                </div>
-                <Button
-                  size="sm"
-                  className="bg-green-600 hover:bg-green-700 ml-2"
-                  onClick={() => sendWhatsAppMessage(client)}
-                >
-                  <MessageCircle className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog para detalhes do agendamento */}
-      <Dialog open={!!selectedBooking} onOpenChange={() => setSelectedBooking(null)}>
-        <DialogContent className="max-w-md mx-3">
-          {selectedBooking && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Detalhes do Agendamento</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <p className="font-medium text-gray-800">Nome:</p>
-                  <p className="text-gray-600">{selectedBooking.name}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-800">Telefone:</p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-gray-600 flex-1 text-sm">{selectedBooking.phone}</p>
-                    <Button size="sm" variant="outline" onClick={() => window.open(`tel:${selectedBooking.phone}`)}>
+          ) : (
+            <div className="space-y-3">
+              {recentAppointments.map((appointment) => (
+                <div key={appointment.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex-1 min-w-0 mb-2 md:mb-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-medium truncate">{appointment.client_name}</p>
+                      {getStatusBadge(appointment.status)}
+                    </div>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p>📅 {format(new Date(appointment.appointment_date), 'dd/MM/yyyy', { locale: ptBR })} às {appointment.appointment_time}</p>
+                      <p>💇 {appointment.service_name}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.open(`tel:${appointment.client_phone}`)}
+                    >
                       <Phone className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
-                <div>
-                  <p className="font-medium text-gray-800">Data e Horário:</p>
-                  <p className="text-gray-600">{selectedBooking.date} às {selectedBooking.time}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-800">Serviço:</p>
-                  <p className="text-gray-600">{selectedBooking.service}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-800">Status:</p>
-                  <Badge className={getStatusColor(selectedBooking.status)}>
-                    {selectedBooking.status}
-                  </Badge>
-                </div>
-              </div>
-            </>
+              ))}
+            </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
     </div>
   );
 };

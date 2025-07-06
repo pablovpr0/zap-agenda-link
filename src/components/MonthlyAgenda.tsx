@@ -1,29 +1,84 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Calendar, Phone } from 'lucide-react';
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+
+interface Appointment {
+  id: string;
+  appointment_date: string;
+  appointment_time: string;
+  client_name: string;
+  client_phone: string;
+  service_name: string;
+  status: string;
+}
 
 const MonthlyAgenda = () => {
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
 
-  // Dados mockados de agendamentos
-  const appointments = [
-    { id: 1, date: format(new Date(), 'yyyy-MM-dd'), client: 'Maria Silva', phone: '(11) 99999-1111', time: '09:00' },
-    { id: 2, date: format(new Date(), 'yyyy-MM-dd'), client: 'João Santos', phone: '(11) 99999-2222', time: '10:30' },
-    { id: 3, date: format(addMonths(new Date(), 0), 'yyyy-MM-dd'), client: 'Ana Costa', phone: '(11) 99999-3333', time: '14:00' },
-  ];
+  useEffect(() => {
+    if (user) {
+      loadAppointments();
+    }
+  }, [user, currentDate]);
+
+  const loadAppointments = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: appointmentData, error } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          appointment_date,
+          appointment_time,
+          status,
+          clients!inner(name, phone),
+          services!inner(name)
+        `)
+        .eq('company_id', user!.id)
+        .gte('appointment_date', format(monthStart, 'yyyy-MM-dd'))
+        .lte('appointment_date', format(monthEnd, 'yyyy-MM-dd'))
+        .order('appointment_date')
+        .order('appointment_time');
+
+      if (error) throw error;
+
+      // Processar dados dos agendamentos
+      const processedAppointments = appointmentData?.map(apt => ({
+        id: apt.id,
+        appointment_date: apt.appointment_date,
+        appointment_time: apt.appointment_time,
+        client_name: apt.clients.name,
+        client_phone: apt.clients.phone,
+        service_name: apt.services.name,
+        status: apt.status
+      })) || [];
+
+      setAppointments(processedAppointments);
+    } catch (error) {
+      console.error('Erro ao carregar agendamentos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getAppointmentsForDate = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return appointments.filter(apt => apt.date === dateStr);
+    return appointments.filter(apt => apt.appointment_date === dateStr);
   };
 
   const goToPreviousMonth = () => {
@@ -85,49 +140,57 @@ const MonthlyAgenda = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-2 md:p-6">
-          {/* Days of week header */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day) => (
-              <div key={day} className="p-1 md:p-2 text-center text-xs md:text-sm font-medium text-gray-600">
-                {day}
-              </div>
-            ))}
-          </div>
-          
-          {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((date, index) => {
-              const dayAppointments = getAppointmentsForDate(date);
-              const isCurrentMonth = isSameMonth(date, currentDate);
-              const isTodayDate = isToday(date);
-              const hasAppointments = dayAppointments.length > 0;
-              
-              return (
-                <div
-                  key={index}
-                  className={`
-                    p-1 md:p-2 min-h-[40px] md:min-h-[60px] border rounded-lg cursor-pointer transition-colors text-center
-                    ${isCurrentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400'}
-                    ${isTodayDate ? 'border-primary border-2 bg-primary/5' : 'border-gray-200'}
-                    ${hasAppointments ? 'hover:bg-blue-50' : 'hover:bg-gray-100'}
-                  `}
-                  onClick={() => handleDateClick(date)}
-                >
-                  <div className="text-xs md:text-sm font-medium">
-                    {format(date, 'd')}
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-gray-500">Carregando agendamentos...</div>
+            </div>
+          ) : (
+            <>
+              {/* Days of week header */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day) => (
+                  <div key={day} className="p-1 md:p-2 text-center text-xs md:text-sm font-medium text-gray-600">
+                    {day}
                   </div>
-                  {hasAppointments && (
-                    <div className="mt-1">
-                      <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-primary rounded-full mx-auto"></div>
-                      <div className="text-[10px] md:text-xs text-primary mt-1">
-                        {dayAppointments.length}
+                ))}
+              </div>
+              
+              {/* Calendar grid */}
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((date, index) => {
+                  const dayAppointments = getAppointmentsForDate(date);
+                  const isCurrentMonth = isSameMonth(date, currentDate);
+                  const isTodayDate = isToday(date);
+                  const hasAppointments = dayAppointments.length > 0;
+                  
+                  return (
+                    <div
+                      key={index}
+                      className={`
+                        p-1 md:p-2 min-h-[40px] md:min-h-[60px] border rounded-lg cursor-pointer transition-colors text-center
+                        ${isCurrentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400'}
+                        ${isTodayDate ? 'border-primary border-2 bg-primary/5' : 'border-gray-200'}
+                        ${hasAppointments ? 'hover:bg-blue-50' : 'hover:bg-gray-100'}
+                      `}
+                      onClick={() => handleDateClick(date)}
+                    >
+                      <div className="text-xs md:text-sm font-medium">
+                        {format(date, 'd')}
                       </div>
+                      {hasAppointments && (
+                        <div className="mt-1">
+                          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-primary rounded-full mx-auto"></div>
+                          <div className="text-[10px] md:text-xs text-primary mt-1">
+                            {dayAppointments.length}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -145,15 +208,17 @@ const MonthlyAgenda = () => {
                 {selectedDateAppointments.map((appointment) => (
                   <div key={appointment.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{appointment.client}</p>
-                      <p className="text-sm text-gray-600">{appointment.time}</p>
+                      <p className="font-medium truncate">{appointment.client_name}</p>
+                      <p className="text-sm text-gray-600">{appointment.appointment_time}</p>
+                      <p className="text-sm text-gray-500">{appointment.service_name}</p>
+                      <p className="text-xs text-gray-400 capitalize">{appointment.status}</p>
                     </div>
                     <div className="flex items-center gap-2 ml-2">
-                      <span className="text-xs md:text-sm text-gray-600 hidden md:inline">{appointment.phone}</span>
+                      <span className="text-xs md:text-sm text-gray-600 hidden md:inline">{appointment.client_phone}</span>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => window.open(`tel:${appointment.phone}`)}
+                        onClick={() => window.open(`tel:${appointment.client_phone}`)}
                       >
                         <Phone className="w-4 h-4" />
                       </Button>

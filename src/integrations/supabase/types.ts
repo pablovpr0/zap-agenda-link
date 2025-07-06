@@ -9,6 +9,176 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          client_id: string
+          company_id: string
+          created_at: string
+          duration: number
+          id: string
+          notes: string | null
+          service_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          client_id: string
+          company_id: string
+          created_at?: string
+          duration?: number
+          id?: string
+          notes?: string | null
+          service_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          duration?: number
+          id?: string
+          notes?: string | null
+          service_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          company_id: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_settings: {
+        Row: {
+          advance_booking_limit: number
+          appointment_interval: number
+          company_id: string
+          cover_image_url: string | null
+          created_at: string
+          id: string
+          instagram_url: string | null
+          logo_url: string | null
+          max_simultaneous_appointments: number
+          slug: string
+          theme_color: string | null
+          updated_at: string
+          welcome_message: string | null
+          working_days: number[]
+          working_hours_end: string
+          working_hours_start: string
+        }
+        Insert: {
+          advance_booking_limit?: number
+          appointment_interval?: number
+          company_id: string
+          cover_image_url?: string | null
+          created_at?: string
+          id?: string
+          instagram_url?: string | null
+          logo_url?: string | null
+          max_simultaneous_appointments?: number
+          slug: string
+          theme_color?: string | null
+          updated_at?: string
+          welcome_message?: string | null
+          working_days?: number[]
+          working_hours_end?: string
+          working_hours_start?: string
+        }
+        Update: {
+          advance_booking_limit?: number
+          appointment_interval?: number
+          company_id?: string
+          cover_image_url?: string | null
+          created_at?: string
+          id?: string
+          instagram_url?: string | null
+          logo_url?: string | null
+          max_simultaneous_appointments?: number
+          slug?: string
+          theme_color?: string | null
+          updated_at?: string
+          welcome_message?: string | null
+          working_days?: number[]
+          working_hours_end?: string
+          working_hours_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           business_type: string | null
@@ -35,6 +205,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      services: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          duration: number
+          id: string
+          is_active: boolean
+          name: string
+          price: number | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          duration?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          duration?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
