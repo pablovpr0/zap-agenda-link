@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -106,13 +105,24 @@ const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps
 
       if (recentError) throw recentError;
 
+      // Transformar dados dos agendamentos recentes
+      const transformedAppointments = recentAppts?.map(apt => ({
+        id: apt.id,
+        appointment_date: apt.appointment_date,
+        appointment_time: apt.appointment_time,
+        status: apt.status,
+        client_name: apt.clients.name,
+        client_phone: apt.clients.phone,
+        service_name: apt.services.name
+      })) || [];
+
       setData({
         todayAppointments: todayAppts?.length || 0,
         totalClients: clientsData?.length || 0,
         monthlyRevenue: 0, // TODO: Implementar cálculo de receita
         completionRate: 85, // TODO: Implementar cálculo real
         bookingLink,
-        recentAppointments: recentAppts || []
+        recentAppointments: transformedAppointments
       });
 
     } catch (error: any) {
@@ -252,7 +262,6 @@ const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps
       {/* Agendamentos recentes */}
       <RecentAppointments 
         appointments={data.recentAppointments}
-        onViewAll={() => onViewChange('agenda')}
       />
 
       {/* Modal de novo agendamento */}
