@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
 import DashboardContent from './dashboard/DashboardContent';
@@ -16,8 +16,20 @@ const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
 
   const handleNewAppointmentSuccess = () => {
+    console.log('Novo agendamento criado, atualizando dashboard...');
     refreshData(); // Recarregar dados após criar agendamento
   };
+
+  // Refresh automático a cada 30 segundos para garantir sincronização
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!loading) {
+        refreshData();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [refreshData, loading]);
 
   if (loading) {
     return (

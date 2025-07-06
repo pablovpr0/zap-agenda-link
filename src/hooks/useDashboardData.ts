@@ -30,6 +30,24 @@ export const useDashboardData = (companyName: string) => {
   useEffect(() => {
     if (user) {
       loadDashboardData();
+      
+      // Configurar realtime subscription para agendamentos
+      const channel = supabase
+        .channel('dashboard-appointments')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+          filter: `company_id=eq.${user.id}`
+        }, () => {
+          console.log('Agendamento alterado, recarregando dados...');
+          loadDashboardData();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 
@@ -76,7 +94,7 @@ export const useDashboardData = (companyName: string) => {
 
       if (clientsError) throw clientsError;
 
-      // Agendamentos recentes
+      // Agendamentos recentes - usando LEFT JOIN para garantir que todos os agendamentos sejam retornados
       const { data: recentAppts, error: recentError } = await supabase
         .from('appointments')
         .select(`
@@ -84,8 +102,8 @@ export const useDashboardData = (companyName: string) => {
           appointment_date,
           appointment_time,
           status,
-          clients!inner(name, phone),
-          services!inner(name)
+          clients!left(name, phone),
+          services!left(name)
         `)
         .eq('company_id', user.id)
         .order('appointment_date', { ascending: false })
@@ -100,9 +118,9 @@ export const useDashboardData = (companyName: string) => {
         appointment_date: apt.appointment_date,
         appointment_time: apt.appointment_time,
         status: apt.status,
-        client_name: apt.clients.name,
-        client_phone: apt.clients.phone,
-        service_name: apt.services.name
+        client_name: apt.clients?.name || 'Cliente não encontrado',
+        client_phone: apt.clients?.phone || '',
+        service_name: apt.services?.name || 'Serviço não encontrado'
       })) || [];
 
       setData({
