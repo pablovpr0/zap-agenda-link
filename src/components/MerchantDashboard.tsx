@@ -174,7 +174,8 @@ const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps
   const handleViewPublicPage = () => {
     const link = getPublicBookingLink();
     if (link) {
-      window.open(link, '_blank');
+      // Abrir na mesma aba para melhor experiência
+      window.location.href = link;
     }
   };
 
