@@ -1,5 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import MerchantDashboard from '../components/MerchantDashboard';
 import MonthlyAgenda from '../components/MonthlyAgenda';
 import SettingsPanel from '../components/SettingsPanel';
@@ -13,19 +16,64 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const Index = () => {
+  const { user, loading, signOut } = useAuth();
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<'dashboard' | 'agenda' | 'settings'>('dashboard');
+  const [profileComplete, setProfileComplete] = useState(false);
 
-  const handleLogout = () => {
-    // Implementar logout aqui
-    console.log('Logout realizado');
+  useEffect(() => {
+    if (loading) return;
+
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    // Check if profile is complete
+    const checkProfile = async () => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile || !profile.company_name) {
+        navigate('/company-setup');
+        return;
+      }
+
+      setProfileComplete(true);
+    };
+
+    checkProfile();
+  }, [user, loading, navigate]);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl font-bold text-green-600">ZapAgenda</div>
+          <div className="text-gray-600">Carregando...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !profileComplete) {
+    return null; // Will redirect via useEffect
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b p-4 sticky top-0 z-50">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-primary">ZapAgenda</h1>
+          <h1 className="text-xl font-bold text-green-600">ZapAgenda</h1>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
