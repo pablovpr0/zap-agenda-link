@@ -13,7 +13,7 @@ const MonthlyAgenda = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
-  const { appointments, loading, getAppointmentsForDate } = useMonthlyAppointments(currentDate);
+  const { appointments, loading, getAppointmentsForDate, refreshAppointments } = useMonthlyAppointments(currentDate);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -88,6 +88,7 @@ const MonthlyAgenda = () => {
         appointments={selectedDateAppointments}
         onClose={() => setSelectedDate(null)}
         onWhatsAppClick={handleWhatsAppClick}
+        onRefresh={refreshAppointments}
       />
     </div>
   );

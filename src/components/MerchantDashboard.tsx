@@ -52,6 +52,7 @@ const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps
         onShareWhatsApp={handleShareWhatsApp}
         onNewAppointment={() => setShowNewAppointmentModal(true)}
         onManageClients={() => onViewChange('clients')}
+        onRefreshAppointments={refreshData}
       />
 
       {/* Modal de novo agendamento */}

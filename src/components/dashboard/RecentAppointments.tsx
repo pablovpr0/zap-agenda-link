@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, Calendar, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import AppointmentActions from '@/components/appointments/AppointmentActions';
 
 interface RecentAppointment {
   id: string;
@@ -18,9 +19,10 @@ interface RecentAppointment {
 
 interface RecentAppointmentsProps {
   appointments: RecentAppointment[];
+  onRefresh?: () => void;
 }
 
-const RecentAppointments = ({ appointments }: RecentAppointmentsProps) => {
+const RecentAppointments = ({ appointments, onRefresh }: RecentAppointmentsProps) => {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       confirmed: { label: 'Confirmado', color: 'bg-green-100 text-green-800' },
@@ -73,12 +75,18 @@ const RecentAppointments = ({ appointments }: RecentAppointmentsProps) => {
                     <p>💇 {appointment.service_name}</p>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
+                  <AppointmentActions
+                    appointmentId={appointment.id}
+                    currentDate={appointment.appointment_date}
+                    currentTime={appointment.appointment_time}
+                    onSuccess={onRefresh}
+                  />
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleWhatsAppClick(appointment.client_phone, appointment.client_name)}
-                    className="border-whatsapp text-whatsapp-green hover:bg-whatsapp-green hover:text-white"
+                    className="border-green-300 text-green-600 hover:bg-green-50 hover:text-green-700"
                   >
                     <MessageCircle className="w-4 h-4" />
                   </Button>

@@ -399,12 +399,12 @@ const PublicBooking = () => {
               <div className="space-y-2">
                 <Label htmlFor="service">Serviço *</Label>
                 <Select value={selectedService} onValueChange={setSelectedService} required>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-green-200 focus:border-green-300 focus:ring-green-100">
                     <SelectValue placeholder="Selecione um serviço" />
                   </SelectTrigger>
                   <SelectContent>
                     {services.map((service) => (
-                      <SelectItem key={service.id} value={service.id}>
+                      <SelectItem key={service.id} value={service.id} className="hover:bg-green-50">
                         <div className="flex justify-between items-center w-full">
                           <span>{service.name}</span>
                           <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -427,14 +427,14 @@ const PublicBooking = () => {
               <div className="space-y-2">
                 <Label htmlFor="date">Data *</Label>
                 <Select value={selectedDate} onValueChange={setSelectedDate} required>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-green-200 focus:border-green-300 focus:ring-green-100">
                     <SelectValue placeholder="Selecione uma data" />
                   </SelectTrigger>
                   <SelectContent>
                     {availableDates.map((date) => {
                       const dateStr = format(date, 'yyyy-MM-dd');
                       return (
-                        <SelectItem key={dateStr} value={dateStr}>
+                        <SelectItem key={dateStr} value={dateStr} className="hover:bg-green-50">
                           {format(date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                         </SelectItem>
                       );
@@ -448,12 +448,12 @@ const PublicBooking = () => {
                 <div className="space-y-2">
                   <Label htmlFor="time">Horário *</Label>
                   <Select value={selectedTime} onValueChange={setSelectedTime} required>
-                    <SelectTrigger>
+                    <SelectTrigger className="border-green-200 focus:border-green-300 focus:ring-green-100">
                       <SelectValue placeholder="Selecione um horário" />
                     </SelectTrigger>
                     <SelectContent>
                       {availableTimes.map((time) => (
-                        <SelectItem key={time} value={time}>
+                        <SelectItem key={time} value={time} className="hover:bg-green-50">
                           {time}
                         </SelectItem>
                       ))}
@@ -474,7 +474,7 @@ const PublicBooking = () => {
                       value={clientName}
                       onChange={(e) => setClientName(e.target.value)}
                       placeholder="Seu nome completo"
-                      className="pl-10"
+                      className="pl-10 border-green-200 focus:border-green-300 focus:ring-green-100"
                       required
                     />
                   </div>
@@ -490,7 +490,7 @@ const PublicBooking = () => {
                       value={clientPhone}
                       onChange={(e) => setClientPhone(e.target.value)}
                       placeholder="(11) 99999-9999"
-                      className="pl-10"
+                      className="pl-10 border-green-200 focus:border-green-300 focus:ring-green-100"
                       required
                     />
                   </div>
@@ -507,7 +507,7 @@ const PublicBooking = () => {
                     value={clientEmail}
                     onChange={(e) => setClientEmail(e.target.value)}
                     placeholder="seu@email.com"
-                    className="pl-10"
+                    className="pl-10 border-green-200 focus:border-green-300 focus:ring-green-100"
                   />
                 </div>
               </div>
@@ -520,12 +520,13 @@ const PublicBooking = () => {
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Alguma observação especial?"
                   rows={3}
+                  className="border-green-200 focus:border-green-300 focus:ring-green-100"
                 />
               </div>
 
               <Button 
                 type="submit" 
-                className="w-full"
+                className="w-full bg-green-500 hover:bg-green-600"
                 style={{ backgroundColor: companySettings?.theme_color || '#22c55e' }}
                 disabled={submitting}
               >
@@ -545,7 +546,7 @@ const PublicBooking = () => {
         {/* Links sociais */}
         {companySettings?.instagram_url && (
           <div className="text-center mt-6">
-            <Button variant="outline" asChild>
+            <Button variant="outline" asChild className="border-green-200 text-green-600 hover:bg-green-50">
               <a 
                 href={companySettings.instagram_url} 
                 target="_blank" 
