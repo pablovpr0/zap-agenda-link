@@ -62,12 +62,14 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
   const handleWhatsAppClick = (phone: string, clientName: string, appointmentDate?: string, appointmentTime?: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
     
-    // Mensagem de lembrete personalizada
+    // Mensagem de lembrete personalizada com data correta
     let message = `Olá, ${clientName}! 👋\n\n`;
     message += `🔔 *LEMBRETE DO SEU AGENDAMENTO*\n\n`;
     
     if (appointmentDate && appointmentTime) {
-      const formattedDate = format(new Date(appointmentDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+      // Garantir que a data seja formatada corretamente
+      const appointmentDateObj = new Date(appointmentDate + 'T00:00:00');
+      const formattedDate = format(appointmentDateObj, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
       const formattedTime = appointmentTime.substring(0, 5);
       message += `📅 *Data:* ${formattedDate}\n`;
       message += `⏰ *Horário:* ${formattedTime}\n\n`;

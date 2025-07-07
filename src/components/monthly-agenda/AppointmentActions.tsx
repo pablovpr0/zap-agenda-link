@@ -1,6 +1,6 @@
 
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, X, RotateCcw, MessageSquare } from 'lucide-react';
+import { Trash2, X, RotateCcw, MessageSquare } from 'lucide-react';
 import { useAppointmentActions } from '@/hooks/useAppointmentActions';
 
 interface MonthlyAppointment {
@@ -61,17 +61,8 @@ const AppointmentActions = ({
       <Button 
         variant="outline" 
         size="sm"
-        className="flex items-center gap-2 text-xs bg-white hover:bg-blue-50 border-blue-200 text-blue-700 hover:text-blue-800"
-      >
-        <Edit className="w-3 h-3" />
-        <span className="hidden sm:inline">Editar</span>
-      </Button>
-      
-      <Button 
-        variant="outline" 
-        size="sm"
         onClick={() => handleRescheduleAppointment(appointment.client_phone, appointment.client_name)}
-        className="flex items-center gap-2 text-xs bg-white hover:bg-yellow-50 border-yellow-200 text-yellow-700 hover:text-yellow-800"
+        className="flex items-center gap-2 text-xs bg-green-50 hover:bg-green-100 border-green-300 text-green-700 hover:text-green-800"
       >
         <RotateCcw className="w-3 h-3" />
         <span className="hidden sm:inline">Reagendar</span>
@@ -82,7 +73,7 @@ const AppointmentActions = ({
           variant="outline" 
           size="sm"
           onClick={() => handleCancelAppointment(appointment.id, appointment.client_phone, appointment.client_name)}
-          className="flex items-center gap-2 text-xs bg-white hover:bg-orange-50 border-orange-200 text-orange-600 hover:text-orange-700"
+          className="flex items-center gap-2 text-xs bg-green-50 hover:bg-green-100 border-green-300 text-green-700 hover:text-green-800"
         >
           <X className="w-3 h-3" />
           <span className="hidden sm:inline">Cancelar</span>
@@ -93,7 +84,7 @@ const AppointmentActions = ({
         variant="outline" 
         size="sm"
         onClick={() => handleDeleteAppointment(appointment.id, appointment.client_phone, appointment.client_name)}
-        className="flex items-center gap-2 text-xs bg-white hover:bg-red-50 border-red-200 text-red-600 hover:text-red-700"
+        className="flex items-center gap-2 text-xs bg-green-50 hover:bg-green-100 border-green-300 text-green-700 hover:text-green-800"
       >
         <Trash2 className="w-3 h-3" />
         <span className="hidden sm:inline">Excluir</span>
@@ -103,7 +94,7 @@ const AppointmentActions = ({
         variant="outline" 
         size="sm"
         onClick={() => onWhatsAppClick(appointment.client_phone, appointment.client_name, appointment.appointment_date, appointment.appointment_time)}
-        className="flex items-center gap-2 text-xs bg-white hover:bg-green-50 border-green-200 text-green-600 hover:text-green-700"
+        className="flex items-center gap-2 text-xs bg-green-50 hover:bg-green-100 border-green-300 text-green-700 hover:text-green-800"
       >
         <MessageSquare className="w-3 h-3" />
         <span className="hidden sm:inline">Lembrete</span>
