@@ -9,6 +9,7 @@ import CalendarHeader from './monthly-agenda/CalendarHeader';
 import CalendarGrid from './monthly-agenda/CalendarGrid';
 import AppointmentDialog from './monthly-agenda/AppointmentDialog';
 import BackButton from './BackButton';
+import { useToast } from '@/hooks/use-toast';
 
 interface MonthlyAgendaProps {
   onBack?: () => void;
@@ -27,6 +28,7 @@ interface MonthlyAppointment {
 }
 
 const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
+  const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
@@ -48,27 +50,73 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
     if (dayAppointments.length > 0) {
       console.log('Selecionando data:', format(date, 'yyyy-MM-dd'), 'com', dayAppointments.length, 'agendamentos');
       setSelectedDate(date);
+    } else {
+      // Mensagem quando não há agendamentos
+      toast({
+        title: "Nenhum agendamento",
+        description: `Não há agendamentos para ${format(date, "dd 'de' MMMM", { locale: ptBR })}.`,
+      });
     }
   };
 
   const handleWhatsAppClick = (phone: string, clientName: string, appointmentDate?: string, appointmentTime?: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
     
-    // Formatar data e horário se fornecidos
-    let message = `Olá, ${clientName}! 👋\n`;
+    // Mensagem de lembrete personalizada
+    let message = `Olá, ${clientName}! 👋\n\n`;
+    message += `🔔 *LEMBRETE DO SEU AGENDAMENTO*\n\n`;
     
     if (appointmentDate && appointmentTime) {
       const formattedDate = format(new Date(appointmentDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
       const formattedTime = appointmentTime.substring(0, 5);
-      message += `Seu procedimento foi marcado com sucesso para o dia ${formattedDate}, às ${formattedTime}.\n`;
-    } else {
-      message += `Seu procedimento foi marcado com sucesso.\n`;
+      message += `📅 *Data:* ${formattedDate}\n`;
+      message += `⏰ *Horário:* ${formattedTime}\n\n`;
     }
     
-    message += `Se precisar remarcar ou tiver alguma dúvida, estou à disposição para ajudar!`;
+    message += `Estamos ansiosos para atendê-lo(a)! ✨\n\n`;
+    message += `Se precisar remarcar ou tiver alguma dúvida, estou à disposição para ajudar! 😊`;
     
     const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
+  };
+
+  const handleCancelAppointment = (phone: string, clientName: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const message = `Olá, ${clientName}! 😔\n\n` +
+      `Seu agendamento foi *CANCELADO* conforme solicitado.\n\n` +
+      `Se desejar reagendar, estaremos à disposição para encontrar um novo horário que seja conveniente para você! 😊\n\n` +
+      `Obrigado pela compreensão! 🙏`;
+    
+    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    toast({
+      title: "Mensagem de cancelamento",
+      description: "Mensagem de cancelamento enviada para o cliente.",
+    });
+  };
+
+  const handleRescheduleAppointment = (phone: string, clientName: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const message = `Olá, ${clientName}! 📅\n\n` +
+      `Precisamos *REAGENDAR* seu horário.\n\n` +
+      `Por favor, entre em contato conosco para escolhermos uma nova data e horário que seja conveniente para você! 😊\n\n` +
+      `Estamos à disposição para encontrar a melhor solução! ✨`;
+    
+    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    toast({
+      title: "Mensagem de reagendamento",
+      description: "Mensagem de reagendamento enviada para o cliente.",
+    });
+  };
+
+  const handleDeleteAppointment = () => {
+    toast({
+      title: "Agendamento excluído",
+      description: "O agendamento foi removido permanentemente do sistema.",
+    });
   };
 
   // Transformar appointments para o formato esperado pelo AppointmentDialog
@@ -78,7 +126,7 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
       appointment_time: apt.appointment_time,
       appointment_date: apt.appointment_date,
       status: apt.status,
-      duration: 60, // valor padrão
+      duration: 60,
       notes: apt.notes,
       client_name: apt.client_name,
       client_phone: apt.client_phone,
@@ -137,6 +185,9 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
         appointments={selectedDateAppointments}
         onClose={() => setSelectedDate(null)}
         onWhatsAppClick={handleWhatsAppClick}
+        onCancelClick={handleCancelAppointment}
+        onRescheduleClick={handleRescheduleAppointment}
+        onDeleteClick={handleDeleteAppointment}
         onRefresh={refreshAppointments}
       />
     </div>

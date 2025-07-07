@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { format, addDays, setHours, setMinutes } from 'date-fns';
+import { format, addDays, setHours, setMinutes, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface CompanySettings {
@@ -155,27 +154,20 @@ export const usePublicBooking = (companySlug: string) => {
   };
 
   const checkMonthlyLimit = async (clientPhone: string) => {
-    if (!companySettings) return true;
+    if (!companySettings || !companySettings.monthly_appointments_limit) return true;
 
     try {
       const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
       
-      // Buscar cliente pelo telefone
-      const { data: client } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('company_id', companySettings.company_id)
-        .eq('phone', clientPhone)
-        .single();
-
-      if (!client) return true; // Cliente novo, pode agendar
-
-      // Contar agendamentos do mês atual
+      // Buscar agendamentos do mês atual pelo telefone do cliente diretamente
       const { data: monthlyAppointments, error } = await supabase
         .from('appointments')
-        .select('id')
+        .select(`
+          id,
+          clients!inner(phone)
+        `)
         .eq('company_id', companySettings.company_id)
-        .eq('client_id', client.id)
+        .eq('clients.phone', clientPhone)
         .gte('appointment_date', `${currentMonth}-01`)
         .lt('appointment_date', `${currentMonth}-32`)
         .neq('status', 'cancelled');
@@ -186,6 +178,8 @@ export const usePublicBooking = (companySlug: string) => {
       }
 
       const appointmentCount = monthlyAppointments?.length || 0;
+      console.log(`Cliente ${clientPhone} tem ${appointmentCount} agendamentos este mês. Limite: ${companySettings.monthly_appointments_limit}`);
+      
       return appointmentCount < companySettings.monthly_appointments_limit;
     } catch (error) {
       console.error('Erro ao verificar limite mensal:', error);
@@ -213,7 +207,7 @@ export const usePublicBooking = (companySlug: string) => {
       return false;
     }
 
-    // Verificar limite mensal
+    // Verificar limite mensal ANTES de tentar criar o agendamento
     const canBook = await checkMonthlyLimit(clientPhone);
     if (!canBook) {
       toast({
@@ -258,7 +252,7 @@ export const usePublicBooking = (companySlug: string) => {
         .select('id')
         .eq('company_id', companySettings!.company_id)
         .eq('phone', clientPhone)
-        .maybeSingle(); // Usar maybeSingle para evitar erro se não encontrar
+        .maybeSingle();
 
       if (existingClient) {
         console.log('Cliente existente encontrado:', existingClient.id);
@@ -326,8 +320,9 @@ export const usePublicBooking = (companySlug: string) => {
 
       console.log('Agendamento criado com sucesso:', appointmentResult);
 
-      // Gerar mensagem para o profissional
-      const formattedDate = format(new Date(selectedDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+      // Corrigir formatação da data para a mensagem
+      const appointmentDate = parseISO(selectedDate);
+      const formattedDate = format(appointmentDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
       const professionalMessage = `🗓️ *NOVO AGENDAMENTO*\n\n` +
         `👤 *Cliente:* ${clientName}\n` +
         `📞 *Telefone:* ${clientPhone}\n` +
