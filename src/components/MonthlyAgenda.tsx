@@ -36,10 +36,16 @@ const MonthlyAgenda = () => {
   }, [user, currentDate]);
 
   const loadAppointments = async () => {
+    if (!user) return;
+    
     try {
       setLoading(true);
-      console.log('Carregando agendamentos para o período:', format(monthStart, 'yyyy-MM-dd'), 'até', format(monthEnd, 'yyyy-MM-dd'));
+      const startDate = format(monthStart, 'yyyy-MM-dd');
+      const endDate = format(monthEnd, 'yyyy-MM-dd');
       
+      console.log('Carregando agendamentos para o período:', startDate, 'até', endDate);
+      
+      // Usar consulta simples e direta
       const { data: appointmentData, error } = await supabase
         .from('appointments')
         .select(`
@@ -47,73 +53,82 @@ const MonthlyAgenda = () => {
           appointment_date,
           appointment_time,
           status,
-          clients(name, phone),
-          services(name)
+          client_id,
+          service_id
         `)
-        .eq('company_id', user!.id)
-        .gte('appointment_date', format(monthStart, 'yyyy-MM-dd'))
-        .lte('appointment_date', format(monthEnd, 'yyyy-MM-dd'))
+        .eq('company_id', user.id)
+        .gte('appointment_date', startDate)
+        .lte('appointment_date', endDate)
         .order('appointment_date')
         .order('appointment_time');
 
       if (error) {
-        console.error('Erro na consulta principal:', error);
-        // Tentar consulta alternativa
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('appointments')
-          .select('*')
-          .eq('company_id', user!.id)
-          .gte('appointment_date', format(monthStart, 'yyyy-MM-dd'))
-          .lte('appointment_date', format(monthEnd, 'yyyy-MM-dd'))
-          .order('appointment_date')
-          .order('appointment_time');
+        console.error('Erro ao buscar agendamentos:', error);
+        throw error;
+      }
 
-        if (fallbackError) {
-          console.error('Erro na consulta alternativa:', fallbackError);
-          throw fallbackError;
-        }
+      console.log('Agendamentos encontrados:', appointmentData?.length || 0);
 
-        // Processar dados da consulta alternativa
-        const processedFallback = await Promise.all(
-          (fallbackData || []).map(async (apt) => {
-            const [clientResult, serviceResult] = await Promise.all([
-              supabase.from('clients').select('name, phone').eq('id', apt.client_id).single(),
-              supabase.from('services').select('name').eq('id', apt.service_id).single()
-            ]);
+      // Buscar dados de clientes e serviços separadamente para garantir consistência
+      const processedAppointments: Appointment[] = [];
+      
+      if (appointmentData && appointmentData.length > 0) {
+        for (const apt of appointmentData) {
+          try {
+            // Buscar cliente
+            const { data: clientData, error: clientError } = await supabase
+              .from('clients')
+              .select('name, phone')
+              .eq('id', apt.client_id)
+              .single();
 
-            return {
+            // Buscar serviço
+            const { data: serviceData, error: serviceError } = await supabase
+              .from('services')
+              .select('name')
+              .eq('id', apt.service_id)
+              .single();
+
+            processedAppointments.push({
               id: apt.id,
               appointment_date: apt.appointment_date,
               appointment_time: apt.appointment_time,
-              client_name: clientResult.data?.name || 'Cliente não encontrado',
-              client_phone: clientResult.data?.phone || '',
-              service_name: serviceResult.data?.name || 'Serviço não encontrado',
+              client_name: clientData?.name || 'Cliente não encontrado',
+              client_phone: clientData?.phone || '',
+              service_name: serviceData?.name || 'Serviço não encontrado',
               status: apt.status
-            };
-          })
-        );
+            });
 
-        setAppointments(processedFallback);
-        console.log('Agendamentos carregados (fallback):', processedFallback.length);
-        return;
+            console.log('Agendamento processado:', {
+              id: apt.id,
+              date: apt.appointment_date,
+              time: apt.appointment_time,
+              client: clientData?.name,
+              service: serviceData?.name
+            });
+
+          } catch (procError) {
+            console.error('Erro ao processar agendamento:', apt.id, procError);
+            // Incluir agendamento mesmo com erro nos dados relacionados
+            processedAppointments.push({
+              id: apt.id,
+              appointment_date: apt.appointment_date,
+              appointment_time: apt.appointment_time,
+              client_name: 'Cliente não encontrado',
+              client_phone: '',
+              service_name: 'Serviço não encontrado',
+              status: apt.status
+            });
+          }
+        }
       }
 
-      // Processar dados dos agendamentos da consulta principal
-      const processedAppointments = appointmentData?.map(apt => ({
-        id: apt.id,
-        appointment_date: apt.appointment_date,
-        appointment_time: apt.appointment_time,
-        client_name: apt.clients?.name || 'Cliente não encontrado',
-        client_phone: apt.clients?.phone || '',
-        service_name: apt.services?.name || 'Serviço não encontrado',
-        status: apt.status
-      })) || [];
-
       setAppointments(processedAppointments);
-      console.log('Agendamentos carregados:', processedAppointments.length);
+      console.log('Total de agendamentos processados:', processedAppointments.length);
 
     } catch (error) {
       console.error('Erro ao carregar agendamentos:', error);
+      setAppointments([]);
     } finally {
       setLoading(false);
     }
@@ -121,8 +136,12 @@ const MonthlyAgenda = () => {
 
   const getAppointmentsForDate = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    const dayAppointments = appointments.filter(apt => apt.appointment_date === dateStr);
-    console.log(`Agendamentos para ${dateStr}:`, dayAppointments.length);
+    const dayAppointments = appointments.filter(apt => {
+      const aptDate = apt.appointment_date;
+      console.log(`Comparando datas - Calendário: ${dateStr}, Agendamento: ${aptDate}`);
+      return aptDate === dateStr;
+    });
+    console.log(`Agendamentos encontrados para ${dateStr}:`, dayAppointments.length);
     return dayAppointments;
   };
 
@@ -223,14 +242,14 @@ const MonthlyAgenda = () => {
                         p-1 md:p-2 min-h-[40px] md:min-h-[60px] border rounded-lg cursor-pointer transition-colors text-center
                         ${isCurrentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400'}
                         ${isTodayDate ? 'border-primary border-2 bg-primary/5' : 'border-gray-200'}
-                        ${hasAppointments ? 'hover:bg-blue-50' : 'hover:bg-gray-100'}
+                        ${hasAppointments && isCurrentMonth ? 'hover:bg-blue-50' : 'hover:bg-gray-100'}
                       `}
-                      onClick={() => handleDateClick(date)}
+                      onClick={() => isCurrentMonth && handleDateClick(date)}
                     >
                       <div className="text-xs md:text-sm font-medium">
                         {format(date, 'd')}
                       </div>
-                      {hasAppointments && (
+                      {hasAppointments && isCurrentMonth && (
                         <div className="mt-1">
                           <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-primary rounded-full mx-auto"></div>
                           <div className="text-[10px] md:text-xs text-primary mt-1">
@@ -268,14 +287,16 @@ const MonthlyAgenda = () => {
                     </div>
                     <div className="flex items-center gap-2 ml-2">
                       <span className="text-xs md:text-sm text-gray-600 hidden md:inline">{appointment.client_phone}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleWhatsAppClick(appointment.client_phone, appointment.client_name)}
-                        className="border-whatsapp text-whatsapp-green hover:bg-whatsapp-green hover:text-white"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                      </Button>
+                      {appointment.client_phone && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleWhatsAppClick(appointment.client_phone, appointment.client_name)}
+                          className="border-whatsapp text-whatsapp-green hover:bg-whatsapp-green hover:text-white"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
