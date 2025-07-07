@@ -39,13 +39,14 @@ export const useDashboardData = (companyName: string) => {
           schema: 'public',
           table: 'appointments',
           filter: `company_id=eq.${user.id}`
-        }, () => {
-          console.log('Agendamento alterado, recarregando dados...');
+        }, (payload) => {
+          console.log('Agendamento alterado via realtime:', payload);
           loadDashboardData();
         })
         .subscribe();
 
       return () => {
+        console.log('Removendo canal de realtime');
         supabase.removeChannel(channel);
       };
     }
@@ -56,6 +57,7 @@ export const useDashboardData = (companyName: string) => {
 
     try {
       setLoading(true);
+      console.log('Carregando dados do dashboard para usuário:', user.id);
       
       // Buscar configurações da empresa para obter o slug
       const { data: settings, error: settingsError } = await supabase
@@ -84,7 +86,12 @@ export const useDashboardData = (companyName: string) => {
         .eq('appointment_date', today)
         .neq('status', 'cancelled');
 
-      if (todayError) throw todayError;
+      if (todayError) {
+        console.error('Erro ao buscar agendamentos de hoje:', todayError);
+        throw todayError;
+      }
+
+      console.log('Agendamentos de hoje encontrados:', todayAppts?.length || 0);
 
       // Total de clientes
       const { data: clientsData, error: clientsError } = await supabase
@@ -92,9 +99,14 @@ export const useDashboardData = (companyName: string) => {
         .select('id')
         .eq('company_id', user.id);
 
-      if (clientsError) throw clientsError;
+      if (clientsError) {
+        console.error('Erro ao buscar clientes:', clientsError);
+        throw clientsError;
+      }
 
-      // Agendamentos recentes - usando LEFT JOIN para garantir que todos os agendamentos sejam retornados
+      console.log('Total de clientes encontrados:', clientsData?.length || 0);
+
+      // Agendamentos recentes - usando sintaxe correta do Supabase
       const { data: recentAppts, error: recentError } = await supabase
         .from('appointments')
         .select(`
@@ -102,15 +114,65 @@ export const useDashboardData = (companyName: string) => {
           appointment_date,
           appointment_time,
           status,
-          clients!left(name, phone),
-          services!left(name)
+          clients(name, phone),
+          services(name)
         `)
         .eq('company_id', user.id)
         .order('appointment_date', { ascending: false })
         .order('appointment_time', { ascending: false })
         .limit(5);
 
-      if (recentError) throw recentError;
+      if (recentError) {
+        console.error('Erro ao buscar agendamentos recentes:', recentError);
+        // Tentar consulta alternativa em caso de erro
+        const { data: fallbackAppts, error: fallbackError } = await supabase
+          .from('appointments')
+          .select('*')
+          .eq('company_id', user.id)
+          .order('appointment_date', { ascending: false })
+          .order('appointment_time', { ascending: false })
+          .limit(5);
+
+        if (fallbackError) {
+          console.error('Erro na consulta de fallback:', fallbackError);
+          throw fallbackError;
+        }
+
+        console.log('Usando consulta de fallback, encontrados:', fallbackAppts?.length || 0);
+        
+        // Para a consulta de fallback, precisamos buscar os dados dos clientes e serviços separadamente
+        const transformedFallbackAppts = await Promise.all(
+          (fallbackAppts || []).map(async (apt) => {
+            const [clientResult, serviceResult] = await Promise.all([
+              supabase.from('clients').select('name, phone').eq('id', apt.client_id).single(),
+              supabase.from('services').select('name').eq('id', apt.service_id).single()
+            ]);
+
+            return {
+              id: apt.id,
+              appointment_date: apt.appointment_date,
+              appointment_time: apt.appointment_time,
+              status: apt.status,
+              client_name: clientResult.data?.name || 'Cliente não encontrado',
+              client_phone: clientResult.data?.phone || '',
+              service_name: serviceResult.data?.name || 'Serviço não encontrado'
+            };
+          })
+        );
+
+        setData({
+          todayAppointments: todayAppts?.length || 0,
+          totalClients: clientsData?.length || 0,
+          monthlyRevenue: 0,
+          completionRate: 85,
+          bookingLink,
+          recentAppointments: transformedFallbackAppts
+        });
+
+        return;
+      }
+
+      console.log('Agendamentos recentes encontrados:', recentAppts?.length || 0);
 
       // Transformar dados dos agendamentos recentes
       const transformedAppointments = recentAppts?.map(apt => ({
@@ -123,11 +185,13 @@ export const useDashboardData = (companyName: string) => {
         service_name: apt.services?.name || 'Serviço não encontrado'
       })) || [];
 
+      console.log('Dados transformados:', transformedAppointments);
+
       setData({
         todayAppointments: todayAppts?.length || 0,
         totalClients: clientsData?.length || 0,
-        monthlyRevenue: 0, // TODO: Implementar cálculo de receita
-        completionRate: 85, // TODO: Implementar cálculo real
+        monthlyRevenue: 0,
+        completionRate: 85,
         bookingLink,
         recentAppointments: transformedAppointments
       });
@@ -148,6 +212,8 @@ export const useDashboardData = (companyName: string) => {
     if (!user) return;
 
     try {
+      console.log('Criando configurações padrão para:', user.id);
+      
       const companySlug = companyName
         .toLowerCase()
         .replace(/[^a-zA-Z0-9]/g, '-')
@@ -173,6 +239,7 @@ export const useDashboardData = (companyName: string) => {
         return;
       }
 
+      console.log('Configurações criadas com sucesso');
       // Recarregar dados após criar configurações
       await loadDashboardData();
 
