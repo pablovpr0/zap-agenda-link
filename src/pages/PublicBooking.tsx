@@ -9,14 +9,16 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, Clock, User, Phone, Mail, MessageCircle } from 'lucide-react';
+import { MapPin, Clock, User, Phone, Mail, MessageCircle, Calendar, Star, WhatsApp } from 'lucide-react';
 import { format, addDays, setHours, setMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import PublicCalendar from '@/components/PublicCalendar';
 
 interface CompanySettings {
   id: string;
   company_id: string;
   slug: string;
+  address?: string;
   working_days: number[];
   working_hours_start: string;
   working_hours_end: string;
@@ -353,65 +355,77 @@ const PublicBooking = () => {
   const availableTimes = generateAvailableTimes();
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ backgroundColor: companySettings?.theme_color ? companySettings.theme_color + '10' : '#f9fafb' }}>
-      <div className="container mx-auto px-4 py-6 max-w-2xl">
-        {/* Header da empresa */}
-        <div className="text-center mb-8">
-          {(companySettings?.logo_url || profile?.profile_image_url) && (
-            <img
-              src={companySettings.logo_url || profile.profile_image_url}
-              alt={profile?.company_name || 'Logo'}
-              className="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-4"
-              style={{ borderColor: companySettings?.theme_color || '#22c55e' }}
-            />
-          )}
-          <h1 className="text-3xl font-bold mb-2" style={{ color: companySettings?.theme_color || '#22c55e' }}>
-            {profile?.company_name || 'Empresa'}
-          </h1>
-          <p className="text-gray-600 mb-2">{profile?.business_type || 'Serviços'}</p>
-          {companySettings?.welcome_message && (
-            <p className="text-gray-700 italic">{companySettings.welcome_message}</p>
-          )}
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
+      <div className="container mx-auto px-4 py-6 max-w-md">
+        {/* Header estilo WhatsApp Business */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <div className="text-center">
+            {/* Foto de perfil grande e redonda */}
+            {(companySettings?.logo_url || profile?.profile_image_url) && (
+              <div className="mb-4">
+                <img
+                  src={companySettings.logo_url || profile.profile_image_url}
+                  alt={profile?.company_name || 'Logo'}
+                  className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-green-500 shadow-lg"
+                />
+              </div>
+            )}
+            
+            {/* Nome da empresa com fonte grande */}
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">
+              {profile?.company_name || 'Empresa'}
+            </h1>
+            
+            {/* Tipo de negócio */}
+            <p className="text-green-600 font-medium mb-2 flex items-center justify-center gap-1">
+              <Star className="w-4 h-4" />
+              {profile?.business_type || 'Serviços'}
+            </p>
+
+            {/* Mensagem de boas-vindas */}
+            {companySettings?.welcome_message && (
+              <p className="text-gray-600 text-sm mb-4 italic">
+                "{companySettings.welcome_message}"
+              </p>
+            )}
+
+            {/* Endereço */}
+            {companySettings?.address && (
+              <div className="flex items-center justify-center gap-2 text-gray-600 text-sm mb-4">
+                <MapPin className="w-4 h-4 text-green-500" />
+                <span>{companySettings.address}</span>
+              </div>
+            )}
+
+            {/* Chamada para ação */}
+            <div className="bg-green-500 text-white py-3 px-6 rounded-full font-semibold text-lg shadow-md">
+              <MessageCircle className="w-5 h-5 inline mr-2" />
+              Agende seu horário
+            </div>
+          </div>
         </div>
 
-        {/* Imagem de capa */}
-        {companySettings?.cover_image_url && (
-          <div className="mb-8 rounded-lg overflow-hidden">
-            <img
-              src={companySettings.cover_image_url}
-              alt="Capa"
-              className="w-full h-48 object-cover"
-            />
-          </div>
-        )}
-
         {/* Formulário de agendamento */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" style={{ color: companySettings?.theme_color || '#22c55e' }} />
-              Agendar Horário
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Card className="shadow-lg border-0">
+          <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Serviço */}
               <div className="space-y-2">
-                <Label htmlFor="service">Serviço *</Label>
+                <Label className="text-gray-700 font-medium">Escolha o serviço</Label>
                 <Select value={selectedService} onValueChange={setSelectedService} required>
-                  <SelectTrigger className="border-green-200 focus:border-green-300 focus:ring-green-100">
-                    <SelectValue placeholder="Selecione um serviço" />
+                  <SelectTrigger className="border-green-200 focus:border-green-400 focus:ring-green-100 bg-green-50">
+                    <SelectValue placeholder="Qual serviço você deseja?" />
                   </SelectTrigger>
                   <SelectContent>
                     {services.map((service) => (
                       <SelectItem key={service.id} value={service.id} className="hover:bg-green-50">
                         <div className="flex justify-between items-center w-full">
-                          <span>{service.name}</span>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <span className="font-medium">{service.name}</span>
+                          <div className="flex items-center gap-2 text-sm text-gray-600 ml-4">
                             <Clock className="w-3 h-3" />
                             {service.duration}min
                             {service.price && (
-                              <span className="font-medium">
+                              <span className="font-medium text-green-600">
                                 R$ {service.price.toFixed(2)}
                               </span>
                             )}
@@ -423,119 +437,109 @@ const PublicBooking = () => {
                 </Select>
               </div>
 
-              {/* Data */}
+              {/* Calendário */}
               <div className="space-y-2">
-                <Label htmlFor="date">Data *</Label>
-                <Select value={selectedDate} onValueChange={setSelectedDate} required>
-                  <SelectTrigger className="border-green-200 focus:border-green-300 focus:ring-green-100">
-                    <SelectValue placeholder="Selecione uma data" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableDates.map((date) => {
-                      const dateStr = format(date, 'yyyy-MM-dd');
-                      return (
-                        <SelectItem key={dateStr} value={dateStr} className="hover:bg-green-50">
-                          {format(date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <Label className="text-gray-700 font-medium flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-green-500" />
+                  Escolha a data
+                </Label>
+                <PublicCalendar
+                  availableDates={availableDates}
+                  selectedDate={selectedDate}
+                  onDateSelect={setSelectedDate}
+                />
               </div>
 
               {/* Horário */}
               {selectedDate && (
                 <div className="space-y-2">
-                  <Label htmlFor="time">Horário *</Label>
-                  <Select value={selectedTime} onValueChange={setSelectedTime} required>
-                    <SelectTrigger className="border-green-200 focus:border-green-300 focus:ring-green-100">
-                      <SelectValue placeholder="Selecione um horário" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableTimes.map((time) => (
-                        <SelectItem key={time} value={time} className="hover:bg-green-50">
-                          {time}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-gray-700 font-medium">Escolha o horário</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {availableTimes.map((time) => (
+                      <button
+                        key={time}
+                        type="button"
+                        onClick={() => setSelectedTime(time)}
+                        className={`
+                          p-3 text-sm rounded-lg border transition-all duration-200
+                          ${selectedTime === time 
+                            ? 'bg-green-500 text-white border-green-500 shadow-md' 
+                            : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+                          }
+                        `}
+                      >
+                        {time}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
               {/* Dados do cliente */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <Label className="text-gray-700 font-medium">Seus dados</Label>
+                
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome completo *</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                     <Input
-                      id="name"
                       type="text"
                       value={clientName}
                       onChange={(e) => setClientName(e.target.value)}
                       placeholder="Seu nome completo"
-                      className="pl-10 border-green-200 focus:border-green-300 focus:ring-green-100"
+                      className="pl-10 border-green-200 focus:border-green-400 focus:ring-green-100 bg-green-50"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">WhatsApp *</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                     <Input
-                      id="phone"
                       type="tel"
                       value={clientPhone}
                       onChange={(e) => setClientPhone(e.target.value)}
                       placeholder="(11) 99999-9999"
-                      className="pl-10 border-green-200 focus:border-green-300 focus:ring-green-100"
+                      className="pl-10 border-green-200 focus:border-green-400 focus:ring-green-100 bg-green-50"
                       required
                     />
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail (opcional)</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={clientEmail}
-                    onChange={(e) => setClientEmail(e.target.value)}
-                    placeholder="seu@email.com"
-                    className="pl-10 border-green-200 focus:border-green-300 focus:ring-green-100"
-                  />
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                    <Input
+                      type="email"
+                      value={clientEmail}
+                      onChange={(e) => setClientEmail(e.target.value)}
+                      placeholder="seu@email.com (opcional)"
+                      className="pl-10 border-green-200 focus:border-green-400 focus:ring-green-100 bg-green-50"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="notes">Observações (opcional)</Label>
                 <Textarea
-                  id="notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Alguma observação especial?"
+                  placeholder="Alguma observação especial? (opcional)"
                   rows={3}
-                  className="border-green-200 focus:border-green-300 focus:ring-green-100"
+                  className="border-green-200 focus:border-green-400 focus:ring-green-100 bg-green-50"
                 />
               </div>
 
               <Button 
                 type="submit" 
-                className="w-full bg-green-500 hover:bg-green-600"
-                style={{ backgroundColor: companySettings?.theme_color || '#22c55e' }}
+                className="w-full bg-green-500 hover:bg-green-600 text-white py-4 text-lg font-semibold rounded-xl shadow-lg"
                 disabled={submitting}
               >
                 {submitting ? (
                   "Agendando..."
                 ) : (
                   <>
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Agendar via WhatsApp
+                    <MessageCircle className="w-5 h-5 mr-2" />
+                    Confirmar Agendamento
                   </>
                 )}
               </Button>
@@ -560,7 +564,7 @@ const PublicBooking = () => {
         )}
 
         {/* Footer */}
-        <div className="text-center mt-8 text-sm text-gray-500">
+        <div className="text-center mt-8 text-sm text-gray-400">
           Powered by ZapAgenda
         </div>
       </div>

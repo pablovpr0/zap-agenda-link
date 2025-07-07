@@ -10,7 +10,7 @@ import ClientManagement from '../components/ClientManagement';
 import ServiceManagement from '../components/ServiceManagement';
 import ProfileCustomizationModal from '../components/ProfileCustomizationModal';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Settings, Calendar, Users, Briefcase, LogOut, HelpCircle, Palette } from 'lucide-react';
+import { MoreHorizontal, Calendar, Users, Briefcase, LogOut, HelpCircle, Palette } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -129,10 +129,6 @@ const Index = () => {
                 <DropdownMenuItem onClick={() => setShowProfileModal(true)} className="hover:bg-gray-50">
                   <Palette className="w-4 h-4 mr-2" />
                   Personalizar Perfil
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setCurrentView('settings')} className="hover:bg-gray-50">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Configurações Gerais
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setCurrentView('clients')} className="hover:bg-gray-50">
                   <Users className="w-4 h-4 mr-2" />

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -210,12 +209,13 @@ const SettingsPanel = () => {
               </div>
               
               <div>
-                <Label htmlFor="company-address">Endereço</Label>
+                <Label htmlFor="company-address">Endereço Completo</Label>
                 <Input
                   id="company-address"
                   value={companyData.address}
                   onChange={(e) => setCompanyData(prev => ({ ...prev, address: e.target.value }))}
                   className="border-whatsapp"
+                  placeholder="Rua das Flores, 123 - Centro - Cidade/UF"
                 />
               </div>
               

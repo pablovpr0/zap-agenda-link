@@ -116,6 +116,7 @@ export type Database = {
       }
       company_settings: {
         Row: {
+          address: string | null
           advance_booking_limit: number
           appointment_interval: number
           company_id: string
@@ -134,6 +135,7 @@ export type Database = {
           working_hours_start: string
         }
         Insert: {
+          address?: string | null
           advance_booking_limit?: number
           appointment_interval?: number
           company_id: string
@@ -152,6 +154,7 @@ export type Database = {
           working_hours_start?: string
         }
         Update: {
+          address?: string | null
           advance_booking_limit?: number
           appointment_interval?: number
           company_id?: string
