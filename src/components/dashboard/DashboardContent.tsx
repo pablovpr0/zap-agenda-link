@@ -5,6 +5,7 @@ import PublicBookingLink from './PublicBookingLink';
 import RecentAppointments from './RecentAppointments';
 import WelcomeSection from './WelcomeSection';
 import TodayAppointmentsList from './TodayAppointmentsList';
+import MonthlyAgenda from '../MonthlyAgenda';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
 
@@ -40,6 +41,11 @@ const DashboardContent = ({
           completionRate: data.completionRate
         }}
       />
+
+      {/* Agenda Mensal - Movida para cima */}
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <MonthlyAgenda />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div className="space-y-4 md:space-y-6">

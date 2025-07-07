@@ -137,6 +137,13 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
           address: address || null,
           phone: phone || null,
           monthly_appointments_limit: monthlyLimit,
+          // Campos obrigatórios com valores padrão
+          working_days: [1, 2, 3, 4, 5, 6],
+          working_hours_start: '09:00',
+          working_hours_end: '18:00',
+          appointment_interval: 30,
+          max_simultaneous_appointments: 1,
+          advance_booking_limit: 30,
           updated_at: new Date().toISOString(),
         });
 

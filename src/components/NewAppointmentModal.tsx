@@ -6,13 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
+import StandardCalendar from '@/components/StandardCalendar';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarDays, Clock, User, Phone, Mail, MessageSquare } from 'lucide-react';
+import { CalendarDays, Clock, User, MessageSquare } from 'lucide-react';
 
 interface NewAppointmentModalProps {
   isOpen: boolean;
@@ -29,11 +29,12 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
   const [clients, setClients] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [availableDates, setAvailableDates] = useState<Date[]>([]);
   
   // Form state
   const [selectedClient, setSelectedClient] = useState('');
   const [selectedService, setSelectedService] = useState('');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [notes, setNotes] = useState('');
   
@@ -81,6 +82,18 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       if (servicesError) throw servicesError;
       setServices(servicesData || []);
 
+      // Generate available dates (próximos 30 dias)
+      const dates = [];
+      const today = new Date();
+      for (let i = 0; i < 30; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        if (date.getDay() !== 0) { // Excluir domingos
+          dates.push(date);
+        }
+      }
+      setAvailableDates(dates);
+
     } catch (error: any) {
       console.error('Erro ao carregar dados:', error);
       toast({
@@ -123,12 +136,11 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       }
 
       // Buscar horários já agendados para esta data
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
       const { data: bookedAppointments, error: bookedError } = await supabase
         .from('appointments')
         .select('appointment_time')
         .eq('company_id', user.id)
-        .eq('appointment_date', dateStr)
+        .eq('appointment_date', selectedDate)
         .neq('status', 'cancelled');
 
       if (bookedError) throw bookedError;
@@ -223,12 +235,11 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       }
 
       // Verificar se horário ainda está disponível
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
       const { data: conflictCheck } = await supabase
         .from('appointments')
         .select('id')
         .eq('company_id', user!.id)
-        .eq('appointment_date', dateStr)
+        .eq('appointment_date', selectedDate)
         .eq('appointment_time', selectedTime)
         .neq('status', 'cancelled');
 
@@ -250,7 +261,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
           company_id: user!.id,
           client_id: clientId,
           service_id: selectedService,
-          appointment_date: dateStr,
+          appointment_date: selectedDate,
           appointment_time: selectedTime,
           duration: service?.duration || 60,
           status: 'confirmed',
@@ -261,7 +272,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
 
       toast({
         title: "Agendamento criado!",
-        description: `Agendamento criado para ${format(selectedDate, "dd 'de' MMMM", { locale: ptBR })} às ${selectedTime}.`,
+        description: `Agendamento criado para ${format(new Date(selectedDate), "dd 'de' MMMM", { locale: ptBR })} às ${selectedTime}.`,
       });
 
       onSuccess();
@@ -283,7 +294,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
   const resetForm = () => {
     setSelectedClient('');
     setSelectedService('');
-    setSelectedDate(undefined);
+    setSelectedDate('');
     setSelectedTime('');
     setNotes('');
     setIsNewClient(false);
@@ -410,12 +421,12 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
                 <CalendarDays className="w-4 h-4 text-whatsapp-green" />
                 Data
               </Label>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                disabled={(date) => date < new Date() || date.getDay() === 0}
-                className="rounded-md border"
+              <StandardCalendar
+                availableDates={availableDates}
+                selectedDate={selectedDate}
+                onDateSelect={setSelectedDate}
+                showNavigation={true}
+                highlightToday={true}
               />
             </div>
 
