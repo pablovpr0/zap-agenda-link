@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Clock, User, MessageSquare, Edit, Trash2, X, RotateCcw } from 'lucide-react';
+import { Clock, User, MessageSquare, Edit, Trash2, X, RotateCcw, Calendar } from 'lucide-react';
 import { useAppointmentActions } from '@/hooks/useAppointmentActions';
 
 interface MonthlyAppointment {
