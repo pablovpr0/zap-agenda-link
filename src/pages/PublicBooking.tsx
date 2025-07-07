@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { MapPin, Clock, User, Phone, Mail, MessageCircle, Calendar, Star, WhatsApp } from 'lucide-react';
+import { MapPin, Clock, User, Phone, Mail, MessageCircle, Calendar, Star } from 'lucide-react';
 import { format, addDays, setHours, setMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import PublicCalendar from '@/components/PublicCalendar';
@@ -281,9 +280,9 @@ const PublicBooking = () => {
 
       console.log('Agendamento criado com sucesso:', appointmentResult);
 
-      // Gerar mensagem WhatsApp com dados corretos
+      // Gerar mensagem para contato com dados corretos
       const formattedDate = format(new Date(selectedDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-      const whatsappMessage = `Olá! Acabei de agendar um horário:\n\n` +
+      const contactMessage = `Olá! Acabei de agendar um horário:\n\n` +
         `📅 Data: ${formattedDate}\n` +
         `⏰ Horário: ${selectedTime}\n` +
         `💇 Serviço: ${service?.name}\n` +
@@ -291,20 +290,20 @@ const PublicBooking = () => {
         `📱 Telefone: ${clientPhone}${clientEmail ? `\n📧 Email: ${clientEmail}` : ''}${notes ? `\n📝 Observações: ${notes}` : ''}\n\n` +
         `Agendamento confirmado! ✅`;
 
-      console.log('Mensagem WhatsApp:', whatsappMessage);
+      console.log('Mensagem de contato:', contactMessage);
 
       toast({
         title: "Agendamento realizado!",
         description: `Agendamento confirmado para ${formattedDate} às ${selectedTime}.`,
       });
 
-      // Redirecionar para WhatsApp (opcional)
+      // Redirecionar para contato via WhatsApp (opcional)
       const phoneNumber = companySettings?.instagram_url ? 
         companySettings.instagram_url.replace(/.*\//, '').replace(/\D/g, '') : 
         clientPhone.replace(/\D/g, '');
       
       if (phoneNumber) {
-        const whatsappUrl = `https://wa.me/55${phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+        const whatsappUrl = `https://wa.me/55${phoneNumber}?text=${encodeURIComponent(contactMessage)}`;
         window.open(whatsappUrl, '_blank');
       }
 
