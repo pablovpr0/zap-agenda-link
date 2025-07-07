@@ -113,7 +113,7 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             <Calendar className="w-4 md:w-5 h-4 md:h-5 text-primary" />
-            Agenda - {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+            Agenda - {format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-2 md:p-6 pt-0">

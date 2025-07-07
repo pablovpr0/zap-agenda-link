@@ -2,7 +2,6 @@
 import DashboardStats from './DashboardStats';
 import QuickActions from './QuickActions';
 import PublicBookingLink from './PublicBookingLink';
-import RecentAppointments from './RecentAppointments';
 import WelcomeSection from './WelcomeSection';
 import TodayAppointmentsList from './TodayAppointmentsList';
 import MonthlyAgenda from '../MonthlyAgenda';
@@ -23,7 +22,7 @@ const DashboardContent = ({
   onShowAppointments, 
   onShowClients, 
   onShowServices, 
-  onShowSettings,
+  onShowSettings,  
   onShowMonthlyAgenda
 }: DashboardContentProps) => {
   const { data, loading } = useDashboardData(companyName);
@@ -42,11 +41,6 @@ const DashboardContent = ({
         }}
       />
 
-      {/* Agenda Mensal - Movida para cima */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-        <MonthlyAgenda />
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div className="space-y-4 md:space-y-6">
           <QuickActions
@@ -62,6 +56,11 @@ const DashboardContent = ({
             onCopyLink={handleCopyLink}
             onShareWhatsApp={handleShareWhatsApp}
           />
+
+          {/* Agenda Mensal - Movida para baixo do link público */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <MonthlyAgenda />
+          </div>
         </div>
 
         <div className="space-y-4 md:space-y-6">
@@ -70,9 +69,7 @@ const DashboardContent = ({
             loading={loading}
           />
           
-          <RecentAppointments 
-            appointments={data.recentAppointments}
-          />
+          {/* Removido RecentAppointments */}
         </div>
       </div>
     </div>

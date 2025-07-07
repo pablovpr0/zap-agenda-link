@@ -120,34 +120,59 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
       // Create slug from company name
       const companySlug = companyName
         .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remove acentos
         .replace(/[^a-zA-Z0-9]/g, '-')
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '');
 
-      // Update or create company settings
-      const { error: settingsError } = await supabase
+      // Check if company settings already exist
+      const { data: existingSettings, error: checkError } = await supabase
         .from('company_settings')
-        .upsert({
-          company_id: user!.id,
-          slug: companySlug,
-          logo_url: logoUrl || null,
-          theme_color: themeColor,
-          welcome_message: welcomeMessage || null,
-          instagram_url: instagramUrl || null,
-          address: address || null,
-          phone: phone || null,
-          monthly_appointments_limit: monthlyLimit,
-          // Campos obrigatórios com valores padrão
-          working_days: [1, 2, 3, 4, 5, 6],
-          working_hours_start: '09:00',
-          working_hours_end: '18:00',
-          appointment_interval: 30,
-          max_simultaneous_appointments: 1,
-          advance_booking_limit: 30,
-          updated_at: new Date().toISOString(),
-        });
+        .select('id')
+        .eq('company_id', user!.id)
+        .single();
 
-      if (settingsError) throw settingsError;
+      if (checkError && checkError.code !== 'PGRST116') throw checkError;
+
+      const settingsData = {
+        company_id: user!.id,
+        slug: companySlug,
+        logo_url: logoUrl || null,
+        theme_color: themeColor,
+        welcome_message: welcomeMessage || null,
+        instagram_url: instagramUrl || null,
+        address: address || null,
+        phone: phone || null,
+        monthly_appointments_limit: monthlyLimit,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (existingSettings) {
+        // Update existing settings
+        const { error: settingsError } = await supabase
+          .from('company_settings')
+          .update(settingsData)
+          .eq('company_id', user!.id);
+
+        if (settingsError) throw settingsError;
+      } else {
+        // Create new settings with required fields
+        const { error: settingsError } = await supabase
+          .from('company_settings')
+          .insert({
+            ...settingsData,
+            // Campos obrigatórios com valores padrão
+            working_days: [1, 2, 3, 4, 5, 6],
+            working_hours_start: '09:00',
+            working_hours_end: '18:00',
+            appointment_interval: 30,
+            max_simultaneous_appointments: 1,
+            advance_booking_limit: 30,
+          });
+
+        if (settingsError) throw settingsError;
+      }
 
       toast({
         title: "Perfil atualizado!",
@@ -161,7 +186,7 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
       console.error('Erro ao salvar perfil:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível salvar o perfil. Tente novamente.",
+        description: error.message || "Não foi possível salvar o perfil. Tente novamente.",
         variant: "destructive",
       });
     } finally {
