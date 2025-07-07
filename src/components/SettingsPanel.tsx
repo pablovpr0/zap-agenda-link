@@ -18,22 +18,23 @@ const SettingsPanel = () => {
     timeInterval: 30
   });
 
-  const [companyData, setCompanyData] = useState({
+  const [companyBasicData, setCompanyBasicData] = useState({
     name: 'Salão Beleza & Estilo',
     address: 'Rua das Flores, 123 - Centro',
     phone: '(11) 99999-9999',
     email: 'contato@belezaestilo.com',
     instagramUrl: '@belezaestilo',
-    customUrl: 'beleza-estilo',
-    workingDays: {
-      monday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-      tuesday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-      wednesday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-      thursday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-      friday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-      saturday: { active: true, start: '09:00', end: '16:00', lunchStart: '', lunchEnd: '' },
-      sunday: { active: false, start: '09:00', end: '18:00', lunchStart: '', lunchEnd: '' }
-    }
+    customUrl: 'beleza-estilo'
+  });
+
+  const [workingDays, setWorkingDays] = useState({
+    monday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
+    tuesday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
+    wednesday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
+    thursday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
+    friday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
+    saturday: { active: true, start: '09:00', end: '16:00', lunchStart: '', lunchEnd: '' },
+    sunday: { active: false, start: '09:00', end: '18:00', lunchStart: '', lunchEnd: '' }
   });
 
   const [clientAreaCustomization, setClientAreaCustomization] = useState({
@@ -81,15 +82,15 @@ const SettingsPanel = () => {
 
         <TabsContent value="company" className="space-y-4">
           <CompanyDataSettings 
-            data={companyData} 
-            onDataChange={setCompanyData} 
+            data={companyBasicData} 
+            onDataChange={setCompanyBasicData} 
           />
         </TabsContent>
 
         <TabsContent value="schedule" className="space-y-4">
           <ScheduleSettings 
-            workingDays={companyData.workingDays} 
-            onWorkingDaysChange={(workingDays) => setCompanyData(prev => ({ ...prev, workingDays }))} 
+            workingDays={workingDays} 
+            onWorkingDaysChange={setWorkingDays} 
           />
         </TabsContent>
 
