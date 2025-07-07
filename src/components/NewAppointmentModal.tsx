@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -30,6 +29,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
   const [services, setServices] = useState<any[]>([]);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
+  const [companySettings, setCompanySettings] = useState<any>(null);
   
   // Form state
   const [selectedClient, setSelectedClient] = useState('');
@@ -81,6 +81,16 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
 
       if (servicesError) throw servicesError;
       setServices(servicesData || []);
+
+      // Load company settings
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('company_id', user.id)
+        .single();
+
+      if (settingsError) throw settingsError;
+      setCompanySettings(settingsData);
 
       // Generate available dates (próximos 30 dias)
       const dates = [];
@@ -161,6 +171,54 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
     }
   };
 
+  const checkMonthlyLimit = async (clientPhone: string) => {
+    if (!companySettings || !companySettings.monthly_appointments_limit) {
+      console.log('Limite mensal não configurado, permitindo agendamento');
+      return true;
+    }
+
+    try {
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth() + 1;
+      const currentYear = currentDate.getFullYear();
+      
+      const startOfMonth = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`;
+      const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+      const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+      const startOfNextMonth = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01`;
+      
+      console.log(`Verificando limite mensal para cliente ${clientPhone}`);
+      console.log(`Limite configurado: ${companySettings.monthly_appointments_limit}`);
+      
+      const { data: monthlyAppointments, error } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          appointment_date,
+          status,
+          clients!inner(phone)
+        `)
+        .eq('company_id', user!.id)
+        .eq('clients.phone', clientPhone)
+        .gte('appointment_date', startOfMonth)
+        .lt('appointment_date', startOfNextMonth)
+        .neq('status', 'cancelled');
+
+      if (error) {
+        console.error('Erro ao verificar limite mensal:', error);
+        return true;
+      }
+
+      const appointmentCount = monthlyAppointments?.length || 0;
+      console.log(`Cliente ${clientPhone} tem ${appointmentCount} agendamentos confirmados este mês`);
+      
+      return appointmentCount < companySettings.monthly_appointments_limit;
+    } catch (error) {
+      console.error('Erro ao verificar limite mensal:', error);
+      return true;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -189,6 +247,27 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
         variant: "destructive",
       });
       return;
+    }
+
+    // Verificar limite mensal antes de criar o agendamento
+    let clientPhone = '';
+    if (isNewClient) {
+      clientPhone = newClientPhone;
+    } else {
+      const selectedClientData = clients.find(c => c.id === selectedClient);
+      clientPhone = selectedClientData?.phone || '';
+    }
+
+    if (clientPhone) {
+      const canBook = await checkMonthlyLimit(clientPhone);
+      if (!canBook) {
+        toast({
+          title: "Limite de agendamentos atingido",
+          description: `Este cliente já atingiu o limite de ${companySettings.monthly_appointments_limit} agendamentos por mês.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setSubmitting(true);

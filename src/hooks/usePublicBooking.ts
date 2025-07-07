@@ -154,36 +154,56 @@ export const usePublicBooking = (companySlug: string) => {
   };
 
   const checkMonthlyLimit = async (clientPhone: string) => {
-    if (!companySettings || !companySettings.monthly_appointments_limit) return true;
+    if (!companySettings || !companySettings.monthly_appointments_limit) {
+      console.log('Limite mensal não configurado, permitindo agendamento');
+      return true;
+    }
 
     try {
-      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth() + 1; // getMonth() retorna 0-11
+      const currentYear = currentDate.getFullYear();
+      
+      // Criar datas de início e fim do mês atual
+      const startOfMonth = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`;
+      const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+      const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+      const startOfNextMonth = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01`;
+      
+      console.log(`Verificando limite mensal para cliente ${clientPhone}`);
+      console.log(`Período: ${startOfMonth} até ${startOfNextMonth}`);
+      console.log(`Limite configurado: ${companySettings.monthly_appointments_limit}`);
       
       // Buscar agendamentos do mês atual pelo telefone do cliente
       const { data: monthlyAppointments, error } = await supabase
         .from('appointments')
         .select(`
           id,
+          appointment_date,
+          status,
           clients!inner(phone)
         `)
         .eq('company_id', companySettings.company_id)
         .eq('clients.phone', clientPhone)
-        .gte('appointment_date', `${currentMonth}-01`)
-        .lt('appointment_date', `${currentMonth}-32`)
+        .gte('appointment_date', startOfMonth)
+        .lt('appointment_date', startOfNextMonth)
         .neq('status', 'cancelled');
 
       if (error) {
         console.error('Erro ao verificar limite mensal:', error);
-        return true;
+        return true; // Em caso de erro, permitir o agendamento
       }
 
       const appointmentCount = monthlyAppointments?.length || 0;
-      console.log(`Cliente ${clientPhone} tem ${appointmentCount} agendamentos este mês. Limite: ${companySettings.monthly_appointments_limit}`);
+      console.log(`Cliente ${clientPhone} tem ${appointmentCount} agendamentos confirmados este mês`);
       
-      return appointmentCount < companySettings.monthly_appointments_limit;
+      const canBook = appointmentCount < companySettings.monthly_appointments_limit;
+      console.log(`Pode agendar: ${canBook}`);
+      
+      return canBook;
     } catch (error) {
       console.error('Erro ao verificar limite mensal:', error);
-      return true;
+      return true; // Em caso de erro, permitir o agendamento
     }
   };
 
@@ -211,8 +231,8 @@ export const usePublicBooking = (companySlug: string) => {
     const canBook = await checkMonthlyLimit(clientPhone);
     if (!canBook) {
       toast({
-        title: "Limite de agendamentos",
-        description: `Você já atingiu o limite de ${companySettings!.monthly_appointments_limit} agendamentos por mês.`,
+        title: "Limite de agendamentos atingido",
+        description: `Este cliente já atingiu o limite de ${companySettings!.monthly_appointments_limit} agendamentos por mês.`,
         variant: "destructive",
       });
       return false;
