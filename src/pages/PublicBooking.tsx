@@ -168,6 +168,16 @@ const PublicBooking = () => {
     setSubmitting(true);
 
     try {
+      console.log('Dados do agendamento:', {
+        selectedService,
+        selectedDate,
+        selectedTime,
+        clientName,
+        clientPhone,
+        clientEmail,
+        notes
+      });
+
       // Criar ou buscar cliente
       let clientId;
       const { data: existingClient } = await supabase
@@ -178,8 +188,24 @@ const PublicBooking = () => {
         .single();
 
       if (existingClient) {
+        console.log('Cliente existente encontrado:', existingClient.id);
         clientId = existingClient.id;
+        
+        // Atualizar dados do cliente existente
+        const { error: updateError } = await supabase
+          .from('clients')
+          .update({
+            name: clientName,
+            email: clientEmail || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', clientId);
+
+        if (updateError) {
+          console.error('Erro ao atualizar cliente:', updateError);
+        }
       } else {
+        console.log('Criando novo cliente');
         const { data: newClient, error: clientError } = await supabase
           .from('clients')
           .insert({
@@ -192,46 +218,93 @@ const PublicBooking = () => {
           .select('id')
           .single();
 
-        if (clientError) throw clientError;
+        if (clientError) {
+          console.error('Erro ao criar cliente:', clientError);
+          throw clientError;
+        }
         clientId = newClient.id;
+        console.log('Novo cliente criado:', clientId);
       }
 
       // Buscar duração do serviço
       const service = services.find(s => s.id === selectedService);
+      console.log('Serviço selecionado:', service);
       
-      // Criar agendamento
-      const { error: appointmentError } = await supabase
+      // Verificar conflitos de horário
+      const { data: conflictCheck, error: conflictError } = await supabase
         .from('appointments')
-        .insert({
-          company_id: companySettings!.company_id,
-          client_id: clientId,
-          service_id: selectedService,
-          appointment_date: selectedDate,
-          appointment_time: selectedTime,
-          duration: service?.duration || 60,
-          status: 'confirmed',
-          notes: notes || null,
+        .select('id')
+        .eq('company_id', companySettings!.company_id)
+        .eq('appointment_date', selectedDate)
+        .eq('appointment_time', selectedTime)
+        .neq('status', 'cancelled');
+
+      if (conflictError) {
+        console.error('Erro ao verificar conflitos:', conflictError);
+      }
+
+      if (conflictCheck && conflictCheck.length > 0) {
+        toast({
+          title: "Horário indisponível",
+          description: "Este horário já está ocupado. Por favor, escolha outro horário.",
+          variant: "destructive",
         });
+        return;
+      }
 
-      if (appointmentError) throw appointmentError;
+      // Criar agendamento com dados consistentes
+      const appointmentData = {
+        company_id: companySettings!.company_id,
+        client_id: clientId,
+        service_id: selectedService,
+        appointment_date: selectedDate, // Usar exatamente a data selecionada
+        appointment_time: selectedTime,
+        duration: service?.duration || 60,
+        status: 'confirmed',
+        notes: notes || null,
+      };
 
-      // Gerar mensagem WhatsApp
+      console.log('Dados do agendamento a serem inseridos:', appointmentData);
+
+      const { data: appointmentResult, error: appointmentError } = await supabase
+        .from('appointments')
+        .insert(appointmentData)
+        .select('*')
+        .single();
+
+      if (appointmentError) {
+        console.error('Erro ao criar agendamento:', appointmentError);
+        throw appointmentError;
+      }
+
+      console.log('Agendamento criado com sucesso:', appointmentResult);
+
+      // Gerar mensagem WhatsApp com dados corretos
+      const formattedDate = format(new Date(selectedDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
       const whatsappMessage = `Olá! Acabei de agendar um horário:\n\n` +
-        `📅 Data: ${format(new Date(selectedDate), 'dd/MM/yyyy', { locale: ptBR })}\n` +
+        `📅 Data: ${formattedDate}\n` +
         `⏰ Horário: ${selectedTime}\n` +
         `💇 Serviço: ${service?.name}\n` +
         `👤 Cliente: ${clientName}\n` +
         `📱 Telefone: ${clientPhone}${clientEmail ? `\n📧 Email: ${clientEmail}` : ''}${notes ? `\n📝 Observações: ${notes}` : ''}\n\n` +
         `Agendamento confirmado! ✅`;
 
-      // Redirecionar para WhatsApp
-      const whatsappUrl = `https://wa.me/55${clientPhone.replace(/\D/g, '')}?text=${encodeURIComponent(whatsappMessage)}`;
-      window.open(whatsappUrl, '_blank');
+      console.log('Mensagem WhatsApp:', whatsappMessage);
 
       toast({
         title: "Agendamento realizado!",
-        description: "Seu agendamento foi confirmado. Você receberá uma confirmação no WhatsApp.",
+        description: `Agendamento confirmado para ${formattedDate} às ${selectedTime}.`,
       });
+
+      // Redirecionar para WhatsApp (opcional)
+      const phoneNumber = companySettings?.instagram_url ? 
+        companySettings.instagram_url.replace(/.*\//, '').replace(/\D/g, '') : 
+        clientPhone.replace(/\D/g, '');
+      
+      if (phoneNumber) {
+        const whatsappUrl = `https://wa.me/55${phoneNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+        window.open(whatsappUrl, '_blank');
+      }
 
       // Limpar formulário
       setSelectedService('');
@@ -280,29 +353,29 @@ const PublicBooking = () => {
   const availableTimes = generateAvailableTimes();
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ backgroundColor: companySettings.theme_color + '10' }}>
+    <div className="min-h-screen bg-gray-50" style={{ backgroundColor: companySettings?.theme_color ? companySettings.theme_color + '10' : '#f9fafb' }}>
       <div className="container mx-auto px-4 py-6 max-w-2xl">
         {/* Header da empresa */}
         <div className="text-center mb-8">
-          {(companySettings.logo_url || profile.profile_image_url) && (
+          {(companySettings?.logo_url || profile?.profile_image_url) && (
             <img
               src={companySettings.logo_url || profile.profile_image_url}
-              alt={profile.company_name}
+              alt={profile?.company_name || 'Logo'}
               className="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-4"
-              style={{ borderColor: companySettings.theme_color }}
+              style={{ borderColor: companySettings?.theme_color || '#22c55e' }}
             />
           )}
-          <h1 className="text-3xl font-bold mb-2" style={{ color: companySettings.theme_color }}>
-            {profile.company_name}
+          <h1 className="text-3xl font-bold mb-2" style={{ color: companySettings?.theme_color || '#22c55e' }}>
+            {profile?.company_name || 'Empresa'}
           </h1>
-          <p className="text-gray-600 mb-2">{profile.business_type}</p>
-          {companySettings.welcome_message && (
+          <p className="text-gray-600 mb-2">{profile?.business_type || 'Serviços'}</p>
+          {companySettings?.welcome_message && (
             <p className="text-gray-700 italic">{companySettings.welcome_message}</p>
           )}
         </div>
 
         {/* Imagem de capa */}
-        {companySettings.cover_image_url && (
+        {companySettings?.cover_image_url && (
           <div className="mb-8 rounded-lg overflow-hidden">
             <img
               src={companySettings.cover_image_url}
@@ -316,7 +389,7 @@ const PublicBooking = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" style={{ color: companySettings.theme_color }} />
+              <Calendar className="w-5 h-5" style={{ color: companySettings?.theme_color || '#22c55e' }} />
               Agendar Horário
             </CardTitle>
           </CardHeader>
@@ -358,11 +431,14 @@ const PublicBooking = () => {
                     <SelectValue placeholder="Selecione uma data" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableDates.map((date) => (
-                      <SelectItem key={date.toISOString()} value={format(date, 'yyyy-MM-dd')}>
-                        {format(date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                      </SelectItem>
-                    ))}
+                    {availableDates.map((date) => {
+                      const dateStr = format(date, 'yyyy-MM-dd');
+                      return (
+                        <SelectItem key={dateStr} value={dateStr}>
+                          {format(date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -450,7 +526,7 @@ const PublicBooking = () => {
               <Button 
                 type="submit" 
                 className="w-full"
-                style={{ backgroundColor: companySettings.theme_color }}
+                style={{ backgroundColor: companySettings?.theme_color || '#22c55e' }}
                 disabled={submitting}
               >
                 {submitting ? (
@@ -467,7 +543,7 @@ const PublicBooking = () => {
         </Card>
 
         {/* Links sociais */}
-        {companySettings.instagram_url && (
+        {companySettings?.instagram_url && (
           <div className="text-center mt-6">
             <Button variant="outline" asChild>
               <a 

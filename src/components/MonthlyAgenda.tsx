@@ -38,6 +38,7 @@ const MonthlyAgenda = () => {
   const loadAppointments = async () => {
     try {
       setLoading(true);
+      console.log('Carregando agendamentos para o período:', format(monthStart, 'yyyy-MM-dd'), 'até', format(monthEnd, 'yyyy-MM-dd'));
       
       const { data: appointmentData, error } = await supabase
         .from('appointments')
@@ -46,8 +47,8 @@ const MonthlyAgenda = () => {
           appointment_date,
           appointment_time,
           status,
-          clients!inner(name, phone),
-          services!inner(name)
+          clients(name, phone),
+          services(name)
         `)
         .eq('company_id', user!.id)
         .gte('appointment_date', format(monthStart, 'yyyy-MM-dd'))
@@ -55,20 +56,62 @@ const MonthlyAgenda = () => {
         .order('appointment_date')
         .order('appointment_time');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro na consulta principal:', error);
+        // Tentar consulta alternativa
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('appointments')
+          .select('*')
+          .eq('company_id', user!.id)
+          .gte('appointment_date', format(monthStart, 'yyyy-MM-dd'))
+          .lte('appointment_date', format(monthEnd, 'yyyy-MM-dd'))
+          .order('appointment_date')
+          .order('appointment_time');
 
-      // Processar dados dos agendamentos
+        if (fallbackError) {
+          console.error('Erro na consulta alternativa:', fallbackError);
+          throw fallbackError;
+        }
+
+        // Processar dados da consulta alternativa
+        const processedFallback = await Promise.all(
+          (fallbackData || []).map(async (apt) => {
+            const [clientResult, serviceResult] = await Promise.all([
+              supabase.from('clients').select('name, phone').eq('id', apt.client_id).single(),
+              supabase.from('services').select('name').eq('id', apt.service_id).single()
+            ]);
+
+            return {
+              id: apt.id,
+              appointment_date: apt.appointment_date,
+              appointment_time: apt.appointment_time,
+              client_name: clientResult.data?.name || 'Cliente não encontrado',
+              client_phone: clientResult.data?.phone || '',
+              service_name: serviceResult.data?.name || 'Serviço não encontrado',
+              status: apt.status
+            };
+          })
+        );
+
+        setAppointments(processedFallback);
+        console.log('Agendamentos carregados (fallback):', processedFallback.length);
+        return;
+      }
+
+      // Processar dados dos agendamentos da consulta principal
       const processedAppointments = appointmentData?.map(apt => ({
         id: apt.id,
         appointment_date: apt.appointment_date,
         appointment_time: apt.appointment_time,
-        client_name: apt.clients.name,
-        client_phone: apt.clients.phone,
-        service_name: apt.services.name,
+        client_name: apt.clients?.name || 'Cliente não encontrado',
+        client_phone: apt.clients?.phone || '',
+        service_name: apt.services?.name || 'Serviço não encontrado',
         status: apt.status
       })) || [];
 
       setAppointments(processedAppointments);
+      console.log('Agendamentos carregados:', processedAppointments.length);
+
     } catch (error) {
       console.error('Erro ao carregar agendamentos:', error);
     } finally {
@@ -78,7 +121,9 @@ const MonthlyAgenda = () => {
 
   const getAppointmentsForDate = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return appointments.filter(apt => apt.appointment_date === dateStr);
+    const dayAppointments = appointments.filter(apt => apt.appointment_date === dateStr);
+    console.log(`Agendamentos para ${dateStr}:`, dayAppointments.length);
+    return dayAppointments;
   };
 
   const goToPreviousMonth = () => {
@@ -92,6 +137,7 @@ const MonthlyAgenda = () => {
   const handleDateClick = (date: Date) => {
     const dayAppointments = getAppointmentsForDate(date);
     if (dayAppointments.length > 0) {
+      console.log('Selecionando data:', format(date, 'yyyy-MM-dd'), 'com', dayAppointments.length, 'agendamentos');
       setSelectedDate(date);
     }
   };

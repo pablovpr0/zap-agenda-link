@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -131,33 +130,45 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
 
       // Criar novo cliente se necessário
       if (isNewClient) {
+        console.log('Criando novo cliente:', { name: newClientName, phone: newClientPhone, email: newClientEmail });
+        
         const { data: newClient, error: clientError } = await supabase
           .from('clients')
           .insert({
             company_id: user!.id,
-            name: newClientName,
-            phone: newClientPhone,
-            email: newClientEmail || null,
+            name: newClientName.trim(),
+            phone: newClientPhone.trim(),
+            email: newClientEmail?.trim() || null,
           })
           .select('id')
           .single();
 
-        if (clientError) throw clientError;
+        if (clientError) {
+          console.error('Erro ao criar cliente:', clientError);
+          throw clientError;
+        }
         clientId = newClient.id;
+        console.log('Cliente criado com ID:', clientId);
       }
 
       // Buscar duração do serviço
       const service = services.find(s => s.id === selectedServiceId);
       
-      // Verificar conflitos antes de criar (prevenção de race condition)
+      // Verificar conflitos antes de criar
       const appointmentDate = format(selectedDate, 'yyyy-MM-dd');
-      const { data: conflictCheck } = await supabase
+      console.log('Verificando conflitos para:', { date: appointmentDate, time: selectedTime });
+      
+      const { data: conflictCheck, error: conflictError } = await supabase
         .from('appointments')
         .select('id')
         .eq('company_id', user!.id)
         .eq('appointment_date', appointmentDate)
         .eq('appointment_time', selectedTime)
         .neq('status', 'cancelled');
+
+      if (conflictError) {
+        console.error('Erro ao verificar conflitos:', conflictError);
+      }
 
       if (conflictCheck && conflictCheck.length > 0) {
         toast({
@@ -168,25 +179,36 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
         return;
       }
 
-      // Criar agendamento
-      const { error: appointmentError } = await supabase
-        .from('appointments')
-        .insert({
-          company_id: user!.id,
-          client_id: clientId,
-          service_id: selectedServiceId,
-          appointment_date: appointmentDate,
-          appointment_time: selectedTime,
-          duration: service?.duration || 60,
-          status: 'confirmed',
-          notes: notes || null,
-        });
+      // Criar agendamento com dados consistentes
+      const appointmentData = {
+        company_id: user!.id,
+        client_id: clientId,
+        service_id: selectedServiceId,
+        appointment_date: appointmentDate,
+        appointment_time: selectedTime,
+        duration: service?.duration || 60,
+        status: 'confirmed',
+        notes: notes?.trim() || null,
+      };
 
-      if (appointmentError) throw appointmentError;
+      console.log('Criando agendamento com dados:', appointmentData);
+
+      const { data: appointmentResult, error: appointmentError } = await supabase
+        .from('appointments')
+        .insert(appointmentData)
+        .select('*')
+        .single();
+
+      if (appointmentError) {
+        console.error('Erro ao criar agendamento:', appointmentError);
+        throw appointmentError;
+      }
+
+      console.log('Agendamento criado com sucesso:', appointmentResult);
 
       toast({
         title: "Agendamento criado!",
-        description: "O agendamento foi criado com sucesso.",
+        description: `Agendamento criado para ${format(selectedDate, "dd 'de' MMMM", { locale: ptBR })} às ${selectedTime}.`,
       });
 
       onSuccess();
