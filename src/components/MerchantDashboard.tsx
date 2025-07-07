@@ -45,14 +45,12 @@ const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps
   return (
     <>
       <DashboardContent
-        data={data}
-        linkCopied={linkCopied}
-        onViewPublicPage={handleViewPublicPage}
-        onCopyLink={handleCopyLink}
-        onShareWhatsApp={handleShareWhatsApp}
-        onNewAppointment={() => setShowNewAppointmentModal(true)}
-        onManageClients={() => onViewChange('clients')}
-        onRefreshAppointments={refreshData}
+        companyName={companyName}
+        onShowAppointments={() => setShowNewAppointmentModal(true)}
+        onShowClients={() => onViewChange('clients')}
+        onShowServices={() => onViewChange('services')}
+        onShowSettings={() => onViewChange('settings')}
+        onShowMonthlyAgenda={() => onViewChange('agenda')}
       />
 
       {/* Modal de novo agendamento */}

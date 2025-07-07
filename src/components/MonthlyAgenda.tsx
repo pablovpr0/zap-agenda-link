@@ -14,6 +14,18 @@ interface MonthlyAgendaProps {
   onBack?: () => void;
 }
 
+interface MonthlyAppointment {
+  id: string;
+  appointment_time: string;
+  appointment_date: string;
+  status: string;
+  duration: number;
+  notes?: string;
+  client_name: string;
+  client_phone: string;
+  service_name: string;
+}
+
 const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -59,7 +71,22 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
     window.open(whatsappUrl, '_blank');
   };
 
-  const selectedDateAppointments = selectedDate ? getAppointmentsForDate(selectedDate) : [];
+  // Transformar appointments para o formato esperado pelo AppointmentDialog
+  const transformAppointments = (rawAppointments: any[]): MonthlyAppointment[] => {
+    return rawAppointments.map(apt => ({
+      id: apt.id,
+      appointment_time: apt.appointment_time,
+      appointment_date: apt.appointment_date,
+      status: apt.status,
+      duration: 60, // valor padrão
+      notes: apt.notes,
+      client_name: apt.client_name,
+      client_phone: apt.client_phone,
+      service_name: apt.service_name
+    }));
+  };
+
+  const selectedDateAppointments = selectedDate ? transformAppointments(getAppointmentsForDate(selectedDate)) : [];
 
   // Criar array de dias começando no domingo
   const startDate = new Date(monthStart);

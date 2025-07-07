@@ -6,6 +6,7 @@ import RecentAppointments from './RecentAppointments';
 import WelcomeSection from './WelcomeSection';
 import TodayAppointmentsList from './TodayAppointmentsList';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { useDashboardActions } from '@/hooks/useDashboardActions';
 
 interface DashboardContentProps {
   companyName: string;
@@ -25,30 +26,36 @@ const DashboardContent = ({
   onShowMonthlyAgenda
 }: DashboardContentProps) => {
   const { data, loading } = useDashboardData(companyName);
+  const { linkCopied, handleCopyLink, handleViewPublicPage, handleShareWhatsApp } = useDashboardActions(data.bookingLink);
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in">
       <WelcomeSection companyName={companyName} />
       
       <DashboardStats
-        todayAppointments={data.todayAppointments}
-        totalClients={data.totalClients}
-        monthlyRevenue={data.monthlyRevenue}
-        completionRate={data.completionRate}
-        loading={loading}
+        stats={{
+          todayAppointments: data.todayAppointments,
+          totalClients: data.totalClients,
+          monthlyRevenue: data.monthlyRevenue,
+          completionRate: data.completionRate
+        }}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div className="space-y-4 md:space-y-6">
           <QuickActions
-            onShowAppointments={onShowAppointments}
-            onShowClients={onShowClients}
-            onShowServices={onShowServices}
-            onShowSettings={onShowSettings}
-            onShowMonthlyAgenda={onShowMonthlyAgenda}
+            onNewAppointment={onShowAppointments}
+            onViewPublicPage={handleViewPublicPage}
+            onManageClients={onShowClients}
           />
           
-          <PublicBookingLink bookingLink={data.bookingLink} />
+          <PublicBookingLink 
+            bookingLink={data.bookingLink}
+            linkCopied={linkCopied}
+            onViewPublicPage={handleViewPublicPage}
+            onCopyLink={handleCopyLink}
+            onShareWhatsApp={handleShareWhatsApp}
+          />
         </div>
 
         <div className="space-y-4 md:space-y-6">
@@ -59,7 +66,6 @@ const DashboardContent = ({
           
           <RecentAppointments 
             appointments={data.recentAppointments}
-            loading={loading}
           />
         </div>
       </div>

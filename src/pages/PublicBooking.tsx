@@ -59,6 +59,11 @@ const PublicBooking = () => {
     }
   };
 
+  const getAvailableTimes = async () => {
+    if (!selectedDate) return [];
+    return await generateAvailableTimes(selectedDate);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
@@ -101,7 +106,7 @@ const PublicBooking = () => {
                     <img 
                       src={companySettings.logo_url} 
                       alt={profile.company_name} 
-                      className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                      className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
                     />
                     <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full p-2">
                       <CheckCircle className="w-4 h-4 text-white" />
@@ -186,9 +191,10 @@ const PublicBooking = () => {
               {/* Horário */}
               {selectedDate && (
                 <TimeSelection
-                  availableTimes={generateAvailableTimes(selectedDate)}
+                  availableTimes={[]} // Will be loaded async
                   selectedTime={selectedTime}
                   onTimeSelect={setSelectedTime}
+                  getAvailableTimes={getAvailableTimes}
                 />
               )}
 

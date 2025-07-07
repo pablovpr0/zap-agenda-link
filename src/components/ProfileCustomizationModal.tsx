@@ -31,6 +31,8 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [instagramUrl, setInstagramUrl] = useState('');
   const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
+  const [monthlyLimit, setMonthlyLimit] = useState(4);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -72,6 +74,8 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
         setWelcomeMessage(settings.welcome_message || '');
         setInstagramUrl(settings.instagram_url || '');
         setAddress(settings.address || '');
+        setPhone(settings.phone || '');
+        setMonthlyLimit(settings.monthly_appointments_limit || 4);
       }
 
     } catch (error: any) {
@@ -113,16 +117,26 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
 
       if (profileError) throw profileError;
 
+      // Create slug from company name
+      const companySlug = companyName
+        .toLowerCase()
+        .replace(/[^a-zA-Z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+
       // Update or create company settings
       const { error: settingsError } = await supabase
         .from('company_settings')
         .upsert({
           company_id: user!.id,
+          slug: companySlug,
           logo_url: logoUrl || null,
           theme_color: themeColor,
           welcome_message: welcomeMessage || null,
           instagram_url: instagramUrl || null,
           address: address || null,
+          phone: phone || null,
+          monthly_appointments_limit: monthlyLimit,
           updated_at: new Date().toISOString(),
         });
 
@@ -194,14 +208,26 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Endereço</Label>
-                <Input
-                  id="address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Rua das Flores, 123 - Centro - Cidade/UF"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="address">Endereço</Label>
+                  <Input
+                    id="address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Rua das Flores, 123 - Centro - Cidade/UF"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone WhatsApp</Label>
+                  <Input
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
               </div>
             </div>
 
@@ -250,7 +276,7 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
             <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Link className="w-5 h-5" />
-                Mensagens e Links
+                Mensagens e Configurações
               </h3>
 
               <div className="space-y-4">
@@ -271,6 +297,18 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
                     value={instagramUrl}
                     onChange={(e) => setInstagramUrl(e.target.value)}
                     placeholder="https://instagram.com/seuusuario"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="monthlyLimit">Limite de Agendamentos por Cliente/Mês</Label>
+                  <Input
+                    id="monthlyLimit"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={monthlyLimit}
+                    onChange={(e) => setMonthlyLimit(Number(e.target.value))}
                   />
                 </div>
               </div>

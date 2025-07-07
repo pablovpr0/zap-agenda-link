@@ -34,22 +34,26 @@ const AppointmentDialog = ({
   onWhatsAppClick,
   onRefresh 
 }: AppointmentDialogProps) => {
-  const { updateAppointmentStatus, deleteAppointment } = useAppointmentActions();
+  const { deleteAppointment, cancelAppointment } = useAppointmentActions();
 
   const handleStatusUpdate = async (appointmentId: string, newStatus: string) => {
-    const success = await updateAppointmentStatus(appointmentId, newStatus);
-    if (success) {
-      onRefresh();
+    if (newStatus === 'cancelled') {
+      const appointment = appointments.find(apt => apt.id === appointmentId);
+      if (appointment) {
+        await cancelAppointment(appointmentId, appointment.client_phone, appointment.client_name, onRefresh);
+      }
     }
   };
 
   const handleDelete = async (appointmentId: string) => {
-    const success = await deleteAppointment(appointmentId);
-    if (success) {
-      onRefresh();
-      if (appointments.length === 1) {
-        onClose();
-      }
+    const appointment = appointments.find(apt => apt.id === appointmentId);
+    if (appointment) {
+      await deleteAppointment(appointmentId, appointment.client_phone, appointment.client_name, () => {
+        onRefresh();
+        if (appointments.length === 1) {
+          onClose();
+        }
+      });
     }
   };
 
@@ -153,26 +157,15 @@ const AppointmentDialog = ({
                 </Button>
 
                 {appointment.status === 'confirmed' && (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleStatusUpdate(appointment.id, 'completed')}
-                      className="flex items-center gap-1 text-blue-600 hover:text-blue-700"
-                    >
-                      <CheckCircle className="w-3 h-3" />
-                      Concluir
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleStatusUpdate(appointment.id, 'cancelled')}
-                      className="flex items-center gap-1 text-red-600 hover:text-red-700"
-                    >
-                      <XCircle className="w-3 h-3" />
-                      Cancelar
-                    </Button>
-                  </>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleStatusUpdate(appointment.id, 'cancelled')}
+                    className="flex items-center gap-1 text-red-600 hover:text-red-700"
+                  >
+                    <XCircle className="w-3 h-3" />
+                    Cancelar
+                  </Button>
                 )}
 
                 <Button
