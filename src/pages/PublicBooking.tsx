@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ const PublicBooking = () => {
   const [clientPhone, setClientPhone] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [notes, setNotes] = useState('');
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
   const {
     companySettings,
@@ -33,6 +34,20 @@ const PublicBooking = () => {
     generateAvailableTimes,
     submitBooking
   } = usePublicBooking(companySlug || '');
+
+  // Load available times when date changes
+  useEffect(() => {
+    const loadAvailableTimes = async () => {
+      if (selectedDate) {
+        const times = await generateAvailableTimes(selectedDate);
+        setAvailableTimes(times);
+      } else {
+        setAvailableTimes([]);
+      }
+    };
+
+    loadAvailableTimes();
+  }, [selectedDate, generateAvailableTimes]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,12 +71,8 @@ const PublicBooking = () => {
       setClientPhone('');
       setClientEmail('');
       setNotes('');
+      setAvailableTimes([]);
     }
-  };
-
-  const getAvailableTimes = async () => {
-    if (!selectedDate) return [];
-    return await generateAvailableTimes(selectedDate);
   };
 
   if (loading) {
@@ -191,10 +202,9 @@ const PublicBooking = () => {
               {/* Horário */}
               {selectedDate && (
                 <TimeSelection
-                  availableTimes={[]} // Will be loaded async
+                  availableTimes={availableTimes}
                   selectedTime={selectedTime}
                   onTimeSelect={setSelectedTime}
-                  getAvailableTimes={getAvailableTimes}
                 />
               )}
 

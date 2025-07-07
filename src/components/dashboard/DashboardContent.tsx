@@ -30,7 +30,7 @@ const DashboardContent = ({
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in">
-      <WelcomeSection companyName={companyName} />
+      <WelcomeSection />
       
       <DashboardStats
         stats={{
