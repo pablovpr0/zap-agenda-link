@@ -126,6 +126,8 @@ export type Database = {
           instagram_url: string | null
           logo_url: string | null
           max_simultaneous_appointments: number
+          monthly_appointments_limit: number | null
+          phone: string | null
           slug: string
           theme_color: string | null
           updated_at: string
@@ -145,6 +147,8 @@ export type Database = {
           instagram_url?: string | null
           logo_url?: string | null
           max_simultaneous_appointments?: number
+          monthly_appointments_limit?: number | null
+          phone?: string | null
           slug: string
           theme_color?: string | null
           updated_at?: string
@@ -164,6 +168,8 @@ export type Database = {
           instagram_url?: string | null
           logo_url?: string | null
           max_simultaneous_appointments?: number
+          monthly_appointments_limit?: number | null
+          phone?: string | null
           slug?: string
           theme_color?: string | null
           updated_at?: string

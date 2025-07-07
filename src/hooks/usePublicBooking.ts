@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -9,12 +10,14 @@ interface CompanySettings {
   company_id: string;
   slug: string;
   address?: string;
+  phone?: string;
   working_days: number[];
   working_hours_start: string;
   working_hours_end: string;
   appointment_interval: number;
   max_simultaneous_appointments: number;
   advance_booking_limit: number;
+  monthly_appointments_limit: number;
   instagram_url?: string;
   logo_url?: string;
   cover_image_url?: string;
@@ -111,7 +114,7 @@ export const usePublicBooking = (companySlug: string) => {
     return dates;
   };
 
-  const generateAvailableTimes = (selectedDate: string) => {
+  const generateAvailableTimes = async (selectedDate: string) => {
     if (!companySettings || !selectedDate) return [];
     
     const times = [];
@@ -126,7 +129,68 @@ export const usePublicBooking = (companySlug: string) => {
       currentTime = new Date(currentTime.getTime() + companySettings.appointment_interval * 60000);
     }
     
-    return times;
+    // Buscar horários já agendados para esta data
+    try {
+      const { data: bookedAppointments, error } = await supabase
+        .from('appointments')
+        .select('appointment_time')
+        .eq('company_id', companySettings.company_id)
+        .eq('appointment_date', selectedDate)
+        .neq('status', 'cancelled');
+
+      if (error) {
+        console.error('Erro ao buscar agendamentos:', error);
+        return times;
+      }
+
+      // Filtrar horários já ocupados
+      const bookedTimes = bookedAppointments?.map(apt => apt.appointment_time.substring(0, 5)) || [];
+      const availableTimes = times.filter(time => !bookedTimes.includes(time));
+      
+      return availableTimes;
+    } catch (error) {
+      console.error('Erro ao verificar horários disponíveis:', error);
+      return times;
+    }
+  };
+
+  const checkMonthlyLimit = async (clientPhone: string) => {
+    if (!companySettings) return true;
+
+    try {
+      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+      
+      // Buscar cliente pelo telefone
+      const { data: client } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('company_id', companySettings.company_id)
+        .eq('phone', clientPhone)
+        .single();
+
+      if (!client) return true; // Cliente novo, pode agendar
+
+      // Contar agendamentos do mês atual
+      const { data: monthlyAppointments, error } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('company_id', companySettings.company_id)
+        .eq('client_id', client.id)
+        .gte('appointment_date', `${currentMonth}-01`)
+        .lt('appointment_date', `${currentMonth}-32`)
+        .neq('status', 'cancelled');
+
+      if (error) {
+        console.error('Erro ao verificar limite mensal:', error);
+        return true;
+      }
+
+      const appointmentCount = monthlyAppointments?.length || 0;
+      return appointmentCount < companySettings.monthly_appointments_limit;
+    } catch (error) {
+      console.error('Erro ao verificar limite mensal:', error);
+      return true;
+    }
   };
 
   const submitBooking = async (formData: {
@@ -149,26 +213,59 @@ export const usePublicBooking = (companySlug: string) => {
       return false;
     }
 
+    // Verificar limite mensal
+    const canBook = await checkMonthlyLimit(clientPhone);
+    if (!canBook) {
+      toast({
+        title: "Limite de agendamentos",
+        description: `Você já atingiu o limite de ${companySettings!.monthly_appointments_limit} agendamentos por mês.`,
+        variant: "destructive",
+      });
+      return false;
+    }
+
     setSubmitting(true);
 
     try {
       console.log('Dados do agendamento:', formData);
 
-      // Criar ou buscar cliente - agora verifica apenas o telefone para evitar duplicação
+      // Verificar se horário ainda está disponível
+      const { data: conflictCheck, error: conflictError } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('company_id', companySettings!.company_id)
+        .eq('appointment_date', selectedDate)
+        .eq('appointment_time', selectedTime)
+        .neq('status', 'cancelled');
+
+      if (conflictError) {
+        console.error('Erro ao verificar conflitos:', conflictError);
+      }
+
+      if (conflictCheck && conflictCheck.length > 0) {
+        toast({
+          title: "Horário indisponível",
+          description: "Este horário já foi ocupado. Por favor, escolha outro horário.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Criar ou buscar cliente - verificar apenas o telefone para evitar duplicação
       let clientId;
       const { data: existingClient } = await supabase
         .from('clients')
         .select('id')
         .eq('company_id', companySettings!.company_id)
         .eq('phone', clientPhone)
-        .single();
+        .maybeSingle(); // Usar maybeSingle para evitar erro se não encontrar
 
       if (existingClient) {
         console.log('Cliente existente encontrado:', existingClient.id);
         clientId = existingClient.id;
         
         // Atualizar dados do cliente existente apenas se necessário
-        const { error: updateError } = await supabase
+        await supabase
           .from('clients')
           .update({
             name: clientName,
@@ -176,10 +273,6 @@ export const usePublicBooking = (companySlug: string) => {
             updated_at: new Date().toISOString()
           })
           .eq('id', clientId);
-
-        if (updateError) {
-          console.error('Erro ao atualizar cliente:', updateError);
-        }
       } else {
         console.log('Criando novo cliente');
         const { data: newClient, error: clientError } = await supabase
@@ -205,30 +298,8 @@ export const usePublicBooking = (companySlug: string) => {
       // Buscar duração do serviço
       const service = services.find(s => s.id === selectedService);
       console.log('Serviço selecionado:', service);
-      
-      // Verificar conflitos de horário
-      const { data: conflictCheck, error: conflictError } = await supabase
-        .from('appointments')
-        .select('id')
-        .eq('company_id', companySettings!.company_id)
-        .eq('appointment_date', selectedDate)
-        .eq('appointment_time', selectedTime)
-        .neq('status', 'cancelled');
 
-      if (conflictError) {
-        console.error('Erro ao verificar conflitos:', conflictError);
-      }
-
-      if (conflictCheck && conflictCheck.length > 0) {
-        toast({
-          title: "Horário indisponível",
-          description: "Este horário já está ocupado. Por favor, escolha outro horário.",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      // Criar agendamento com dados consistentes
+      // Criar agendamento
       const appointmentData = {
         company_id: companySettings!.company_id,
         client_id: clientId,
@@ -255,39 +326,28 @@ export const usePublicBooking = (companySlug: string) => {
 
       console.log('Agendamento criado com sucesso:', appointmentResult);
 
-      // Gerar mensagem melhorada para o cliente
+      // Gerar mensagem para o profissional
       const formattedDate = format(new Date(selectedDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-      const clientMessage = `Olá, ${clientName}! 👋\n` +
-        `Seu procedimento foi marcado com sucesso para o dia ${formattedDate}, às ${selectedTime}.\n` +
-        `Se precisar remarcar ou tiver alguma dúvida, estou à disposição para ajudar!`;
+      const professionalMessage = `🗓️ *NOVO AGENDAMENTO*\n\n` +
+        `👤 *Cliente:* ${clientName}\n` +
+        `📞 *Telefone:* ${clientPhone}\n` +
+        `📅 *Data:* ${formattedDate}\n` +
+        `⏰ *Horário:* ${selectedTime}\n` +
+        `💼 *Serviço:* ${service?.name || 'Não especificado'}\n` +
+        `${notes ? `📝 *Observações:* ${notes}\n` : ''}` +
+        `\n✅ Agendamento confirmado automaticamente!`;
 
-      console.log('Mensagem para o cliente:', clientMessage);
+      console.log('Mensagem para o profissional:', professionalMessage);
 
       toast({
         title: "Agendamento realizado!",
         description: `Agendamento confirmado para ${formattedDate} às ${selectedTime}.`,
       });
 
-      // Buscar telefone do profissional para enviar a mensagem
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', companySettings!.company_id)
-        .single();
-
-      // Tentar extrair telefone do Instagram URL ou usar um telefone padrão
-      let professionalPhone = '';
-      if (companySettings?.instagram_url) {
-        // Se o instagram_url contém um telefone, extrair
-        const phoneMatch = companySettings.instagram_url.match(/\d+/);
-        if (phoneMatch) {
-          professionalPhone = phoneMatch[0];
-        }
-      }
-
-      // Enviar mensagem para o cliente via WhatsApp
-      if (professionalPhone) {
-        const whatsappUrl = `https://wa.me/55${professionalPhone.replace(/\D/g, '')}?text=${encodeURIComponent(clientMessage)}`;
+      // Enviar mensagem para o profissional via WhatsApp
+      if (companySettings?.phone) {
+        const cleanPhone = companySettings.phone.replace(/\D/g, '');
+        const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(professionalMessage)}`;
         setTimeout(() => {
           window.open(whatsappUrl, '_blank');
         }, 1000);

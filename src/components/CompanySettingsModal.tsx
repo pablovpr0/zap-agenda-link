@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Settings, Clock, Calendar } from 'lucide-react';
+import { Settings, Clock, Calendar, Phone, Users } from 'lucide-react';
 
 interface CompanySettingsModalProps {
   isOpen: boolean;
@@ -30,6 +31,8 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
   const [appointmentInterval, setAppointmentInterval] = useState(30);
   const [maxSimultaneousAppointments, setMaxSimultaneousAppointments] = useState(1);
   const [advanceBookingLimit, setAdvanceBookingLimit] = useState(30);
+  const [monthlyAppointmentsLimit, setMonthlyAppointmentsLimit] = useState(4);
+  const [phone, setPhone] = useState('');
 
   const weekDays = [
     { id: 1, name: 'Segunda-feira' },
@@ -67,6 +70,8 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
         setAppointmentInterval(settings.appointment_interval);
         setMaxSimultaneousAppointments(settings.max_simultaneous_appointments);
         setAdvanceBookingLimit(settings.advance_booking_limit);
+        setMonthlyAppointmentsLimit(settings.monthly_appointments_limit || 4);
+        setPhone(settings.phone || '');
       }
 
     } catch (error: any) {
@@ -114,6 +119,8 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
           appointment_interval: appointmentInterval,
           max_simultaneous_appointments: maxSimultaneousAppointments,
           advance_booking_limit: advanceBookingLimit,
+          monthly_appointments_limit: monthlyAppointmentsLimit,
+          phone: phone || null,
           updated_at: new Date().toISOString(),
         })
         .eq('company_id', user!.id);
@@ -164,6 +171,47 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Telefone da empresa */}
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-whatsapp-green" />
+                Telefone da Empresa
+              </Label>
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="(11) 99999-9999"
+              />
+              <p className="text-xs text-gray-500">
+                Telefone para receber mensagens de confirmação de agendamentos
+              </p>
+            </div>
+
+            <Separator />
+
+            {/* Limite de agendamentos mensais */}
+            <div className="space-y-2">
+              <Label htmlFor="monthlyLimit" className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-whatsapp-green" />
+                Limite de Agendamentos por Cliente (por mês)
+              </Label>
+              <Input
+                id="monthlyLimit"
+                type="number"
+                min="1"
+                max="50"
+                value={monthlyAppointmentsLimit}
+                onChange={(e) => setMonthlyAppointmentsLimit(Number(e.target.value))}
+                required
+              />
+              <p className="text-xs text-gray-500">
+                Quantos agendamentos cada cliente pode fazer por mês
+              </p>
+            </div>
+
+            <Separator />
+
             {/* Dias de funcionamento */}
             <div className="space-y-3">
               <Label className="flex items-center gap-2">
@@ -261,6 +309,8 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
             <div className="bg-gray-50 p-4 rounded-lg text-sm text-gray-600">
               <p className="font-medium mb-2">💡 Dicas:</p>
               <ul className="space-y-1 text-xs">
+                <li>• Telefone: usado para receber confirmações via WhatsApp</li>
+                <li>• Limite mensal: evita que clientes façam muitos agendamentos</li>
                 <li>• Intervalo: tempo entre agendamentos consecutivos</li>
                 <li>• Máx. Simultâneos: quantos clientes podem ser atendidos ao mesmo tempo</li>
                 <li>• Limite Antecipação: quantos dias no futuro os clientes podem agendar</li>

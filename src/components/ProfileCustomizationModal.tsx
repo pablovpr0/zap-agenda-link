@@ -1,25 +1,19 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { User, Palette, Upload, Link, Settings } from 'lucide-react';
 import ImageUpload from './ImageUpload';
-import { Save } from 'lucide-react';
 
 interface ProfileCustomizationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess: () => void;
 }
 
 const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustomizationModalProps) => {
@@ -27,11 +21,16 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
   const { toast } = useToast();
   
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  
+  // Form state
   const [companyName, setCompanyName] = useState('');
+  const [businessType, setBusinessType] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [themeColor, setThemeColor] = useState('#22c55e');
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [instagramUrl, setInstagramUrl] = useState('');
-  const [logoUrl, setLogoUrl] = useState('');
-  const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [address, setAddress] = useState('');
 
   useEffect(() => {
     if (isOpen && user) {
@@ -41,82 +40,45 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
 
   const loadProfileData = async () => {
     if (!user) return;
-
+    
+    setLoading(true);
     try {
-      // Buscar dados do perfil
-      const { data: profile } = await supabase
+      // Load profile data
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('company_name')
+        .select('*')
         .eq('id', user.id)
         .single();
 
-      // Buscar configurações da empresa
-      const { data: settings } = await supabase
-        .from('company_settings')
-        .select('welcome_message, instagram_url, logo_url, cover_image_url')
-        .eq('company_id', user.id)
-        .single();
+      if (profileError && profileError.code !== 'PGRST116') throw profileError;
 
       if (profile) {
         setCompanyName(profile.company_name || '');
+        setBusinessType(profile.business_type || '');
       }
 
+      // Load company settings
+      const { data: settings, error: settingsError } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('company_id', user.id)
+        .single();
+
+      if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
+
       if (settings) {
+        setLogoUrl(settings.logo_url || '');
+        setThemeColor(settings.theme_color || '#22c55e');
         setWelcomeMessage(settings.welcome_message || '');
         setInstagramUrl(settings.instagram_url || '');
-        setLogoUrl(settings.logo_url || '');
-        setCoverImageUrl(settings.cover_image_url || '');
+        setAddress(settings.address || '');
       }
 
     } catch (error: any) {
       console.error('Erro ao carregar dados do perfil:', error);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!user) return;
-
-    setLoading(true);
-
-    try {
-      // Atualizar perfil
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          company_name: companyName,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
-      if (profileError) throw profileError;
-
-      // Atualizar configurações da empresa
-      const { error: settingsError } = await supabase
-        .from('company_settings')
-        .update({
-          welcome_message: welcomeMessage,
-          instagram_url: instagramUrl,
-          logo_url: logoUrl,
-          cover_image_url: coverImageUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('company_id', user.id);
-
-      if (settingsError) throw settingsError;
-
-      toast({
-        title: "Perfil atualizado!",
-        description: "As informações do seu perfil foram salvas com sucesso.",
-      });
-
-      onSuccess?.();
-      onClose();
-
-    } catch (error: any) {
-      console.error('Erro ao salvar perfil:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível salvar as alterações.",
+        description: "Não foi possível carregar os dados do perfil.",
         variant: "destructive",
       });
     } finally {
@@ -124,102 +86,211 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!companyName.trim()) {
+      toast({
+        title: "Nome obrigatório",
+        description: "Por favor, informe o nome da empresa.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user!.id,
+          company_name: companyName,
+          business_type: businessType || null,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (profileError) throw profileError;
+
+      // Update or create company settings
+      const { error: settingsError } = await supabase
+        .from('company_settings')
+        .upsert({
+          company_id: user!.id,
+          logo_url: logoUrl || null,
+          theme_color: themeColor,
+          welcome_message: welcomeMessage || null,
+          instagram_url: instagramUrl || null,
+          address: address || null,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (settingsError) throw settingsError;
+
+      toast({
+        title: "Perfil atualizado!",
+        description: "As informações foram salvas com sucesso.",
+      });
+
+      onSuccess();
+      onClose();
+
+    } catch (error: any) {
+      console.error('Erro ao salvar perfil:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar o perfil. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-gray-800">
+          <DialogTitle className="flex items-center gap-2">
+            <Settings className="w-5 h-5 text-whatsapp-green" />
             Personalizar Perfil da Empresa
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Nome da Empresa */}
-          <div className="space-y-2">
-            <Label htmlFor="companyName">Nome da Empresa</Label>
-            <Input
-              id="companyName"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="Digite o nome da sua empresa"
-            />
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-whatsapp-green"></div>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Informações básicas */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Informações Básicas
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="companyName">Nome da Empresa *</Label>
+                  <Input
+                    id="companyName"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="Ex: Salão Beleza & Estilo"
+                    required
+                  />
+                </div>
 
-          {/* Logo da Empresa */}
-          <div className="space-y-2">
-            <Label>Logo da Empresa</Label>
-            <ImageUpload
-              bucket="company-logos"
-              currentImageUrl={logoUrl}
-              onImageUploaded={setLogoUrl}
-              placeholder="Clique para adicionar o logo"
-              maxSizeMB={2}
-            />
-          </div>
-
-          {/* Imagem de Capa */}
-          <div className="space-y-2">
-            <Label>Imagem de Capa</Label>
-            <ImageUpload
-              bucket="company-covers"
-              currentImageUrl={coverImageUrl}
-              onImageUploaded={setCoverImageUrl}
-              placeholder="Clique para adicionar uma capa"
-              maxSizeMB={5}
-            />
-          </div>
-
-          {/* Mensagem de Boas-vindas */}
-          <div className="space-y-2">
-            <Label htmlFor="welcomeMessage">Mensagem de Boas-vindas</Label>
-            <Textarea
-              id="welcomeMessage"
-              value={welcomeMessage}
-              onChange={(e) => setWelcomeMessage(e.target.value)}
-              placeholder="Digite uma mensagem de boas-vindas para seus clientes"
-              rows={3}
-            />
-          </div>
-
-          {/* Instagram URL */}
-          <div className="space-y-2">
-            <Label htmlFor="instagramUrl">Link do Instagram (opcional)</Label>
-            <Input
-              id="instagramUrl"
-              value={instagramUrl}
-              onChange={(e) => setInstagramUrl(e.target.value)}
-              placeholder="https://instagram.com/suaempresa"
-              type="url"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={loading}
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={loading}
-            className="bg-whatsapp-green hover:bg-whatsapp-green/90"
-          >
-            {loading ? (
-              <div className="flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Salvando...
+                <div className="space-y-2">
+                  <Label htmlFor="businessType">Tipo de Negócio</Label>
+                  <Input
+                    id="businessType"
+                    value={businessType}
+                    onChange={(e) => setBusinessType(e.target.value)}
+                    placeholder="Ex: Salão de Beleza, Barbearia, Clínica"
+                  />
+                </div>
               </div>
-            ) : (
-              <div className="flex items-center">
-                <Save className="w-4 h-4 mr-2" />
-                Salvar Alterações
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Endereço</Label>
+                <Input
+                  id="address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Rua das Flores, 123 - Centro - Cidade/UF"
+                />
               </div>
-            )}
-          </Button>
-        </div>
+            </div>
+
+            {/* Visual */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Palette className="w-5 h-5" />
+                Personalização Visual
+              </h3>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Upload className="w-4 h-4" />
+                    Logo da Empresa
+                  </Label>
+                  <ImageUpload
+                    currentImageUrl={logoUrl}
+                    onImageUploaded={setLogoUrl}
+                    bucket="company-logos"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="themeColor">Cor do Tema</Label>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      id="themeColor"
+                      type="color"
+                      value={themeColor}
+                      onChange={(e) => setThemeColor(e.target.value)}
+                      className="w-20 h-10"
+                    />
+                    <Input
+                      value={themeColor}
+                      onChange={(e) => setThemeColor(e.target.value)}
+                      placeholder="#22c55e"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Mensagens e Links */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Link className="w-5 h-5" />
+                Mensagens e Links
+              </h3>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="welcomeMessage">Mensagem de Boas-vindas</Label>
+                  <Input
+                    id="welcomeMessage"
+                    value={welcomeMessage}
+                    onChange={(e) => setWelcomeMessage(e.target.value)}
+                    placeholder="Ex: Seja bem-vindo! Agende seu horário conosco."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="instagramUrl">Instagram</Label>
+                  <Input
+                    id="instagramUrl"
+                    value={instagramUrl}
+                    onChange={(e) => setInstagramUrl(e.target.value)}
+                    placeholder="https://instagram.com/seuusuario"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Botões */}
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={submitting}
+                className="bg-whatsapp-green hover:bg-green-600"
+              >
+                {submitting ? "Salvando..." : "Salvar Perfil"}
+              </Button>
+            </div>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

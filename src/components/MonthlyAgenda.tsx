@@ -39,9 +39,22 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
     }
   };
 
-  const handleWhatsAppClick = (phone: string, clientName: string) => {
+  const handleWhatsAppClick = (phone: string, clientName: string, appointmentDate?: string, appointmentTime?: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
-    const message = `Olá, ${clientName}! 👋\nSeu procedimento foi marcado com sucesso. Se precisar remarcar ou tiver alguma dúvida, estou à disposição para ajudar!`;
+    
+    // Formatar data e horário se fornecidos
+    let message = `Olá, ${clientName}! 👋\n`;
+    
+    if (appointmentDate && appointmentTime) {
+      const formattedDate = format(new Date(appointmentDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+      const formattedTime = appointmentTime.substring(0, 5);
+      message += `Seu procedimento foi marcado com sucesso para o dia ${formattedDate}, às ${formattedTime}.\n`;
+    } else {
+      message += `Seu procedimento foi marcado com sucesso.\n`;
+    }
+    
+    message += `Se precisar remarcar ou tiver alguma dúvida, estou à disposição para ajudar!`;
+    
     const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
