@@ -9,23 +9,6 @@ export const useAppointmentActions = () => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const openWhatsAppNotification = (phone: string, clientName: string, action: 'rescheduled' | 'cancelled' | 'deleted', newDate?: string, newTime?: string) => {
-    const cleanPhone = phone.replace(/\D/g, '');
-    let message = '';
-    
-    if (action === 'rescheduled' && newDate && newTime) {
-      const formattedDate = new Date(newDate).toLocaleDateString('pt-BR');
-      message = `Olá ${clientName}! Seu agendamento foi reagendado para ${formattedDate} às ${newTime}. Qualquer dúvida, entre em contato conosco.`;
-    } else if (action === 'cancelled') {
-      message = `Olá ${clientName}! Seu agendamento foi cancelado. Entre em contato conosco para reagendar ou se tiver alguma dúvida.`;
-    } else if (action === 'deleted') {
-      message = `Olá ${clientName}! Seu agendamento foi excluído do sistema. Entre em contato conosco se precisar reagendar.`;
-    }
-    
-    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-  };
-
   const deleteAppointment = async (appointmentId: string, clientPhone: string, clientName: string, onSuccess?: () => void) => {
     setIsDeleting(true);
     try {
@@ -40,9 +23,6 @@ export const useAppointmentActions = () => {
         title: "Agendamento excluído",
         description: "O agendamento foi excluído com sucesso.",
       });
-
-      // Abrir WhatsApp para notificar o cliente
-      openWhatsAppNotification(clientPhone, clientName, 'deleted');
 
       if (onSuccess) onSuccess();
     } catch (error: any) {
@@ -71,9 +51,6 @@ export const useAppointmentActions = () => {
         title: "Agendamento cancelado",
         description: "O agendamento foi cancelado com sucesso.",
       });
-
-      // Abrir WhatsApp para notificar o cliente
-      openWhatsAppNotification(clientPhone, clientName, 'cancelled');
 
       if (onSuccess) onSuccess();
     } catch (error: any) {
@@ -118,9 +95,6 @@ export const useAppointmentActions = () => {
         title: "Agendamento atualizado",
         description: "Data e horário alterados com sucesso.",
       });
-
-      // Abrir WhatsApp para notificar o cliente
-      openWhatsAppNotification(clientPhone, clientName, 'rescheduled', formattedDate, newTime);
 
       if (onSuccess) onSuccess();
     } catch (error: any) {

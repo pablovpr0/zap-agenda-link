@@ -159,7 +159,7 @@ export const usePublicBooking = (companySlug: string) => {
     try {
       const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
       
-      // Buscar agendamentos do mês atual pelo telefone do cliente diretamente
+      // Buscar agendamentos do mês atual pelo telefone do cliente
       const { data: monthlyAppointments, error } = await supabase
         .from('appointments')
         .select(`
@@ -221,8 +221,6 @@ export const usePublicBooking = (companySlug: string) => {
     setSubmitting(true);
 
     try {
-      console.log('Dados do agendamento:', formData);
-
       // Verificar se horário ainda está disponível
       const { data: conflictCheck, error: conflictError } = await supabase
         .from('appointments')
@@ -255,7 +253,6 @@ export const usePublicBooking = (companySlug: string) => {
         .maybeSingle();
 
       if (existingClient) {
-        console.log('Cliente existente encontrado:', existingClient.id);
         clientId = existingClient.id;
         
         // Atualizar dados do cliente existente apenas se necessário
@@ -268,7 +265,6 @@ export const usePublicBooking = (companySlug: string) => {
           })
           .eq('id', clientId);
       } else {
-        console.log('Criando novo cliente');
         const { data: newClient, error: clientError } = await supabase
           .from('clients')
           .insert({
@@ -286,12 +282,10 @@ export const usePublicBooking = (companySlug: string) => {
           throw clientError;
         }
         clientId = newClient.id;
-        console.log('Novo cliente criado:', clientId);
       }
 
       // Buscar duração do serviço
       const service = services.find(s => s.id === selectedService);
-      console.log('Serviço selecionado:', service);
 
       // Criar agendamento
       const appointmentData = {
@@ -305,8 +299,6 @@ export const usePublicBooking = (companySlug: string) => {
         notes: notes || null,
       };
 
-      console.log('Dados do agendamento a serem inseridos:', appointmentData);
-
       const { data: appointmentResult, error: appointmentError } = await supabase
         .from('appointments')
         .insert(appointmentData)
@@ -317,8 +309,6 @@ export const usePublicBooking = (companySlug: string) => {
         console.error('Erro ao criar agendamento:', appointmentError);
         throw appointmentError;
       }
-
-      console.log('Agendamento criado com sucesso:', appointmentResult);
 
       // Corrigir formatação da data para a mensagem
       const appointmentDate = parseISO(selectedDate);
@@ -331,8 +321,6 @@ export const usePublicBooking = (companySlug: string) => {
         `💼 *Serviço:* ${service?.name || 'Não especificado'}\n` +
         `${notes ? `📝 *Observações:* ${notes}\n` : ''}` +
         `\n✅ Agendamento confirmado automaticamente!`;
-
-      console.log('Mensagem para o profissional:', professionalMessage);
 
       toast({
         title: "Agendamento realizado!",
