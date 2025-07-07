@@ -41,7 +41,7 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
 
   const handleWhatsAppClick = (phone: string, clientName: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
-    const message = `Olá ${clientName}! Aqui é da ${window.location.hostname}. Como posso ajudá-lo(a)?`;
+    const message = `Olá, ${clientName}! 👋\nSeu procedimento foi marcado com sucesso. Se precisar remarcar ou tiver alguma dúvida, estou à disposição para ajudar!`;
     const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -73,10 +73,10 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             <Calendar className="w-4 md:w-5 h-4 md:h-5 text-primary" />
-            {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+            Agenda - {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-2 md:p-6">
+        <CardContent className="p-2 md:p-6 pt-0">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="text-gray-500">Carregando agendamentos...</div>

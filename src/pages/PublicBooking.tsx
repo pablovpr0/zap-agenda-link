@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { MessageCircle, Calendar, Clock, CheckCircle } from 'lucide-react';
 import PublicCalendar from '@/components/PublicCalendar';
-import CompanyHeader from '@/components/public-booking/CompanyHeader';
 import ServiceSelection from '@/components/public-booking/ServiceSelection';
 import TimeSelection from '@/components/public-booking/TimeSelection';
 import ClientForm from '@/components/public-booking/ClientForm';
@@ -88,28 +87,51 @@ const PublicBooking = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
       <div className="container mx-auto px-4 py-6 max-w-md">
-        {/* Header estilo WhatsApp Business */}
-        <CompanyHeader companySettings={companySettings} profile={profile} />
+        {/* Header da empresa */}
+        <div className="text-center mb-6">
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-green-100">
+            {companySettings.logo_url && (
+              <div className="flex justify-center mb-4">
+                <img 
+                  src={companySettings.logo_url} 
+                  alt={profile.company_name} 
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+              </div>
+            )}
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">
+              {profile.company_name}
+            </h1>
+            {profile.business_type && (
+              <p className="text-gray-600 text-sm mb-3">{profile.business_type}</p>
+            )}
+            {companySettings.welcome_message && (
+              <p className="text-gray-700 text-sm leading-relaxed">
+                {companySettings.welcome_message}
+              </p>
+            )}
+          </div>
+        </div>
 
-        {/* Chamada para ação melhorada - não parece mais um botão */}
+        {/* Seção informativa sobre agendamento */}
         <div className="mb-6 bg-white rounded-xl p-6 shadow-sm border border-green-100">
-          <div className="text-center space-y-3">
+          <div className="space-y-4">
             <div className="flex justify-center">
               <div className="bg-green-100 p-3 rounded-full">
                 <Calendar className="w-6 h-6 text-green-600" />
               </div>
             </div>
-            <div>
+            <div className="text-center">
               <h2 className="text-xl font-bold text-gray-800 mb-2">
                 Agende seu horário
               </h2>
-              <p className="text-gray-600 text-sm leading-relaxed">
+              <p className="text-gray-600 text-sm leading-relaxed mb-4">
                 Escolha o melhor horário para você e confirme seu agendamento de forma rápida e prática
               </p>
-            </div>
-            <div className="flex items-center justify-center gap-2 text-green-600">
-              <CheckCircle className="w-4 h-4" />
-              <span className="text-sm font-medium">Confirmação instantânea</span>
+              <div className="flex items-center justify-center gap-2 text-green-600">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">Confirmação instantânea</span>
+              </div>
             </div>
           </div>
         </div>

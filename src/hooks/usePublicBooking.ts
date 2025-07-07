@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -155,7 +154,7 @@ export const usePublicBooking = (companySlug: string) => {
     try {
       console.log('Dados do agendamento:', formData);
 
-      // Criar ou buscar cliente
+      // Criar ou buscar cliente - agora verifica apenas o telefone para evitar duplicação
       let clientId;
       const { data: existingClient } = await supabase
         .from('clients')
@@ -168,7 +167,7 @@ export const usePublicBooking = (companySlug: string) => {
         console.log('Cliente existente encontrado:', existingClient.id);
         clientId = existingClient.id;
         
-        // Atualizar dados do cliente existente
+        // Atualizar dados do cliente existente apenas se necessário
         const { error: updateError } = await supabase
           .from('clients')
           .update({
@@ -256,17 +255,13 @@ export const usePublicBooking = (companySlug: string) => {
 
       console.log('Agendamento criado com sucesso:', appointmentResult);
 
-      // Gerar mensagem para o profissional (não para o cliente)
+      // Gerar mensagem melhorada para o cliente
       const formattedDate = format(new Date(selectedDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-      const contactMessage = `🎉 *Novo Agendamento Recebido!*\n\n` +
-        `📅 *Data:* ${formattedDate}\n` +
-        `⏰ *Horário:* ${selectedTime}\n` +
-        `💇 *Serviço:* ${service?.name}\n` +
-        `👤 *Cliente:* ${clientName}\n` +
-        `📱 *Telefone:* ${clientPhone}${clientEmail ? `\n📧 *Email:* ${clientEmail}` : ''}${notes ? `\n📝 *Observações:* ${notes}` : ''}\n\n` +
-        `✅ Agendamento confirmado automaticamente pelo sistema ZapAgenda!`;
+      const clientMessage = `Olá, ${clientName}! 👋\n` +
+        `Seu procedimento foi marcado com sucesso para o dia ${formattedDate}, às ${selectedTime}.\n` +
+        `Se precisar remarcar ou tiver alguma dúvida, estou à disposição para ajudar!`;
 
-      console.log('Mensagem para o profissional:', contactMessage);
+      console.log('Mensagem para o cliente:', clientMessage);
 
       toast({
         title: "Agendamento realizado!",
@@ -290,15 +285,9 @@ export const usePublicBooking = (companySlug: string) => {
         }
       }
 
-      // Se não conseguiu extrair do Instagram, tentar do endereço ou usar um padrão
-      if (!professionalPhone) {
-        // Aqui você pode implementar lógica para obter o telefone do profissional
-        // Por enquanto, vamos mostrar a mensagem no console para o profissional ver
-        console.log('MENSAGEM PARA O PROFISSIONAL:', contactMessage);
-      } else {
-        // Enviar mensagem via WhatsApp para o profissional
-        const whatsappUrl = `https://wa.me/55${professionalPhone.replace(/\D/g, '')}?text=${encodeURIComponent(contactMessage)}`;
-        // Abrir em nova aba para que o profissional veja a mensagem
+      // Enviar mensagem para o cliente via WhatsApp
+      if (professionalPhone) {
+        const whatsappUrl = `https://wa.me/55${professionalPhone.replace(/\D/g, '')}?text=${encodeURIComponent(clientMessage)}`;
         setTimeout(() => {
           window.open(whatsappUrl, '_blank');
         }, 1000);
