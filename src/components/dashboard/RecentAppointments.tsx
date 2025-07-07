@@ -80,6 +80,8 @@ const RecentAppointments = ({ appointments, onRefresh }: RecentAppointmentsProps
                     appointmentId={appointment.id}
                     currentDate={appointment.appointment_date}
                     currentTime={appointment.appointment_time}
+                    clientPhone={appointment.client_phone}
+                    clientName={appointment.client_name}
                     onSuccess={onRefresh}
                   />
                   <Button

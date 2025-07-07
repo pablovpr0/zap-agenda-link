@@ -17,33 +17,58 @@ import { Label } from '@/components/ui/label';
 import { Trash2, Edit, X } from 'lucide-react';
 import { useState } from 'react';
 import { useAppointmentActions } from '@/hooks/useAppointmentActions';
+import { format } from 'date-fns';
 
 interface AppointmentActionsProps {
   appointmentId: string;
   currentDate: string;
   currentTime: string;
+  clientPhone: string;
+  clientName: string;
   onSuccess?: () => void;
 }
 
-const AppointmentActions = ({ appointmentId, currentDate, currentTime, onSuccess }: AppointmentActionsProps) => {
-  const { deleteAppointment, cancelAppointment, updateAppointment, isDeleting, isCancelling } = useAppointmentActions();
-  const [newDate, setNewDate] = useState(currentDate);
+const AppointmentActions = ({ 
+  appointmentId, 
+  currentDate, 
+  currentTime, 
+  clientPhone, 
+  clientName, 
+  onSuccess 
+}: AppointmentActionsProps) => {
+  const { deleteAppointment, cancelAppointment, updateAppointment, isDeleting, isCancelling, isUpdating } = useAppointmentActions();
+  
+  // Converter a data para o formato correto para o input date
+  const formatDateForInput = (dateStr: string) => {
+    if (dateStr.includes('-')) {
+      return dateStr; // Já está no formato YYYY-MM-DD
+    }
+    // Se estiver em DD/MM/YYYY, converter para YYYY-MM-DD
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+    return dateStr;
+  };
+
+  const [newDate, setNewDate] = useState(formatDateForInput(currentDate));
   const [newTime, setNewTime] = useState(currentTime);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   const handleUpdate = async () => {
-    await updateAppointment(appointmentId, newDate, newTime, () => {
+    console.log('Atualizando agendamento:', { appointmentId, newDate, newTime, clientPhone, clientName });
+    await updateAppointment(appointmentId, newDate, newTime, clientPhone, clientName, () => {
       setIsEditOpen(false);
       if (onSuccess) onSuccess();
     });
   };
 
   const handleDelete = async () => {
-    await deleteAppointment(appointmentId, onSuccess);
+    await deleteAppointment(appointmentId, clientPhone, clientName, onSuccess);
   };
 
   const handleCancel = async () => {
-    await cancelAppointment(appointmentId, onSuccess);
+    await cancelAppointment(appointmentId, clientPhone, clientName, onSuccess);
   };
 
   return (
@@ -82,8 +107,8 @@ const AppointmentActions = ({ appointmentId, currentDate, currentTime, onSuccess
               <Button variant="outline" onClick={() => setIsEditOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleUpdate}>
-                Salvar
+              <Button onClick={handleUpdate} disabled={isUpdating}>
+                {isUpdating ? 'Salvando...' : 'Salvar'}
               </Button>
             </div>
           </div>
@@ -101,7 +126,7 @@ const AppointmentActions = ({ appointmentId, currentDate, currentTime, onSuccess
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar Agendamento</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja cancelar este agendamento? Esta ação pode ser desfeita.
+              Tem certeza que deseja cancelar este agendamento? O cliente será notificado via WhatsApp.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -124,7 +149,7 @@ const AppointmentActions = ({ appointmentId, currentDate, currentTime, onSuccess
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Agendamento</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita e o cliente será notificado via WhatsApp.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -8,8 +8,13 @@ import { useMonthlyAppointments } from '@/hooks/useMonthlyAppointments';
 import CalendarHeader from './monthly-agenda/CalendarHeader';
 import CalendarGrid from './monthly-agenda/CalendarGrid';
 import AppointmentDialog from './monthly-agenda/AppointmentDialog';
+import BackButton from './BackButton';
 
-const MonthlyAgenda = () => {
+interface MonthlyAgendaProps {
+  onBack?: () => void;
+}
+
+const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
@@ -54,6 +59,10 @@ const MonthlyAgenda = () => {
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in">
+      {onBack && (
+        <BackButton onClick={onBack} />
+      )}
+      
       <CalendarHeader
         currentDate={currentDate}
         onPreviousMonth={goToPreviousMonth}

@@ -7,8 +7,26 @@ export const useAppointmentActions = () => {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const deleteAppointment = async (appointmentId: string, onSuccess?: () => void) => {
+  const openWhatsAppNotification = (phone: string, clientName: string, action: 'rescheduled' | 'cancelled' | 'deleted', newDate?: string, newTime?: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    let message = '';
+    
+    if (action === 'rescheduled' && newDate && newTime) {
+      const formattedDate = new Date(newDate).toLocaleDateString('pt-BR');
+      message = `Olá ${clientName}! Seu agendamento foi reagendado para ${formattedDate} às ${newTime}. Qualquer dúvida, entre em contato conosco.`;
+    } else if (action === 'cancelled') {
+      message = `Olá ${clientName}! Seu agendamento foi cancelado. Entre em contato conosco para reagendar ou se tiver alguma dúvida.`;
+    } else if (action === 'deleted') {
+      message = `Olá ${clientName}! Seu agendamento foi excluído do sistema. Entre em contato conosco se precisar reagendar.`;
+    }
+    
+    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const deleteAppointment = async (appointmentId: string, clientPhone: string, clientName: string, onSuccess?: () => void) => {
     setIsDeleting(true);
     try {
       const { error } = await supabase
@@ -23,6 +41,9 @@ export const useAppointmentActions = () => {
         description: "O agendamento foi excluído com sucesso.",
       });
 
+      // Abrir WhatsApp para notificar o cliente
+      openWhatsAppNotification(clientPhone, clientName, 'deleted');
+
       if (onSuccess) onSuccess();
     } catch (error: any) {
       console.error('Erro ao excluir agendamento:', error);
@@ -36,7 +57,7 @@ export const useAppointmentActions = () => {
     }
   };
 
-  const cancelAppointment = async (appointmentId: string, onSuccess?: () => void) => {
+  const cancelAppointment = async (appointmentId: string, clientPhone: string, clientName: string, onSuccess?: () => void) => {
     setIsCancelling(true);
     try {
       const { error } = await supabase
@@ -50,6 +71,9 @@ export const useAppointmentActions = () => {
         title: "Agendamento cancelado",
         description: "O agendamento foi cancelado com sucesso.",
       });
+
+      // Abrir WhatsApp para notificar o cliente
+      openWhatsAppNotification(clientPhone, clientName, 'cancelled');
 
       if (onSuccess) onSuccess();
     } catch (error: any) {
@@ -67,14 +91,22 @@ export const useAppointmentActions = () => {
   const updateAppointment = async (
     appointmentId: string, 
     newDate: string, 
-    newTime: string, 
+    newTime: string,
+    clientPhone: string,
+    clientName: string,
     onSuccess?: () => void
   ) => {
+    setIsUpdating(true);
     try {
+      // Garantir que a data está no formato correto (YYYY-MM-DD)
+      const formattedDate = newDate.includes('/') 
+        ? newDate.split('/').reverse().join('-') 
+        : newDate;
+
       const { error } = await supabase
         .from('appointments')
         .update({ 
-          appointment_date: newDate,
+          appointment_date: formattedDate,
           appointment_time: newTime,
           updated_at: new Date().toISOString()
         })
@@ -87,6 +119,9 @@ export const useAppointmentActions = () => {
         description: "Data e horário alterados com sucesso.",
       });
 
+      // Abrir WhatsApp para notificar o cliente
+      openWhatsAppNotification(clientPhone, clientName, 'rescheduled', formattedDate, newTime);
+
       if (onSuccess) onSuccess();
     } catch (error: any) {
       console.error('Erro ao atualizar agendamento:', error);
@@ -95,6 +130,8 @@ export const useAppointmentActions = () => {
         description: "Não foi possível atualizar o agendamento.",
         variant: "destructive",
       });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -103,6 +140,7 @@ export const useAppointmentActions = () => {
     cancelAppointment,
     updateAppointment,
     isDeleting,
-    isCancelling
+    isCancelling,
+    isUpdating
   };
 };
