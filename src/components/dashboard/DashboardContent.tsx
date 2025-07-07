@@ -2,8 +2,8 @@
 import DashboardStats from './DashboardStats';
 import PublicBookingLink from './PublicBookingLink';
 import QuickActions from './QuickActions';
-import RecentAppointments from './RecentAppointments';
 import WelcomeSection from './WelcomeSection';
+import MonthlyAgenda from '../MonthlyAgenda';
 
 interface DashboardContentProps {
   data: {
@@ -62,11 +62,10 @@ const DashboardContent = ({
         onManageClients={onManageClients}
       />
 
-      {/* Agendamentos recentes */}
-      <RecentAppointments 
-        appointments={data.recentAppointments}
-        onRefresh={onRefreshAppointments}
-      />
+      {/* Agenda mensal integrada */}  
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <MonthlyAgenda />
+      </div>
     </div>
   );
 };

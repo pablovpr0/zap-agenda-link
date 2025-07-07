@@ -1,10 +1,10 @@
 
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { MessageCircle, Calendar } from 'lucide-react';
+import { MessageCircle, Calendar, Clock, CheckCircle } from 'lucide-react';
 import PublicCalendar from '@/components/PublicCalendar';
 import CompanyHeader from '@/components/public-booking/CompanyHeader';
 import ServiceSelection from '@/components/public-booking/ServiceSelection';
@@ -91,8 +91,37 @@ const PublicBooking = () => {
         {/* Header estilo WhatsApp Business */}
         <CompanyHeader companySettings={companySettings} profile={profile} />
 
+        {/* Chamada para ação melhorada - não parece mais um botão */}
+        <div className="mb-6 bg-white rounded-xl p-6 shadow-sm border border-green-100">
+          <div className="text-center space-y-3">
+            <div className="flex justify-center">
+              <div className="bg-green-100 p-3 rounded-full">
+                <Calendar className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 mb-2">
+                Agende seu horário
+              </h2>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Escolha o melhor horário para você e confirme seu agendamento de forma rápida e prática
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-green-600">
+              <CheckCircle className="w-4 h-4" />
+              <span className="text-sm font-medium">Confirmação instantânea</span>
+            </div>
+          </div>
+        </div>
+
         {/* Formulário de agendamento */}
         <Card className="shadow-lg border-0">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg text-center text-gray-800 flex items-center justify-center gap-2">
+              <Clock className="w-5 h-5 text-green-500" />
+              Dados do Agendamento
+            </CardTitle>
+          </CardHeader>
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Serviço */}

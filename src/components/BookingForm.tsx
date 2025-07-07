@@ -6,9 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import StandardCalendar from './StandardCalendar';
 import TimePicker from './TimePicker';
 import { ArrowLeft, User, Phone, MessageSquare, Calendar, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { addDays } from 'date-fns';
 
 interface BookingFormProps {
   onComplete: (data: any) => void;
@@ -33,6 +35,24 @@ const BookingForm = ({ onComplete, onBack }: BookingFormProps) => {
     "Manicure",
     "Pedicure"
   ];
+
+  // Gerar datas disponíveis (próximos 30 dias)
+  const generateAvailableDates = () => {
+    const dates = [];
+    const today = new Date();
+    
+    for (let i = 0; i < 30; i++) {
+      const date = addDays(today, i);
+      // Excluir domingos (exemplo)
+      if (date.getDay() !== 0) {
+        dates.push(date);
+      }
+    }
+    
+    return dates;
+  };
+
+  const availableDates = generateAvailableDates();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,16 +183,15 @@ const BookingForm = ({ onComplete, onBack }: BookingFormProps) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="date" className="text-sm font-medium text-gray-700">
+              <Label className="text-sm font-medium text-gray-700 mb-2 block">
                 Data *
               </Label>
-              <Input
-                id="date"
-                type="date"
-                value={formData.date}
-                onChange={(e) => handleDateSelect(e.target.value)}
-                className="mt-1"
-                required
+              <StandardCalendar
+                availableDates={availableDates}
+                selectedDate={formData.date}
+                onDateSelect={handleDateSelect}
+                showNavigation={true}
+                highlightToday={true}
               />
             </div>
             {formData.date && (

@@ -256,31 +256,52 @@ export const usePublicBooking = (companySlug: string) => {
 
       console.log('Agendamento criado com sucesso:', appointmentResult);
 
-      // Gerar mensagem para contato com dados corretos
+      // Gerar mensagem para o profissional (não para o cliente)
       const formattedDate = format(new Date(selectedDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-      const contactMessage = `Olá! Acabei de agendar um horário:\n\n` +
-        `📅 Data: ${formattedDate}\n` +
-        `⏰ Horário: ${selectedTime}\n` +
-        `💇 Serviço: ${service?.name}\n` +
-        `👤 Cliente: ${clientName}\n` +
-        `📱 Telefone: ${clientPhone}${clientEmail ? `\n📧 Email: ${clientEmail}` : ''}${notes ? `\n📝 Observações: ${notes}` : ''}\n\n` +
-        `Agendamento confirmado! ✅`;
+      const contactMessage = `🎉 *Novo Agendamento Recebido!*\n\n` +
+        `📅 *Data:* ${formattedDate}\n` +
+        `⏰ *Horário:* ${selectedTime}\n` +
+        `💇 *Serviço:* ${service?.name}\n` +
+        `👤 *Cliente:* ${clientName}\n` +
+        `📱 *Telefone:* ${clientPhone}${clientEmail ? `\n📧 *Email:* ${clientEmail}` : ''}${notes ? `\n📝 *Observações:* ${notes}` : ''}\n\n` +
+        `✅ Agendamento confirmado automaticamente pelo sistema ZapAgenda!`;
 
-      console.log('Mensagem de contato:', contactMessage);
+      console.log('Mensagem para o profissional:', contactMessage);
 
       toast({
         title: "Agendamento realizado!",
         description: `Agendamento confirmado para ${formattedDate} às ${selectedTime}.`,
       });
 
-      // Redirecionar para contato via WhatsApp (opcional)
-      const phoneNumber = companySettings?.instagram_url ? 
-        companySettings.instagram_url.replace(/.*\//, '').replace(/\D/g, '') : 
-        clientPhone.replace(/\D/g, '');
-      
-      if (phoneNumber) {
-        const whatsappUrl = `https://wa.me/55${phoneNumber}?text=${encodeURIComponent(contactMessage)}`;
-        window.open(whatsappUrl, '_blank');
+      // Buscar telefone do profissional para enviar a mensagem
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', companySettings!.company_id)
+        .single();
+
+      // Tentar extrair telefone do Instagram URL ou usar um telefone padrão
+      let professionalPhone = '';
+      if (companySettings?.instagram_url) {
+        // Se o instagram_url contém um telefone, extrair
+        const phoneMatch = companySettings.instagram_url.match(/\d+/);
+        if (phoneMatch) {
+          professionalPhone = phoneMatch[0];
+        }
+      }
+
+      // Se não conseguiu extrair do Instagram, tentar do endereço ou usar um padrão
+      if (!professionalPhone) {
+        // Aqui você pode implementar lógica para obter o telefone do profissional
+        // Por enquanto, vamos mostrar a mensagem no console para o profissional ver
+        console.log('MENSAGEM PARA O PROFISSIONAL:', contactMessage);
+      } else {
+        // Enviar mensagem via WhatsApp para o profissional
+        const whatsappUrl = `https://wa.me/55${professionalPhone.replace(/\D/g, '')}?text=${encodeURIComponent(contactMessage)}`;
+        // Abrir em nova aba para que o profissional veja a mensagem
+        setTimeout(() => {
+          window.open(whatsappUrl, '_blank');
+        }, 1000);
       }
 
       return true;
