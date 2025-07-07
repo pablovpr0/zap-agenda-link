@@ -20,6 +20,7 @@ interface DashboardContentProps {
   onShareWhatsApp: () => void;
   onNewAppointment: () => void;
   onManageClients: () => void;
+  onRefreshAppointments: () => void;
 }
 
 const DashboardContent = ({
@@ -29,7 +30,8 @@ const DashboardContent = ({
   onCopyLink,
   onShareWhatsApp,
   onNewAppointment,
-  onManageClients
+  onManageClients,
+  onRefreshAppointments
 }: DashboardContentProps) => {
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -63,6 +65,7 @@ const DashboardContent = ({
       {/* Agendamentos recentes */}
       <RecentAppointments 
         appointments={data.recentAppointments}
+        onRefresh={onRefreshAppointments}
       />
     </div>
   );
