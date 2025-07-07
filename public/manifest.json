@@ -1,0 +1,42 @@
+
+{
+  "name": "ZapAgenda - Agendamento Fácil",
+  "short_name": "ZapAgenda",
+  "description": "Sistema de agendamento fácil e intuitivo",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#25D366",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/lovable-uploads/b3ff3af2-efb5-406a-bac6-c7b3b5002543.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/lovable-uploads/b3ff3af2-efb5-406a-bac6-c7b3b5002543.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Nova Consulta",
+      "short_name": "Agendar",
+      "description": "Criar um novo agendamento",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/lovable-uploads/b3ff3af2-efb5-406a-bac6-c7b3b5002543.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}
