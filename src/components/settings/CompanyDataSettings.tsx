@@ -10,6 +10,7 @@ interface CompanyDataSettingsData {
   phone: string;
   email: string;
   instagramUrl: string;
+  customUrl: string;
 }
 
 interface CompanyDataSettingsProps {
