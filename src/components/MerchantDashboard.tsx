@@ -51,7 +51,6 @@ const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps
         onShowServices={() => onViewChange('services')}
         onShowSettings={() => onViewChange('settings')}
         onShowMonthlyAgenda={() => onViewChange('agenda')}
-        onRefreshData={refreshData}
       />
 
       {/* Modal de novo agendamento */}
