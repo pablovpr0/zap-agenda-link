@@ -71,24 +71,24 @@ const TodayAppointmentsList = ({ appointments, loading }: TodayAppointmentsListP
           {sortedAppointments.map((appointment) => (
             <div 
               key={appointment.id}
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border"
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 rounded-lg border gap-3"
             >
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-green-600 font-medium">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0 flex-1">
+                <div className="flex items-center gap-2 text-green-600 font-medium flex-shrink-0">
                   <Clock className="w-4 h-4" />
                   {appointment.appointment_time.substring(0, 5)}
                 </div>
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">{appointment.client_name}</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                  <span className="font-medium truncate">{appointment.client_name}</span>
                 </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Phone className="w-4 h-4" />
-                  <span>{appointment.client_phone}</span>
+                <div className="flex items-center gap-2 text-gray-600 min-w-0">
+                  <Phone className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">{appointment.client_phone}</span>
                 </div>
               </div>
-              <div className="text-sm text-gray-600 bg-white px-2 py-1 rounded">
-                {appointment.service_name}
+              <div className="text-sm text-gray-600 bg-white px-2 py-1 rounded flex-shrink-0">
+                <span className="truncate block max-w-32">{appointment.service_name}</span>
               </div>
             </div>
           ))}

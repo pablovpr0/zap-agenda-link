@@ -74,10 +74,11 @@ export const useDashboardData = (companyName: string) => {
         return;
       }
 
-      const bookingLink = `${window.location.origin}/public/${settings.slug}`;
+      const bookingLink = `https://zapagenda.site/${settings.slug}`;
 
       // Buscar dados do dashboard
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
       
       // Agendamentos de hoje com detalhes
       const { data: todayAppts, error: todayError } = await supabase
@@ -89,7 +90,7 @@ export const useDashboardData = (companyName: string) => {
           services(name)
         `)
         .eq('company_id', user.id)
-        .eq('appointment_date', today)
+        .eq('appointment_date', todayStr)
         .neq('status', 'cancelled')
         .order('appointment_time');
 
