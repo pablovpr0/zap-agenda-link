@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -132,11 +133,11 @@ const SlugSettings = ({ currentSlug, onSlugUpdate }: SlugSettingsProps) => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <Label htmlFor="custom-slug" className="text-sm font-medium">
+          <Label htmlFor="custom-slug" className="text-sm font-medium text-gray-800 mb-2 block">
             Slug Personalizado
           </Label>
           <div className="flex rounded-md shadow-sm">
-            <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+            <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-600 text-sm font-medium">
               {baseDomain}/public/
             </span>
             <div className="relative flex-1">
@@ -144,7 +145,7 @@ const SlugSettings = ({ currentSlug, onSlugUpdate }: SlugSettingsProps) => {
                 id="custom-slug"
                 value={newSlug}
                 onChange={(e) => handleSlugChange(e.target.value)}
-                className="rounded-l-none"
+                className="rounded-l-none text-gray-900 font-medium bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 placeholder="minha-empresa"
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -159,12 +160,12 @@ const SlugSettings = ({ currentSlug, onSlugUpdate }: SlugSettingsProps) => {
           )}
         </div>
 
-        <div className="bg-gray-50 p-3 rounded-md">
+        <div className="bg-gray-50 p-3 rounded-md border">
           <Label className="text-sm font-medium text-gray-700 mb-2 block">
             Preview da URL:
           </Label>
           <div className="flex items-center gap-2">
-            <code className="bg-white px-2 py-1 rounded border text-sm flex-1">
+            <code className="bg-white px-2 py-1 rounded border text-sm flex-1 text-gray-800">
               {previewUrl}
             </code>
             <Button

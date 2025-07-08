@@ -21,18 +21,18 @@ const PublicBookingLink = ({
   if (!bookingLink) return null;
 
   return (
-    <Card>
+    <Card className="border-green-200 bg-green-50/30">
       <CardContent className="p-4">
         <div className="space-y-4">
           <div>
-            <h3 className="font-semibold text-lg mb-2">
+            <h3 className="font-semibold text-lg mb-2 text-green-800">
               Link de Agendamento Público
             </h3>
-            <p className="text-gray-600 text-sm mb-3">
+            <p className="text-green-700 text-sm mb-3">
               Compartilhe este link para que seus clientes façam agendamentos
             </p>
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-gray-800 break-all text-sm font-mono">
+            <div className="bg-green-100/50 p-3 rounded-lg border border-green-200">
+              <p className="text-green-900 break-all text-sm font-mono">
                 {bookingLink}
               </p>
             </div>
@@ -43,7 +43,7 @@ const PublicBookingLink = ({
               variant="outline" 
               size="sm"
               onClick={onViewPublicPage}
-              className="flex-1 min-w-[120px]"
+              className="flex-1 min-w-[120px] border-green-300 text-green-700 hover:bg-green-100"
             >
               <ExternalLink className="w-4 h-4 mr-2" />
               Visualizar Página
@@ -52,7 +52,7 @@ const PublicBookingLink = ({
               variant="outline" 
               size="sm"
               onClick={onCopyLink}
-              className="flex-1 min-w-[120px]"
+              className="flex-1 min-w-[120px] border-green-300 text-green-700 hover:bg-green-100"
             >
               {linkCopied ? (
                 <>
@@ -70,7 +70,7 @@ const PublicBookingLink = ({
               variant="outline" 
               size="sm"
               onClick={onShareWhatsApp}
-              className="flex-1 min-w-[120px]"
+              className="flex-1 min-w-[120px] border-green-300 text-green-700 hover:bg-green-100"
             >
               <Share className="w-4 h-4 mr-2" />
               Compartilhar WhatsApp
