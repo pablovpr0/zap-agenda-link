@@ -14,6 +14,8 @@ import { usePublicBooking } from '@/hooks/usePublicBooking';
 const PublicBooking = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
   
+  console.log('PublicBooking carregado com slug:', companySlug);
+  
   // Form data
   const [selectedService, setSelectedService] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
@@ -88,11 +90,21 @@ const PublicBooking = () => {
   }
 
   if (!companySettings || !profile) {
+    console.error('Empresa não encontrada para slug:', companySlug);
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50 flex items-center justify-center">
         <div className="text-center bg-white p-8 rounded-2xl shadow-lg">
           <div className="text-xl font-bold text-red-600 mb-2">Empresa não encontrada</div>
-          <div className="text-gray-600">Verifique se o link está correto.</div>
+          <div className="text-gray-600 mb-4">
+            Verifique se o link está correto: {companySlug}
+          </div>
+          <Button 
+            onClick={() => window.location.href = '/'}
+            variant="outline"
+            className="border-green-300 text-green-700 hover:bg-green-100"
+          >
+            Voltar ao início
+          </Button>
         </div>
       </div>
     );
@@ -257,7 +269,6 @@ const PublicBooking = () => {
           </div>
         )}
 
-        {/* Footer */}
         <div className="text-center mt-8 text-sm text-gray-400">
           Powered by ZapAgenda
         </div>

@@ -8,6 +8,13 @@ import { fetchCompanySettings, createDefaultSettings } from '@/services/companyS
 import { fetchTodayAppointments, fetchRecentAppointments } from '@/services/appointmentsService';
 import { fetchTotalClients } from '@/services/clientsService';
 
+// Função utilitária para gerar a URL de agendamento público
+const generateBookingLink = (slug: string): string => {
+  // Detectar se estamos em desenvolvimento ou produção
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  return `${baseUrl}/public/${slug}`;
+};
+
 export const useDashboardData = (companyName: string) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -66,7 +73,9 @@ export const useDashboardData = (companyName: string) => {
         settings = await fetchCompanySettings(user.id);
       }
 
-      const bookingLink = `https://zapagenda.site/${settings.slug}`;
+      // Gerar a URL correta usando o domínio atual
+      const bookingLink = generateBookingLink(settings.slug);
+      console.log('URL de agendamento gerada:', bookingLink);
 
       // Buscar todos os dados em paralelo
       const [todayAppointmentsList, totalClients, recentAppointments] = await Promise.all([
