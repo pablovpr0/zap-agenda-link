@@ -46,7 +46,6 @@ const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps
     <>
       <DashboardContent
         companyName={companyName}
-        data={data}
         onShowAppointments={() => setShowNewAppointmentModal(true)}
         onShowClients={() => onViewChange('clients')}
         onShowServices={() => onViewChange('services')}
