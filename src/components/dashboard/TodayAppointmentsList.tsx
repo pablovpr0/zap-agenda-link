@@ -1,8 +1,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Clock, Phone, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Clock, Phone, User, CheckCircle, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useAppointmentActions } from '@/hooks/useAppointmentActions';
+import { useToast } from '@/hooks/use-toast';
 
 interface TodayAppointment {
   id: string;
@@ -10,14 +13,64 @@ interface TodayAppointment {
   client_name: string;
   client_phone: string;
   service_name: string;
+  status: string;
 }
 
 interface TodayAppointmentsListProps {
   appointments: TodayAppointment[];
   loading?: boolean;
+  onRefresh?: () => void;
 }
 
-const TodayAppointmentsList = ({ appointments, loading }: TodayAppointmentsListProps) => {
+const TodayAppointmentsList = ({ appointments, loading, onRefresh }: TodayAppointmentsListProps) => {
+  const { updateAppointment, isUpdating } = useAppointmentActions();
+  const { toast } = useToast();
+
+  const handleCompleteAppointment = async (appointmentId: string, clientName: string) => {
+    try {
+      await updateAppointment(
+        appointmentId,
+        new Date().toISOString().split('T')[0], // data atual
+        new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), // horário atual
+        '', // não precisa do telefone para esta atualização
+        clientName,
+        () => {
+          toast({
+            title: "Procedimento concluído",
+            description: `Agendamento de ${clientName} marcado como concluído.`,
+          });
+          if (onRefresh) onRefresh();
+        }
+      );
+      
+      // Atualizar status para concluído no banco
+      const { supabase } = await import('@/integrations/supabase/client');
+      await supabase
+        .from('appointments')
+        .update({ status: 'completed' })
+        .eq('id', appointmentId);
+        
+    } catch (error) {
+      console.error('Erro ao marcar como concluído:', error);
+    }
+  };
+
+  const handleWhatsAppClick = (phone: string, clientName: string, appointmentTime: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const today = new Date();
+    const todayFormatted = format(today, "dd 'de' MMMM", { locale: ptBR });
+    
+    const message = `Olá, ${clientName}! 👋\n\n` +
+      `🔔 *LEMBRETE DO SEU AGENDAMENTO*\n\n` +
+      `📅 *Data:* Hoje, ${todayFormatted}\n` +
+      `⏰ *Horário:* ${appointmentTime.substring(0, 5)}\n\n` +
+      `Estamos esperando por você! ✨\n\n` +
+      `Se precisar de alguma coisa, estamos à disposição! 😊`;
+    
+    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   if (loading) {
     return (
       <Card>
@@ -71,7 +124,7 @@ const TodayAppointmentsList = ({ appointments, loading }: TodayAppointmentsListP
           {sortedAppointments.map((appointment) => (
             <div 
               key={appointment.id}
-              className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 rounded-lg border gap-3"
+              className="flex flex-col gap-3 p-4 bg-gray-50 rounded-lg border"
             >
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0 flex-1">
                 <div className="flex items-center gap-2 text-green-600 font-medium flex-shrink-0">
@@ -86,9 +139,43 @@ const TodayAppointmentsList = ({ appointments, loading }: TodayAppointmentsListP
                   <Phone className="w-4 h-4 flex-shrink-0" />
                   <span className="truncate">{appointment.client_phone}</span>
                 </div>
+                <div className="text-sm text-gray-600 bg-white px-2 py-1 rounded flex-shrink-0">
+                  <span className="truncate block max-w-32">{appointment.service_name}</span>
+                </div>
               </div>
-              <div className="text-sm text-gray-600 bg-white px-2 py-1 rounded flex-shrink-0">
-                <span className="truncate block max-w-32">{appointment.service_name}</span>
+              
+              <div className="flex gap-2 justify-end pt-2 border-t border-gray-200">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleWhatsAppClick(appointment.client_phone, appointment.client_name, appointment.appointment_time)}
+                  className="flex items-center gap-2 text-xs bg-green-50 hover:bg-green-100 border-green-300 text-green-700 hover:text-green-800"
+                >
+                  <MessageSquare className="w-3 h-3" />
+                  <span className="hidden sm:inline">WhatsApp</span>
+                </Button>
+                
+                {appointment.status !== 'completed' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCompleteAppointment(appointment.id, appointment.client_name)}
+                    disabled={isUpdating}
+                    className="flex items-center gap-2 text-xs bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700 hover:text-blue-800"
+                  >
+                    <CheckCircle className="w-3 h-3" />
+                    <span className="hidden sm:inline">
+                      {isUpdating ? 'Concluindo...' : 'Concluído'}
+                    </span>
+                  </Button>
+                )}
+                
+                {appointment.status === 'completed' && (
+                  <div className="flex items-center gap-2 text-xs text-green-700 bg-green-100 px-2 py-1 rounded">
+                    <CheckCircle className="w-3 h-3" />
+                    <span>Concluído</span>
+                  </div>
+                )}
               </div>
             </div>
           ))}

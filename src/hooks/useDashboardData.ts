@@ -77,7 +77,8 @@ export const useDashboardData = (companyName: string) => {
       const bookingLink = `https://zapagenda.site/${settings.slug}`;
 
       // Buscar dados do dashboard
-      const today = new Date();
+      // Usar horário de Brasília para data de hoje
+      const today = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
       const todayStr = today.toISOString().split('T')[0];
       
       // Agendamentos de hoje com detalhes
@@ -86,6 +87,7 @@ export const useDashboardData = (companyName: string) => {
         .select(`
           id,
           appointment_time,
+          status,
           clients(name, phone),
           services(name)
         `)
@@ -105,6 +107,7 @@ export const useDashboardData = (companyName: string) => {
       const todayAppointmentsList = todayAppts?.map(apt => ({
         id: apt.id,
         appointment_time: apt.appointment_time,
+        status: apt.status,
         client_name: apt.clients?.name || 'Cliente não encontrado',
         client_phone: apt.clients?.phone || '',
         service_name: apt.services?.name || 'Serviço não encontrado'

@@ -29,7 +29,10 @@ interface MonthlyAppointment {
 
 const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
   const { toast } = useToast();
-  const [currentDate, setCurrentDate] = useState(new Date());
+  // Usar horário de Brasília para data atual
+  const [currentDate, setCurrentDate] = useState(() => 
+    new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }))
+  );
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
   const { appointments, loading, getAppointmentsForDate, refreshAppointments } = useMonthlyAppointments(currentDate);
@@ -62,14 +65,14 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
   const handleWhatsAppClick = (phone: string, clientName: string, appointmentDate?: string, appointmentTime?: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
     
-    // Mensagem de lembrete personalizada com data correta
+    // Mensagem de lembrete personalizada com data correta em português
     let message = `Olá, ${clientName}! 👋\n\n`;
     message += `🔔 *LEMBRETE DO SEU AGENDAMENTO*\n\n`;
     
     if (appointmentDate && appointmentTime) {
-      // Garantir que a data seja formatada corretamente
+      // Garantir que a data seja formatada corretamente em português brasileiro
       const appointmentDateObj = new Date(appointmentDate + 'T00:00:00');
-      const formattedDate = format(appointmentDateObj, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+      const formattedDate = format(appointmentDateObj, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
       const formattedTime = appointmentTime.substring(0, 5);
       message += `📅 *Data:* ${formattedDate}\n`;
       message += `⏰ *Horário:* ${formattedTime}\n\n`;
