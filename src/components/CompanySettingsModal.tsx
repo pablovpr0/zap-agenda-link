@@ -1,16 +1,19 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Settings, Clock, Calendar, Phone, Users, Coffee, Link, CheckCircle, AlertCircle } from 'lucide-react';
-import { validateSlug, isSlugTaken } from '@/services/companySettingsService';
+import { Settings } from 'lucide-react';
+import CompanyPhoneSettings from './settings/modal/CompanyPhoneSettings';
+import SlugSettingsSection from './settings/modal/SlugSettingsSection';
+import WorkingDaysSettings from './settings/modal/WorkingDaysSettings';
+import WorkingHoursSettings from './settings/modal/WorkingHoursSettings';
+import LunchBreakSettings from './settings/modal/LunchBreakSettings';
+import AppointmentSettings from './settings/modal/AppointmentSettings';
+import SettingsHelpSection from './settings/modal/SettingsHelpSection';
 
 interface CompanySettingsModalProps {
   isOpen: boolean;
@@ -42,55 +45,11 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
   const [lunchStartTime, setLunchStartTime] = useState('12:00');
   const [lunchEndTime, setLunchEndTime] = useState('13:00');
 
-  // Slug validation
-  const [slugValidation, setSlugValidation] = useState<{ isValid: boolean; error?: string }>({ isValid: true });
-  const [isSlugAvailable, setIsSlugAvailable] = useState<boolean | null>(null);
-
-  const weekDays = [
-    { id: 1, name: 'Segunda-feira' },
-    { id: 2, name: 'Terça-feira' },
-    { id: 3, name: 'Quarta-feira' },
-    { id: 4, name: 'Quinta-feira' },
-    { id: 5, name: 'Sexta-feira' },
-    { id: 6, name: 'Sábado' },
-    { id: 7, name: 'Domingo' },
-  ];
-
   useEffect(() => {
     if (isOpen && user) {
       loadSettings();
     }
   }, [isOpen, user]);
-
-  // Validação de slug em tempo real
-  useEffect(() => {
-    const checkSlug = async () => {
-      if (slug === originalSlug) {
-        setSlugValidation({ isValid: true });
-        setIsSlugAvailable(true);
-        return;
-      }
-
-      const validation = validateSlug(slug);
-      setSlugValidation(validation);
-
-      if (validation.isValid) {
-        try {
-          const taken = await isSlugTaken(slug);
-          setIsSlugAvailable(!taken);
-        } catch (error) {
-          setIsSlugAvailable(null);
-        }
-      } else {
-        setIsSlugAvailable(null);
-      }
-    };
-
-    if (slug) {
-      const timer = setTimeout(checkSlug, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [slug, originalSlug]);
 
   const loadSettings = async () => {
     if (!user) return;
@@ -133,14 +92,6 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
     }
   };
 
-  const handleSlugChange = (value: string) => {
-    const cleanSlug = value
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '')
-      .replace(/--+/g, '-');
-    setSlug(cleanSlug);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -166,15 +117,6 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
       toast({
         title: "Horários de almoço inválidos",
         description: "O horário de início do almoço deve ser menor que o de fim.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!slugValidation.isValid || isSlugAvailable === false) {
-      toast({
-        title: "Slug inválido",
-        description: slugValidation.error || "Este slug já está sendo usado.",
         variant: "destructive",
       });
       return;
@@ -224,23 +166,6 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
     }
   };
 
-  const handleWorkingDayToggle = (dayId: number, checked: boolean) => {
-    if (checked) {
-      setWorkingDays([...workingDays, dayId]);
-    } else {
-      setWorkingDays(workingDays.filter(day => day !== dayId));
-    }
-  };
-
-  const getSlugStatusIcon = () => {
-    if (!slugValidation.isValid) return <AlertCircle className="w-4 h-4 text-red-500" />;
-    if (isSlugAvailable === false) return <AlertCircle className="w-4 h-4 text-red-500" />;
-    if (isSlugAvailable === true) return <CheckCircle className="w-4 h-4 text-green-500" />;
-    return null;
-  };
-
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -257,233 +182,60 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Telefone da empresa */}
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-whatsapp-green" />
-                Telefone da Empresa
-              </Label>
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="(11) 99999-9999"
-              />
-              <p className="text-xs text-gray-500">
-                Telefone para receber mensagens de confirmação de agendamentos
-              </p>
-            </div>
+            <CompanyPhoneSettings 
+              phone={phone} 
+              onPhoneChange={setPhone} 
+            />
 
             <Separator />
 
-            {/* Link personalizado */}
-            <div className="space-y-2">
-              <Label htmlFor="slug" className="flex items-center gap-2">
-                <Link className="w-4 h-4 text-whatsapp-green" />
-                Link Personalizado
-              </Label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-600 text-sm">
-                  {baseUrl}/public/
-                </span>
-                <div className="relative flex-1">
-                  <Input
-                    id="slug"
-                    value={slug}
-                    onChange={(e) => handleSlugChange(e.target.value)}
-                    className="rounded-l-none"
-                    placeholder="minha-empresa"
-                  />
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    {getSlugStatusIcon()}
-                  </div>
-                </div>
-              </div>
-              {!slugValidation.isValid && (
-                <p className="text-xs text-red-600">{slugValidation.error}</p>
-              )}
-              {isSlugAvailable === false && (
-                <p className="text-xs text-red-600">Este slug já está sendo usado</p>
-              )}
-              <p className="text-xs text-gray-500">
-                URL personalizada para sua página de agendamentos
-              </p>
-            </div>
+            <SlugSettingsSection 
+              slug={slug} 
+              originalSlug={originalSlug} 
+              onSlugChange={setSlug} 
+            />
 
             <Separator />
 
-            {/* Limite de agendamentos mensais */}
-            <div className="space-y-2">
-              <Label htmlFor="monthlyLimit" className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-whatsapp-green" />
-                Limite de Agendamentos por Cliente (por mês)
-              </Label>
-              <Input
-                id="monthlyLimit"
-                type="number"
-                min="1"
-                max="50"
-                value={monthlyAppointmentsLimit}
-                onChange={(e) => setMonthlyAppointmentsLimit(Number(e.target.value))}
-                required
-              />
-              <p className="text-xs text-gray-500">
-                Quantos agendamentos cada cliente pode fazer por mês
-              </p>
-            </div>
+            <AppointmentSettings
+              appointmentInterval={appointmentInterval}
+              maxSimultaneousAppointments={maxSimultaneousAppointments}
+              advanceBookingLimit={advanceBookingLimit}
+              monthlyAppointmentsLimit={monthlyAppointmentsLimit}
+              onAppointmentIntervalChange={setAppointmentInterval}
+              onMaxSimultaneousAppointmentsChange={setMaxSimultaneousAppointments}
+              onAdvanceBookingLimitChange={setAdvanceBookingLimit}
+              onMonthlyAppointmentsLimitChange={setMonthlyAppointmentsLimit}
+            />
 
             <Separator />
 
-            {/* Dias de funcionamento */}
-            <div className="space-y-3">
-              <Label className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-whatsapp-green" />
-                Dias de Funcionamento
-              </Label>
-              <div className="grid grid-cols-2 gap-3">
-                {weekDays.map((day) => (
-                  <div key={day.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`day-${day.id}`}
-                      checked={workingDays.includes(day.id)}
-                      onCheckedChange={(checked) => handleWorkingDayToggle(day.id, checked as boolean)}
-                    />
-                    <Label htmlFor={`day-${day.id}`} className="text-sm">
-                      {day.name}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <WorkingDaysSettings 
+              workingDays={workingDays} 
+              onWorkingDaysChange={setWorkingDays} 
+            />
 
-            {/* Horários de funcionamento */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="workingHoursStart" className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-whatsapp-green" />
-                  Horário de Início
-                </Label>
-                <Input
-                  id="workingHoursStart"
-                  type="time"
-                  value={workingHoursStart}
-                  onChange={(e) => setWorkingHoursStart(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="workingHoursEnd">Horário de Fim</Label>
-                <Input
-                  id="workingHoursEnd"
-                  type="time"
-                  value={workingHoursEnd}
-                  onChange={(e) => setWorkingHoursEnd(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
+            <WorkingHoursSettings 
+              workingHoursStart={workingHoursStart}
+              workingHoursEnd={workingHoursEnd}
+              onWorkingHoursStartChange={setWorkingHoursStart}
+              onWorkingHoursEndChange={setWorkingHoursEnd}
+            />
 
             <Separator />
 
-            {/* Configuração de horário de almoço */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2">
-                  <Coffee className="w-4 h-4 text-whatsapp-green" />
-                  Horário de Almoço
-                </Label>
-                <Switch
-                  checked={lunchBreakEnabled}
-                  onCheckedChange={setLunchBreakEnabled}
-                />
-              </div>
-              
-              {lunchBreakEnabled && (
-                <div className="grid grid-cols-2 gap-4 pl-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="lunchStartTime">Início do Almoço</Label>
-                    <Input
-                      id="lunchStartTime"
-                      type="time"
-                      value={lunchStartTime}
-                      onChange={(e) => setLunchStartTime(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="lunchEndTime">Fim do Almoço</Label>
-                    <Input
-                      id="lunchEndTime"
-                      type="time"
-                      value={lunchEndTime}
-                      onChange={(e) => setLunchEndTime(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+            <LunchBreakSettings 
+              lunchBreakEnabled={lunchBreakEnabled}
+              lunchStartTime={lunchStartTime}
+              lunchEndTime={lunchEndTime}
+              onLunchBreakEnabledChange={setLunchBreakEnabled}
+              onLunchStartTimeChange={setLunchStartTime}
+              onLunchEndTimeChange={setLunchEndTime}
+            />
 
             <Separator />
 
-            {/* Configurações de agendamento */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="appointmentInterval">Intervalo (minutos)</Label>
-                <Input
-                  id="appointmentInterval"
-                  type="number"
-                  min="15"
-                  max="120"
-                  step="15"
-                  value={appointmentInterval}
-                  onChange={(e) => setAppointmentInterval(Number(e.target.value))}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="maxSimultaneousAppointments">Máx. Simultâneos</Label>
-                <Input
-                  id="maxSimultaneousAppointments"
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={maxSimultaneousAppointments}
-                  onChange={(e) => setMaxSimultaneousAppointments(Number(e.target.value))}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="advanceBookingLimit">Limite Antecipação (dias)</Label>
-                <Input
-                  id="advanceBookingLimit"
-                  type="number"
-                  min="1"
-                  max="365"
-                  value={advanceBookingLimit}
-                  onChange={(e) => setAdvanceBookingLimit(Number(e.target.value))}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Ajuda */}
-            <div className="bg-gray-50 p-4 rounded-lg text-sm text-gray-600">
-              <p className="font-medium mb-2">💡 Dicas:</p>
-              <ul className="space-y-1 text-xs">
-                <li>• Telefone: usado para receber confirmações via WhatsApp</li>
-                <li>• Link personalizado: torne sua URL mais profissional</li>
-                <li>• Limite mensal: evita que clientes façam muitos agendamentos</li>
-                <li>• Horário de almoço: período em que não haverá agendamentos disponíveis</li>
-                <li>• Intervalo: tempo entre agendamentos consecutivos</li>
-                <li>• Máx. Simultâneos: quantos clientes podem ser atendidos ao mesmo tempo</li>
-                <li>• Limite Antecipação: quantos dias no futuro os clientes podem agendar</li>
-              </ul>
-            </div>
+            <SettingsHelpSection />
 
             {/* Botões */}
             <div className="flex justify-end gap-3 pt-4">
