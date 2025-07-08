@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format, addDays, setHours, setMinutes, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Professional, fetchProfessionals } from '@/services/professionalsService';
 
 interface CompanySettings {
   id: string;
@@ -17,6 +18,9 @@ interface CompanySettings {
   max_simultaneous_appointments: number;
   advance_booking_limit: number;
   monthly_appointments_limit: number;
+  lunch_break_enabled?: boolean;
+  lunch_start_time?: string;
+  lunch_end_time?: string;
   instagram_url?: string;
   logo_url?: string;
   cover_image_url?: string;
@@ -45,6 +49,7 @@ export const usePublicBooking = (companySlug: string) => {
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [services, setServices] = useState<Service[]>([]);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -83,6 +88,10 @@ export const usePublicBooking = (companySlug: string) => {
       if (servicesError) throw servicesError;
       
       setServices(servicesData || []);
+
+      // Buscar profissionais ativos
+      const professionalsData = await fetchProfessionals(settings.company_id);
+      setProfessionals(professionalsData);
     } catch (error: any) {
       console.error('Erro ao carregar dados da empresa:', error);
       toast({
@@ -113,6 +122,18 @@ export const usePublicBooking = (companySlug: string) => {
     return dates;
   };
 
+  const isTimeDuringLunch = (time: string) => {
+    if (!companySettings?.lunch_break_enabled || !companySettings.lunch_start_time || !companySettings.lunch_end_time) {
+      return false;
+    }
+    
+    const timeValue = time.replace(':', '');
+    const lunchStart = companySettings.lunch_start_time.replace(':', '');
+    const lunchEnd = companySettings.lunch_end_time.replace(':', '');
+    
+    return timeValue >= lunchStart && timeValue < lunchEnd;
+  };
+
   const generateAvailableTimes = async (selectedDate: string) => {
     if (!companySettings || !selectedDate) return [];
     
@@ -124,7 +145,13 @@ export const usePublicBooking = (companySlug: string) => {
     const endTime = setMinutes(setHours(new Date(), endHour), endMinute);
     
     while (currentTime < endTime) {
-      times.push(format(currentTime, 'HH:mm'));
+      const timeString = format(currentTime, 'HH:mm');
+      
+      // Verificar se o horário não é durante o almoço
+      if (!isTimeDuringLunch(timeString)) {
+        times.push(timeString);
+      }
+      
       currentTime = new Date(currentTime.getTime() + companySettings.appointment_interval * 60000);
     }
     
@@ -209,6 +236,7 @@ export const usePublicBooking = (companySlug: string) => {
 
   const submitBooking = async (formData: {
     selectedService: string;
+    selectedProfessional?: string;
     selectedDate: string;
     selectedTime: string;
     clientName: string;
@@ -216,7 +244,7 @@ export const usePublicBooking = (companySlug: string) => {
     clientEmail: string;
     notes: string;
   }) => {
-    const { selectedService, selectedDate, selectedTime, clientName, clientPhone, clientEmail, notes } = formData;
+    const { selectedService, selectedProfessional, selectedDate, selectedTime, clientName, clientPhone, clientEmail, notes } = formData;
     
     if (!selectedService || !selectedDate || !selectedTime || !clientName || !clientPhone) {
       toast({
@@ -312,6 +340,7 @@ export const usePublicBooking = (companySlug: string) => {
         company_id: companySettings!.company_id,
         client_id: clientId,
         service_id: selectedService,
+        professional_id: selectedProfessional || null,
         appointment_date: selectedDate,
         appointment_time: selectedTime,
         duration: service?.duration || 60,
@@ -333,12 +362,19 @@ export const usePublicBooking = (companySlug: string) => {
       // Corrigir formatação da data para a mensagem
       const appointmentDate = parseISO(selectedDate);
       const formattedDate = format(appointmentDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+      
+      // Buscar nome do profissional se foi selecionado
+      const professionalName = selectedProfessional 
+        ? professionals.find(p => p.id === selectedProfessional)?.name || 'Profissional'
+        : 'Qualquer profissional';
+      
       const professionalMessage = `🗓️ *NOVO AGENDAMENTO*\n\n` +
         `👤 *Cliente:* ${clientName}\n` +
         `📞 *Telefone:* ${clientPhone}\n` +
         `📅 *Data:* ${formattedDate}\n` +
         `⏰ *Horário:* ${selectedTime}\n` +
         `💼 *Serviço:* ${service?.name || 'Não especificado'}\n` +
+        `👨‍💼 *Profissional:* ${professionalName}\n` +
         `${notes ? `📝 *Observações:* ${notes}\n` : ''}` +
         `\n✅ Agendamento confirmado automaticamente!`;
 
@@ -380,6 +416,7 @@ export const usePublicBooking = (companySlug: string) => {
     companySettings,
     profile,
     services,
+    professionals,
     loading,
     submitting,
     generateAvailableDates,

@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Settings, Clock, Calendar, Phone, Users } from 'lucide-react';
+import { Settings, Clock, Calendar, Phone, Users, Coffee } from 'lucide-react';
 
 interface CompanySettingsModalProps {
   isOpen: boolean;
@@ -33,6 +34,11 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
   const [advanceBookingLimit, setAdvanceBookingLimit] = useState(30);
   const [monthlyAppointmentsLimit, setMonthlyAppointmentsLimit] = useState(4);
   const [phone, setPhone] = useState('');
+  
+  // Lunch break settings
+  const [lunchBreakEnabled, setLunchBreakEnabled] = useState(false);
+  const [lunchStartTime, setLunchStartTime] = useState('12:00');
+  const [lunchEndTime, setLunchEndTime] = useState('13:00');
 
   const weekDays = [
     { id: 1, name: 'Segunda-feira' },
@@ -72,6 +78,9 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
         setAdvanceBookingLimit(settings.advance_booking_limit);
         setMonthlyAppointmentsLimit(settings.monthly_appointments_limit || 4);
         setPhone(settings.phone || '');
+        setLunchBreakEnabled(settings.lunch_break_enabled || false);
+        setLunchStartTime(settings.lunch_start_time || '12:00');
+        setLunchEndTime(settings.lunch_end_time || '13:00');
       }
 
     } catch (error: any) {
@@ -107,6 +116,15 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
       return;
     }
 
+    if (lunchBreakEnabled && lunchStartTime >= lunchEndTime) {
+      toast({
+        title: "Horários de almoço inválidos",
+        description: "O horário de início do almoço deve ser menor que o de fim.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -121,6 +139,9 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
           advance_booking_limit: advanceBookingLimit,
           monthly_appointments_limit: monthlyAppointmentsLimit,
           phone: phone || null,
+          lunch_break_enabled: lunchBreakEnabled,
+          lunch_start_time: lunchBreakEnabled ? lunchStartTime : null,
+          lunch_end_time: lunchBreakEnabled ? lunchEndTime : null,
           updated_at: new Date().toISOString(),
         })
         .eq('company_id', user!.id);
@@ -262,6 +283,50 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
               </div>
             </div>
 
+            <Separator />
+
+            {/* Configuração de horário de almoço */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  <Coffee className="w-4 h-4 text-whatsapp-green" />
+                  Horário de Almoço
+                </Label>
+                <Switch
+                  checked={lunchBreakEnabled}
+                  onCheckedChange={setLunchBreakEnabled}
+                />
+              </div>
+              
+              {lunchBreakEnabled && (
+                <div className="grid grid-cols-2 gap-4 pl-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="lunchStartTime">Início do Almoço</Label>
+                    <Input
+                      id="lunchStartTime"
+                      type="time"
+                      value={lunchStartTime}
+                      onChange={(e) => setLunchStartTime(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="lunchEndTime">Fim do Almoço</Label>
+                    <Input
+                      id="lunchEndTime"
+                      type="time"
+                      value={lunchEndTime}
+                      onChange={(e) => setLunchEndTime(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
             {/* Configurações de agendamento */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
@@ -311,6 +376,7 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
               <ul className="space-y-1 text-xs">
                 <li>• Telefone: usado para receber confirmações via WhatsApp</li>
                 <li>• Limite mensal: evita que clientes façam muitos agendamentos</li>
+                <li>• Horário de almoço: período em que não haverá agendamentos disponíveis</li>
                 <li>• Intervalo: tempo entre agendamentos consecutivos</li>
                 <li>• Máx. Simultâneos: quantos clientes podem ser atendidos ao mesmo tempo</li>
                 <li>• Limite Antecipação: quantos dias no futuro os clientes podem agendar</li>

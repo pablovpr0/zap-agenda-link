@@ -2,8 +2,27 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Settings } from 'lucide-react';
+import { useState } from 'react';
+import ProfessionalManagement from '@/components/ProfessionalManagement';
 
 const ManagementSection = () => {
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+
+  if (activeSection === 'professionals') {
+    return (
+      <div>
+        <Button 
+          variant="outline" 
+          onClick={() => setActiveSection(null)}
+          className="mb-6"
+        >
+          ← Voltar
+        </Button>
+        <ProfessionalManagement />
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <Card className="cursor-pointer hover:shadow-md transition-shadow bg-white border-whatsapp">
@@ -28,7 +47,10 @@ const ManagementSection = () => {
         </CardContent>
       </Card>
       
-      <Card className="cursor-pointer hover:shadow-md transition-shadow bg-white border-whatsapp">
+      <Card 
+        className="cursor-pointer hover:shadow-md transition-shadow bg-white border-whatsapp"
+        onClick={() => setActiveSection('professionals')}
+      >
         <CardContent className="p-4 text-center">
           <Users className="w-8 h-8 text-whatsapp-green mx-auto mb-2" />
           <h3 className="font-medium mb-1 text-gray-800">Profissionais</h3>

@@ -24,6 +24,7 @@ export type Database = {
           duration: number
           id: string
           notes: string | null
+          professional_id: string | null
           service_id: string
           status: string
           updated_at: string
@@ -37,6 +38,7 @@ export type Database = {
           duration?: number
           id?: string
           notes?: string | null
+          professional_id?: string | null
           service_id: string
           status?: string
           updated_at?: string
@@ -50,6 +52,7 @@ export type Database = {
           duration?: number
           id?: string
           notes?: string | null
+          professional_id?: string | null
           service_id?: string
           status?: string
           updated_at?: string
@@ -67,6 +70,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
             referencedColumns: ["id"]
           },
           {
@@ -130,6 +140,9 @@ export type Database = {
           id: string
           instagram_url: string | null
           logo_url: string | null
+          lunch_break_enabled: boolean | null
+          lunch_end_time: string | null
+          lunch_start_time: string | null
           max_simultaneous_appointments: number
           monthly_appointments_limit: number | null
           phone: string | null
@@ -151,6 +164,9 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           logo_url?: string | null
+          lunch_break_enabled?: boolean | null
+          lunch_end_time?: string | null
+          lunch_start_time?: string | null
           max_simultaneous_appointments?: number
           monthly_appointments_limit?: number | null
           phone?: string | null
@@ -172,6 +188,9 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           logo_url?: string | null
+          lunch_break_enabled?: boolean | null
+          lunch_end_time?: string | null
+          lunch_start_time?: string | null
           max_simultaneous_appointments?: number
           monthly_appointments_limit?: number | null
           phone?: string | null
@@ -188,6 +207,50 @@ export type Database = {
             foreignKeyName: "company_settings_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professionals: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          phone: string
+          role: string
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          phone: string
+          role: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string
+          role?: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professionals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
