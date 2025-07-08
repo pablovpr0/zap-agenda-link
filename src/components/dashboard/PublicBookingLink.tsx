@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Copy, CheckCircle, Share, Globe } from 'lucide-react';
+import { Copy, CheckCircle, Share, Globe } from 'lucide-react';
 
 interface PublicBookingLinkProps {
   bookingLink: string;
@@ -23,14 +23,14 @@ const PublicBookingLink = ({
   return (
     <Card className="border shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-3 text-foreground">
-          <Globe className="w-6 h-6 text-primary" />
-          <div>
+        <CardTitle className="text-foreground">
+          <div className="flex items-center gap-3 mb-1">
+            <Globe className="w-6 h-6 text-primary" />
             <h3 className="text-lg font-semibold">Link de Agendamento Público</h3>
-            <p className="text-sm text-muted-foreground font-normal mt-1">
-              Compartilhe para que seus clientes façam agendamentos online
-            </p>
           </div>
+          <p className="text-sm text-muted-foreground font-normal">
+            Compartilhe para que seus clientes façam agendamentos online
+          </p>
         </CardTitle>
       </CardHeader>
       
@@ -44,18 +44,18 @@ const PublicBookingLink = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-            <span>Link ativo e pronto para compartilhar</span>
+            <span>Link ativado</span>
           </div>
           
           <div className="flex gap-2">
             <Button 
               variant="outline" 
               size="sm"
-              onClick={onViewPublicPage}
+              onClick={onShareWhatsApp}
               className="bg-green-50 border-green-200 hover:bg-green-100 text-green-700"
             >
-              <ExternalLink className="w-4 h-4 mr-1" />
-              Visualizar
+              <Share className="w-4 h-4 mr-1" />
+              Compartilhar
             </Button>
             
             <Button 
@@ -77,16 +77,6 @@ const PublicBookingLink = ({
                   Copiar
                 </>
               )}
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={onShareWhatsApp}
-              className="bg-green-50 border-green-200 hover:bg-green-100 text-green-700"
-            >
-              <Share className="w-4 h-4 mr-1" />
-              Compartilhar
             </Button>
           </div>
         </div>
