@@ -23,8 +23,8 @@ const PublicBookingLink = ({
   return (
     <Card className="border shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-foreground">
-          <Globe className="w-5 h-5 text-primary" />
+        <CardTitle className="flex items-center gap-3 text-foreground">
+          <Globe className="w-6 h-6 text-primary" />
           <div>
             <h3 className="text-lg font-semibold">Link de Agendamento Público</h3>
             <p className="text-sm text-muted-foreground font-normal mt-1">
@@ -34,48 +34,61 @@ const PublicBookingLink = ({
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="space-y-3">
-        <div className="flex items-center gap-2 bg-muted/50 p-3 rounded-md border">
-          <p className="text-foreground break-all text-sm font-mono flex-1">
+      <CardContent className="space-y-4">
+        <div className="bg-green-50 border border-green-200 p-3 rounded-md">
+          <p className="text-foreground break-all text-sm font-mono">
             {bookingLink}
           </p>
-          <div className="flex gap-1">
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+            <span>Link ativo e pronto para compartilhar</span>
+          </div>
+          
+          <div className="flex gap-2">
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm"
               onClick={onViewPublicPage}
-              className="h-8 w-8 p-0"
+              className="bg-green-50 border-green-200 hover:bg-green-100 text-green-700"
             >
-              <ExternalLink className="w-4 h-4" />
+              <ExternalLink className="w-4 h-4 mr-1" />
+              Visualizar
             </Button>
             
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm"
               onClick={onCopyLink}
-              className={`h-8 w-8 p-0 ${linkCopied ? 'text-primary' : ''}`}
+              className={`bg-green-50 border-green-200 hover:bg-green-100 ${
+                linkCopied ? 'text-green-600' : 'text-green-700'
+              }`}
             >
               {linkCopied ? (
-                <CheckCircle className="w-4 h-4" />
+                <>
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Copiado
+                </>
               ) : (
-                <Copy className="w-4 h-4" />
+                <>
+                  <Copy className="w-4 h-4 mr-1" />
+                  Copiar
+                </>
               )}
             </Button>
             
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm"
               onClick={onShareWhatsApp}
-              className="h-8 w-8 p-0"
+              className="bg-green-50 border-green-200 hover:bg-green-100 text-green-700"
             >
-              <Share className="w-4 h-4" />
+              <Share className="w-4 h-4 mr-1" />
+              Compartilhar
             </Button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-          <span>Link ativo e pronto para compartilhar</span>
         </div>
       </CardContent>
     </Card>
