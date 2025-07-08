@@ -10,7 +10,6 @@ interface CompanyDataSettingsData {
   phone: string;
   email: string;
   instagramUrl: string;
-  customUrl: string;
 }
 
 interface CompanyDataSettingsProps {
@@ -87,21 +86,6 @@ const CompanyDataSettings = ({ data, onDataChange }: CompanyDataSettingsProps) =
             className="border-whatsapp"
             placeholder="Rua das Flores, 123 - Centro - Cidade/UF"
           />
-        </div>
-        
-        <div>
-          <Label htmlFor="custom-url">URL Personalizada</Label>
-          <div className="flex">
-            <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-whatsapp bg-gray-50 text-whatsapp-muted text-sm">
-              zapagenda.com/
-            </span>
-            <Input
-              id="custom-url"
-              value={data.customUrl}
-              onChange={(e) => updateData('customUrl', e.target.value)}
-              className="rounded-l-none border-whatsapp"
-            />
-          </div>
         </div>
       </CardContent>
     </Card>

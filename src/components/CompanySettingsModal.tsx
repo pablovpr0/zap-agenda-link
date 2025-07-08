@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Settings, Clock, Calendar, Phone, Users, Coffee } from 'lucide-react';
+import { Settings, Clock, Calendar, Phone, Users, Coffee, Link, CheckCircle, AlertCircle } from 'lucide-react';
+import { validateSlug, isSlugTaken } from '@/services/companySettingsService';
 
 interface CompanySettingsModalProps {
   isOpen: boolean;
@@ -34,11 +34,17 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
   const [advanceBookingLimit, setAdvanceBookingLimit] = useState(30);
   const [monthlyAppointmentsLimit, setMonthlyAppointmentsLimit] = useState(4);
   const [phone, setPhone] = useState('');
+  const [slug, setSlug] = useState('');
+  const [originalSlug, setOriginalSlug] = useState('');
   
   // Lunch break settings
   const [lunchBreakEnabled, setLunchBreakEnabled] = useState(false);
   const [lunchStartTime, setLunchStartTime] = useState('12:00');
   const [lunchEndTime, setLunchEndTime] = useState('13:00');
+
+  // Slug validation
+  const [slugValidation, setSlugValidation] = useState<{ isValid: boolean; error?: string }>({ isValid: true });
+  const [isSlugAvailable, setIsSlugAvailable] = useState<boolean | null>(null);
 
   const weekDays = [
     { id: 1, name: 'Segunda-feira' },
@@ -55,6 +61,36 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
       loadSettings();
     }
   }, [isOpen, user]);
+
+  // Validação de slug em tempo real
+  useEffect(() => {
+    const checkSlug = async () => {
+      if (slug === originalSlug) {
+        setSlugValidation({ isValid: true });
+        setIsSlugAvailable(true);
+        return;
+      }
+
+      const validation = validateSlug(slug);
+      setSlugValidation(validation);
+
+      if (validation.isValid) {
+        try {
+          const taken = await isSlugTaken(slug);
+          setIsSlugAvailable(!taken);
+        } catch (error) {
+          setIsSlugAvailable(null);
+        }
+      } else {
+        setIsSlugAvailable(null);
+      }
+    };
+
+    if (slug) {
+      const timer = setTimeout(checkSlug, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [slug, originalSlug]);
 
   const loadSettings = async () => {
     if (!user) return;
@@ -78,6 +114,8 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
         setAdvanceBookingLimit(settings.advance_booking_limit);
         setMonthlyAppointmentsLimit(settings.monthly_appointments_limit || 4);
         setPhone(settings.phone || '');
+        setSlug(settings.slug || '');
+        setOriginalSlug(settings.slug || '');
         setLunchBreakEnabled(settings.lunch_break_enabled || false);
         setLunchStartTime(settings.lunch_start_time || '12:00');
         setLunchEndTime(settings.lunch_end_time || '13:00');
@@ -93,6 +131,14 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSlugChange = (value: string) => {
+    const cleanSlug = value
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/--+/g, '-');
+    setSlug(cleanSlug);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -125,6 +171,15 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
       return;
     }
 
+    if (!slugValidation.isValid || isSlugAvailable === false) {
+      toast({
+        title: "Slug inválido",
+        description: slugValidation.error || "Este slug já está sendo usado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -139,6 +194,7 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
           advance_booking_limit: advanceBookingLimit,
           monthly_appointments_limit: monthlyAppointmentsLimit,
           phone: phone || null,
+          slug: slug,
           lunch_break_enabled: lunchBreakEnabled,
           lunch_start_time: lunchBreakEnabled ? lunchStartTime : null,
           lunch_end_time: lunchBreakEnabled ? lunchEndTime : null,
@@ -176,6 +232,15 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
     }
   };
 
+  const getSlugStatusIcon = () => {
+    if (!slugValidation.isValid) return <AlertCircle className="w-4 h-4 text-red-500" />;
+    if (isSlugAvailable === false) return <AlertCircle className="w-4 h-4 text-red-500" />;
+    if (isSlugAvailable === true) return <CheckCircle className="w-4 h-4 text-green-500" />;
+    return null;
+  };
+
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -206,6 +271,42 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
               />
               <p className="text-xs text-gray-500">
                 Telefone para receber mensagens de confirmação de agendamentos
+              </p>
+            </div>
+
+            <Separator />
+
+            {/* Link personalizado */}
+            <div className="space-y-2">
+              <Label htmlFor="slug" className="flex items-center gap-2">
+                <Link className="w-4 h-4 text-whatsapp-green" />
+                Link Personalizado
+              </Label>
+              <div className="flex">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-600 text-sm">
+                  {baseUrl}/public/
+                </span>
+                <div className="relative flex-1">
+                  <Input
+                    id="slug"
+                    value={slug}
+                    onChange={(e) => handleSlugChange(e.target.value)}
+                    className="rounded-l-none"
+                    placeholder="minha-empresa"
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    {getSlugStatusIcon()}
+                  </div>
+                </div>
+              </div>
+              {!slugValidation.isValid && (
+                <p className="text-xs text-red-600">{slugValidation.error}</p>
+              )}
+              {isSlugAvailable === false && (
+                <p className="text-xs text-red-600">Este slug já está sendo usado</p>
+              )}
+              <p className="text-xs text-gray-500">
+                URL personalizada para sua página de agendamentos
               </p>
             </div>
 
@@ -375,6 +476,7 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
               <p className="font-medium mb-2">💡 Dicas:</p>
               <ul className="space-y-1 text-xs">
                 <li>• Telefone: usado para receber confirmações via WhatsApp</li>
+                <li>• Link personalizado: torne sua URL mais profissional</li>
                 <li>• Limite mensal: evita que clientes façam muitos agendamentos</li>
                 <li>• Horário de almoço: período em que não haverá agendamentos disponíveis</li>
                 <li>• Intervalo: tempo entre agendamentos consecutivos</li>
