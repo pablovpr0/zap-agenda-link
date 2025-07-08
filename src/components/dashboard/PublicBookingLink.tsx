@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Copy, CheckCircle, Share, Globe, QrCode } from 'lucide-react';
+import { ExternalLink, Copy, CheckCircle, Share, Globe } from 'lucide-react';
 
 interface PublicBookingLinkProps {
   bookingLink: string;
@@ -21,84 +21,61 @@ const PublicBookingLink = ({
   if (!bookingLink) return null;
 
   return (
-    <Card className="border-green-200 bg-gradient-to-br from-green-50/40 to-emerald-50/40 shadow-sm hover:shadow-md transition-shadow">
+    <Card className="border shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-green-800">
-          <div className="p-2 bg-green-100 rounded-lg">
-            <Globe className="w-5 h-5 text-green-600" />
-          </div>
+        <CardTitle className="flex items-center gap-2 text-foreground">
+          <Globe className="w-5 h-5 text-primary" />
           <div>
             <h3 className="text-lg font-semibold">Link de Agendamento Público</h3>
-            <p className="text-sm text-green-700 font-normal mt-1">
+            <p className="text-sm text-muted-foreground font-normal mt-1">
               Compartilhe para que seus clientes façam agendamentos online
             </p>
           </div>
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="space-y-4">
-        <div className="bg-white/70 p-4 rounded-lg border border-green-200/50 backdrop-blur-sm">
-          <div className="flex items-center gap-3 mb-3">
-            <QrCode className="w-4 h-4 text-green-600" />
-            <span className="text-sm font-medium text-green-800">Sua URL personalizada:</span>
-          </div>
-          <div className="bg-green-50 p-3 rounded-md border border-green-200">
-            <p className="text-green-900 break-all text-sm font-mono leading-relaxed">
-              {bookingLink}
-            </p>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={onViewPublicPage}
-            className="flex items-center justify-center gap-2 border-green-300 text-green-700 hover:bg-green-100 hover:border-green-400 transition-colors"
-          >
-            <ExternalLink className="w-4 h-4" />
-            <span className="text-xs font-medium">Visualizar</span>
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={onCopyLink}
-            className={`flex items-center justify-center gap-2 transition-all ${
-              linkCopied 
-                ? 'border-green-400 bg-green-100 text-green-800' 
-                : 'border-green-300 text-green-700 hover:bg-green-100 hover:border-green-400'
-            }`}
-          >
-            {linkCopied ? (
-              <>
+      <CardContent className="space-y-3">
+        <div className="flex items-center gap-2 bg-muted/50 p-3 rounded-md border">
+          <p className="text-foreground break-all text-sm font-mono flex-1">
+            {bookingLink}
+          </p>
+          <div className="flex gap-1">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={onViewPublicPage}
+              className="h-8 w-8 p-0"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={onCopyLink}
+              className={`h-8 w-8 p-0 ${linkCopied ? 'text-primary' : ''}`}
+            >
+              {linkCopied ? (
                 <CheckCircle className="w-4 h-4" />
-                <span className="text-xs font-medium">Copiado!</span>
-              </>
-            ) : (
-              <>
+              ) : (
                 <Copy className="w-4 h-4" />
-                <span className="text-xs font-medium">Copiar</span>
-              </>
-            )}
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={onShareWhatsApp}
-            className="flex items-center justify-center gap-2 border-green-300 text-green-700 hover:bg-green-100 hover:border-green-400 transition-colors"
-          >
-            <Share className="w-4 h-4" />
-            <span className="text-xs font-medium">WhatsApp</span>
-          </Button>
+              )}
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={onShareWhatsApp}
+              className="h-8 w-8 p-0"
+            >
+              <Share className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 pt-2 border-t border-green-200/50">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-xs text-green-700">
-            Link ativo e pronto para compartilhar
-          </span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+          <span>Link ativo e pronto para compartilhar</span>
         </div>
       </CardContent>
     </Card>
