@@ -1,47 +1,12 @@
+
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { format, addDays, setHours, setMinutes, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Professional, fetchProfessionals } from '@/services/professionalsService';
-
-interface CompanySettings {
-  id: string;
-  company_id: string;
-  slug: string;
-  address?: string;
-  phone?: string;
-  working_days: number[];
-  working_hours_start: string;
-  working_hours_end: string;
-  appointment_interval: number;
-  max_simultaneous_appointments: number;
-  advance_booking_limit: number;
-  monthly_appointments_limit: number;
-  lunch_break_enabled?: boolean;
-  lunch_start_time?: string;
-  lunch_end_time?: string;
-  instagram_url?: string;
-  logo_url?: string;
-  cover_image_url?: string;
-  theme_color: string;
-  welcome_message?: string;
-}
-
-interface Profile {
-  id: string;
-  company_name: string;
-  business_type: string;
-  profile_image_url?: string;
-}
-
-interface Service {
-  id: string;
-  name: string;
-  description?: string;
-  duration: number;
-  price?: number;
-}
+import { CompanySettings, Profile, Service, BookingFormData } from '@/types/publicBooking';
+import { Professional } from '@/services/professionalsService';
+import { loadCompanyDataBySlug, fetchActiveProfessionals, checkAvailableTimes } from '@/services/publicBookingService';
+import { generateAvailableDates, generateTimeSlots } from '@/utils/dateUtils';
+import { checkMonthlyLimit } from '@/utils/monthlyLimitUtils';
+import { createAppointment, generateWhatsAppMessage } from '@/services/appointmentService';
 
 export const usePublicBooking = (companySlug: string) => {
   const { toast } = useToast();
@@ -55,42 +20,14 @@ export const usePublicBooking = (companySlug: string) => {
 
   const loadCompanyData = async () => {
     try {
-      // Buscar configurações da empresa pelo slug
-      const { data: settings, error: settingsError } = await supabase
-        .from('company_settings')
-        .select('*')
-        .eq('slug', companySlug)
-        .single();
-
-      if (settingsError) throw settingsError;
+      const { settings, profileData, servicesData } = await loadCompanyDataBySlug(companySlug);
       
       setCompanySettings(settings);
-
-      // Buscar perfil da empresa
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', settings.company_id)
-        .single();
-
-      if (profileError) throw profileError;
-      
       setProfile(profileData);
-
-      // Buscar serviços ativos
-      const { data: servicesData, error: servicesError } = await supabase
-        .from('services')
-        .select('*')
-        .eq('company_id', settings.company_id)
-        .eq('is_active', true)
-        .order('name');
-
-      if (servicesError) throw servicesError;
-      
-      setServices(servicesData || []);
+      setServices(servicesData);
 
       // Buscar profissionais ativos
-      const professionalsData = await fetchProfessionals(settings.company_id);
+      const professionalsData = await fetchActiveProfessionals(settings.company_id);
       setProfessionals(professionalsData);
     } catch (error: any) {
       console.error('Erro ao carregar dados da empresa:', error);
@@ -104,75 +41,36 @@ export const usePublicBooking = (companySlug: string) => {
     }
   };
 
-  const generateAvailableDates = () => {
+  const generateAvailableDatesForCompany = () => {
     if (!companySettings) return [];
-    
-    const dates = [];
-    const today = new Date();
-    
-    for (let i = 0; i < companySettings.advance_booking_limit; i++) {
-      const date = addDays(today, i);
-      const dayOfWeek = date.getDay();
-      
-      if (companySettings.working_days.includes(dayOfWeek)) {
-        dates.push(date);
-      }
-    }
-    
-    return dates;
-  };
-
-  const isTimeDuringLunch = (time: string) => {
-    if (!companySettings?.lunch_break_enabled || !companySettings.lunch_start_time || !companySettings.lunch_end_time) {
-      return false;
-    }
-    
-    const timeMinutes = parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
-    const lunchStartMinutes = parseInt(companySettings.lunch_start_time.split(':')[0]) * 60 + parseInt(companySettings.lunch_start_time.split(':')[1]);
-    const lunchEndMinutes = parseInt(companySettings.lunch_end_time.split(':')[0]) * 60 + parseInt(companySettings.lunch_end_time.split(':')[1]);
-    
-    return timeMinutes >= lunchStartMinutes && timeMinutes < lunchEndMinutes;
+    return generateAvailableDates(companySettings.working_days, companySettings.advance_booking_limit);
   };
 
   const generateAvailableTimes = async (selectedDate: string) => {
     if (!companySettings || !selectedDate) return [];
     
-    const times = [];
-    const [startHour, startMinute] = companySettings.working_hours_start.split(':').map(Number);
-    const [endHour, endMinute] = companySettings.working_hours_end.split(':').map(Number);
+    const times = generateTimeSlots(
+      companySettings.working_hours_start,
+      companySettings.working_hours_end,
+      companySettings.appointment_interval,
+      companySettings.lunch_break_enabled,
+      companySettings.lunch_start_time,
+      companySettings.lunch_end_time
+    );
     
-    let currentTime = setMinutes(setHours(new Date(), startHour), startMinute);
-    const endTime = setMinutes(setHours(new Date(), endHour), endMinute);
-    
-    while (currentTime < endTime) {
-      const timeString = format(currentTime, 'HH:mm');
-      
-      // Verificar se o horário não é durante o almoço
-      if (!isTimeDuringLunch(timeString)) {
-        times.push(timeString);
-      }
-      
-      currentTime = new Date(currentTime.getTime() + companySettings.appointment_interval * 60000);
-    }
-    
-    // Buscar horários já agendados para esta data
     try {
-      const { data: bookedAppointments, error } = await supabase
-        .from('appointments')
-        .select('appointment_time')
-        .eq('company_id', companySettings.company_id)
-        .eq('appointment_date', selectedDate)
-        .neq('status', 'cancelled');
+      const bookedTimes = await checkAvailableTimes(
+        companySettings.company_id,
+        selectedDate,
+        companySettings.working_hours_start,
+        companySettings.working_hours_end,
+        companySettings.appointment_interval,
+        companySettings.lunch_break_enabled,
+        companySettings.lunch_start_time,
+        companySettings.lunch_end_time
+      );
 
-      if (error) {
-        console.error('Erro ao buscar agendamentos:', error);
-        return times;
-      }
-
-      // Filtrar horários já ocupados
-      const bookedTimes = bookedAppointments?.map(apt => apt.appointment_time.substring(0, 5)) || [];
       const availableTimes = times.filter(time => !bookedTimes.includes(time));
-      
       return availableTimes;
     } catch (error) {
       console.error('Erro ao verificar horários disponíveis:', error);
@@ -180,71 +78,8 @@ export const usePublicBooking = (companySlug: string) => {
     }
   };
 
-  const checkMonthlyLimit = async (clientPhone: string) => {
-    if (!companySettings || !companySettings.monthly_appointments_limit) {
-      console.log('Limite mensal não configurado, permitindo agendamento');
-      return true;
-    }
-
-    try {
-      const currentDate = new Date();
-      const currentMonth = currentDate.getMonth() + 1; // getMonth() retorna 0-11
-      const currentYear = currentDate.getFullYear();
-      
-      // Criar datas de início e fim do mês atual
-      const startOfMonth = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`;
-      const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
-      const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
-      const startOfNextMonth = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01`;
-      
-      console.log(`Verificando limite mensal para cliente ${clientPhone}`);
-      console.log(`Período: ${startOfMonth} até ${startOfNextMonth}`);
-      console.log(`Limite configurado: ${companySettings.monthly_appointments_limit}`);
-      
-      // Buscar agendamentos do mês atual pelo telefone do cliente
-      const { data: monthlyAppointments, error } = await supabase
-        .from('appointments')
-        .select(`
-          id,
-          appointment_date,
-          status,
-          clients!inner(phone)
-        `)
-        .eq('company_id', companySettings.company_id)
-        .eq('clients.phone', clientPhone)
-        .gte('appointment_date', startOfMonth)
-        .lt('appointment_date', startOfNextMonth)
-        .neq('status', 'cancelled');
-
-      if (error) {
-        console.error('Erro ao verificar limite mensal:', error);
-        return true; // Em caso de erro, permitir o agendamento
-      }
-
-      const appointmentCount = monthlyAppointments?.length || 0;
-      console.log(`Cliente ${clientPhone} tem ${appointmentCount} agendamentos confirmados este mês`);
-      
-      const canBook = appointmentCount < companySettings.monthly_appointments_limit;
-      console.log(`Pode agendar: ${canBook}`);
-      
-      return canBook;
-    } catch (error) {
-      console.error('Erro ao verificar limite mensal:', error);
-      return true; // Em caso de erro, permitir o agendamento
-    }
-  };
-
-  const submitBooking = async (formData: {
-    selectedService: string;
-    selectedProfessional?: string;
-    selectedDate: string;
-    selectedTime: string;
-    clientName: string;
-    clientPhone: string;
-    clientEmail: string;
-    notes: string;
-  }) => {
-    const { selectedService, selectedProfessional, selectedDate, selectedTime, clientName, clientPhone, clientEmail, notes } = formData;
+  const submitBooking = async (formData: BookingFormData) => {
+    const { selectedService, selectedDate, selectedTime, clientName, clientPhone } = formData;
     
     if (!selectedService || !selectedDate || !selectedTime || !clientName || !clientPhone) {
       toast({
@@ -255,8 +90,13 @@ export const usePublicBooking = (companySlug: string) => {
       return false;
     }
 
-    // Verificar limite mensal ANTES de tentar criar o agendamento
-    const canBook = await checkMonthlyLimit(clientPhone);
+    // Verificar limite mensal
+    const canBook = await checkMonthlyLimit(
+      companySettings!.company_id,
+      clientPhone,
+      companySettings!.monthly_appointments_limit
+    );
+    
     if (!canBook) {
       toast({
         title: "Limite de agendamentos atingido",
@@ -269,124 +109,27 @@ export const usePublicBooking = (companySlug: string) => {
     setSubmitting(true);
 
     try {
-      // Verificar se horário ainda está disponível
-      const { data: conflictCheck, error: conflictError } = await supabase
-        .from('appointments')
-        .select('id')
-        .eq('company_id', companySettings!.company_id)
-        .eq('appointment_date', selectedDate)
-        .eq('appointment_time', selectedTime)
-        .neq('status', 'cancelled');
-
-      if (conflictError) {
-        console.error('Erro ao verificar conflitos:', conflictError);
-      }
-
-      if (conflictCheck && conflictCheck.length > 0) {
-        toast({
-          title: "Horário indisponível",
-          description: "Este horário já foi ocupado. Por favor, escolha outro horário.",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      // Criar ou buscar cliente - verificar apenas o telefone para evitar duplicação
-      let clientId;
-      const { data: existingClient } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('company_id', companySettings!.company_id)
-        .eq('phone', clientPhone)
-        .maybeSingle();
-
-      if (existingClient) {
-        clientId = existingClient.id;
-        
-        // Atualizar dados do cliente existente apenas se necessário
-        await supabase
-          .from('clients')
-          .update({
-            name: clientName,
-            email: clientEmail || null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', clientId);
-      } else {
-        const { data: newClient, error: clientError } = await supabase
-          .from('clients')
-          .insert({
-            company_id: companySettings!.company_id,
-            name: clientName,
-            phone: clientPhone,
-            email: clientEmail || null,
-            notes: notes || null,
-          })
-          .select('id')
-          .single();
-
-        if (clientError) {
-          console.error('Erro ao criar cliente:', clientError);
-          throw clientError;
-        }
-        clientId = newClient.id;
-      }
-
-      // Buscar duração do serviço
-      const service = services.find(s => s.id === selectedService);
-
-      // Criar agendamento
-      const appointmentData = {
-        company_id: companySettings!.company_id,
-        client_id: clientId,
-        service_id: selectedService,
-        professional_id: selectedProfessional || null,
-        appointment_date: selectedDate,
-        appointment_time: selectedTime,
-        duration: service?.duration || 60,
-        status: 'confirmed',
-        notes: notes || null,
-      };
-
-      const { data: appointmentResult, error: appointmentError } = await supabase
-        .from('appointments')
-        .insert(appointmentData)
-        .select('*')
-        .single();
-
-      if (appointmentError) {
-        console.error('Erro ao criar agendamento:', appointmentError);
-        throw appointmentError;
-      }
-
-      // Corrigir formatação da data para a mensagem
-      const appointmentDate = parseISO(selectedDate);
-      const formattedDate = format(appointmentDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+      const result = await createAppointment(formData, companySettings!, services, professionals);
       
-      // Buscar nome do profissional se foi selecionado
-      const professionalName = selectedProfessional 
-        ? professionals.find(p => p.id === selectedProfessional)?.name || 'Profissional'
-        : 'Qualquer profissional';
-      
-      const professionalMessage = `🗓️ *NOVO AGENDAMENTO*\n\n` +
-        `👤 *Cliente:* ${clientName}\n` +
-        `📞 *Telefone:* ${clientPhone}\n` +
-        `📅 *Data:* ${formattedDate}\n` +
-        `⏰ *Horário:* ${selectedTime}\n` +
-        `💼 *Serviço:* ${service?.name || 'Não especificado'}\n` +
-        `👨‍💼 *Profissional:* ${professionalName}\n` +
-        `${notes ? `📝 *Observações:* ${notes}\n` : ''}` +
-        `\n✅ Agendamento confirmado automaticamente!`;
-
       toast({
         title: "Agendamento realizado!",
-        description: `Agendamento confirmado para ${formattedDate} às ${selectedTime}.`,
+        description: `Agendamento confirmado para ${result.formattedDate} às ${selectedTime}.`,
       });
 
       // Enviar mensagem para o profissional via WhatsApp
       if (companySettings?.phone) {
+        const message = generateWhatsAppMessage(
+          clientName,
+          clientPhone,
+          result.formattedDate,
+          selectedTime,
+          result.service?.name || 'Não especificado',
+          result.professionalName,
+          formData.notes
+        );
+
         const cleanPhone = companySettings.phone.replace(/\D/g, '');
-        const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(professionalMessage)}`;
+        const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
         setTimeout(() => {
           window.open(whatsappUrl, '_blank');
         }, 1000);
@@ -397,7 +140,7 @@ export const usePublicBooking = (companySlug: string) => {
       console.error('Erro ao criar agendamento:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível realizar o agendamento. Tente novamente.",
+        description: error.message || "Não foi possível realizar o agendamento. Tente novamente.",
         variant: "destructive",
       });
       return false;
@@ -419,7 +162,7 @@ export const usePublicBooking = (companySlug: string) => {
     professionals,
     loading,
     submitting,
-    generateAvailableDates,
+    generateAvailableDates: generateAvailableDatesForCompany,
     generateAvailableTimes,
     submitBooking
   };
