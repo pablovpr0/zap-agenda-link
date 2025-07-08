@@ -133,28 +133,33 @@ const SlugSettings = ({ currentSlug, onSlugUpdate }: SlugSettingsProps) => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <Label htmlFor="custom-slug" className="text-sm font-medium text-gray-800 mb-2 block">
+          <Label htmlFor="custom-slug" className="text-sm font-medium text-gray-800 mb-3 block">
             Slug Personalizado
           </Label>
-          <div className="flex rounded-md shadow-sm">
-            <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-600 text-sm font-medium">
+          
+          {/* Domínio base em linha separada */}
+          <div className="mb-2">
+            <span className="text-sm text-gray-600 font-medium">
               {baseDomain}/public/
             </span>
-            <div className="relative flex-1">
-              <Input
-                id="custom-slug"
-                value={newSlug}
-                onChange={(e) => handleSlugChange(e.target.value)}
-                className="rounded-l-none text-gray-900 font-medium bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                placeholder="minha-empresa"
-              />
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                {getStatusIcon()}
-              </div>
+          </div>
+          
+          {/* Campo de entrada em linha separada */}
+          <div className="relative">
+            <Input
+              id="custom-slug"
+              value={newSlug}
+              onChange={(e) => handleSlugChange(e.target.value)}
+              className="text-gray-900 font-medium bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-10"
+              placeholder="minha-empresa"
+            />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              {getStatusIcon()}
             </div>
           </div>
+          
           {getStatusMessage() && (
-            <p className={`text-sm mt-1 ${validation.isValid && isAvailable ? 'text-green-600' : 'text-red-600'}`}>
+            <p className={`text-sm mt-2 ${validation.isValid && isAvailable ? 'text-green-600' : 'text-red-600'}`}>
               {getStatusMessage()}
             </p>
           )}
@@ -165,7 +170,7 @@ const SlugSettings = ({ currentSlug, onSlugUpdate }: SlugSettingsProps) => {
             Preview da URL:
           </Label>
           <div className="flex items-center gap-2">
-            <code className="bg-white px-2 py-1 rounded border text-sm flex-1 text-gray-800">
+            <code className="bg-white px-2 py-1 rounded border text-sm flex-1 text-gray-800 break-all">
               {previewUrl}
             </code>
             <Button

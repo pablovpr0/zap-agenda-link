@@ -127,11 +127,11 @@ export const usePublicBooking = (companySlug: string) => {
       return false;
     }
     
-    const timeValue = time.replace(':', '');
-    const lunchStart = companySettings.lunch_start_time.replace(':', '');
-    const lunchEnd = companySettings.lunch_end_time.replace(':', '');
+    const timeMinutes = parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
+    const lunchStartMinutes = parseInt(companySettings.lunch_start_time.split(':')[0]) * 60 + parseInt(companySettings.lunch_start_time.split(':')[1]);
+    const lunchEndMinutes = parseInt(companySettings.lunch_end_time.split(':')[0]) * 60 + parseInt(companySettings.lunch_end_time.split(':')[1]);
     
-    return timeValue >= lunchStart && timeValue < lunchEnd;
+    return timeMinutes >= lunchStartMinutes && timeMinutes < lunchEndMinutes;
   };
 
   const generateAvailableTimes = async (selectedDate: string) => {

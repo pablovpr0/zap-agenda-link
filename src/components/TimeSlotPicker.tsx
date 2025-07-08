@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Clock, X } from 'lucide-react';
@@ -36,6 +35,16 @@ const TimeSlotPicker = ({
       generateTimeSlots();
     }
   }, [selectedDate, companyId, serviceId]);
+
+  const isTimeDuringLunch = (time: string, lunchStart?: string, lunchEnd?: string) => {
+    if (!lunchStart || !lunchEnd) return false;
+
+    const timeMinutes = parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
+    const lunchStartMinutes = parseInt(lunchStart.split(':')[0]) * 60 + parseInt(lunchStart.split(':')[1]);
+    const lunchEndMinutes = parseInt(lunchEnd.split(':')[0]) * 60 + parseInt(lunchEnd.split(':')[1]);
+
+    return timeMinutes >= lunchStartMinutes && timeMinutes < lunchEndMinutes;
+  };
 
   const generateTimeSlots = async () => {
     setLoading(true);
@@ -113,9 +122,16 @@ const TimeSlotPicker = ({
           reason = 'Horário já passou';
         }
 
+        // Verificar se está durante o horário de almoço
+        if (available && settings.lunch_break_enabled && 
+            isTimeDuringLunch(timeString, settings.lunch_start_time, settings.lunch_end_time)) {
+          available = false;
+          reason = 'Horário de almoço';
+        }
+
         // Verificar se há tempo suficiente até o fim do expediente
         const slotEndTime = addMinutes(currentTime, serviceDuration);
-        if (isAfter(slotEndTime, endTime)) {
+        if (available && isAfter(slotEndTime, endTime)) {
           available = false;
           reason = 'Tempo insuficiente';
         }
