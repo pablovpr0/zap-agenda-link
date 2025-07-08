@@ -8,6 +8,7 @@ import { Link, CheckCircle, AlertCircle, Copy, ExternalLink, Loader2 } from 'luc
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { validateSlug, updateCompanySlug, isSlugTaken } from '@/services/companySettingsService';
+import { getDomainConfig, generatePublicBookingUrl } from '@/lib/domainConfig';
 
 interface SlugSettingsProps {
   currentSlug: string;
@@ -24,8 +25,8 @@ const SlugSettings = ({ currentSlug, onSlugUpdate }: SlugSettingsProps) => {
   const [validation, setValidation] = useState<{ isValid: boolean; error?: string }>({ isValid: true });
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
 
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-  const previewUrl = `${baseUrl}/public/${newSlug}`;
+  const baseDomain = getDomainConfig();
+  const previewUrl = generatePublicBookingUrl(newSlug);
 
   // Validação em tempo real
   useEffect(() => {
@@ -135,7 +136,7 @@ const SlugSettings = ({ currentSlug, onSlugUpdate }: SlugSettingsProps) => {
           <Label htmlFor="custom-slug">Slug Personalizado</Label>
           <div className="flex">
             <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-green-300 bg-gray-50 text-gray-600 text-sm">
-              {baseUrl}/public/
+              {baseDomain}/public/
             </span>
             <div className="relative flex-1">
               <Input

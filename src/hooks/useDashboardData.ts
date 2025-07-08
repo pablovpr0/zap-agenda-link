@@ -7,13 +7,7 @@ import { DashboardData } from '@/types/dashboard';
 import { fetchCompanySettings, createDefaultSettings } from '@/services/companySettingsService';
 import { fetchTodayAppointments, fetchRecentAppointments } from '@/services/appointmentsService';
 import { fetchTotalClients } from '@/services/clientsService';
-
-// Função utilitária para gerar a URL de agendamento público
-const generateBookingLink = (slug: string): string => {
-  // Detectar se estamos em desenvolvimento ou produção
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-  return `${baseUrl}/public/${slug}`;
-};
+import { generatePublicBookingUrl } from '@/lib/domainConfig';
 
 export const useDashboardData = (companyName: string) => {
   const { user } = useAuth();
@@ -73,8 +67,8 @@ export const useDashboardData = (companyName: string) => {
         settings = await fetchCompanySettings(user.id);
       }
 
-      // Gerar a URL correta usando o domínio atual
-      const bookingLink = generateBookingLink(settings.slug);
+      // Gerar a URL correta usando o domínio personalizado
+      const bookingLink = generatePublicBookingUrl(settings.slug);
       console.log('URL de agendamento gerada:', bookingLink);
 
       // Buscar todos os dados em paralelo

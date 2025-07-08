@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Link, CheckCircle, AlertCircle } from 'lucide-react';
 import { validateSlug, isSlugTaken } from '@/services/companySettingsService';
+import { getDomainConfig } from '@/lib/domainConfig';
 
 interface SlugSettingsSectionProps {
   slug: string;
@@ -60,7 +61,7 @@ const SlugSettingsSection = ({ slug, originalSlug, onSlugChange }: SlugSettingsS
     return null;
   };
 
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const baseDomain = getDomainConfig();
 
   return (
     <div className="space-y-2">
@@ -70,7 +71,7 @@ const SlugSettingsSection = ({ slug, originalSlug, onSlugChange }: SlugSettingsS
       </Label>
       <div className="flex">
         <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-600 text-sm">
-          {baseUrl}/public/
+          {baseDomain}/public/
         </span>
         <div className="relative flex-1">
           <Input
