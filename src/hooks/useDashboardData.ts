@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getBrasiliaDate, formatBrazilianDate } from '@/lib/dateConfig';
 
 interface DashboardData {
   todayAppointments: number;
@@ -76,10 +77,12 @@ export const useDashboardData = (companyName: string) => {
 
       const bookingLink = `https://zapagenda.site/${settings.slug}`;
 
-      // Buscar dados do dashboard
       // Usar horário de Brasília para data de hoje
-      const today = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-      const todayStr = today.toISOString().split('T')[0];
+      const todayBrasilia = getBrasiliaDate();
+      const todayStr = formatBrazilianDate(todayBrasilia).split('/').reverse().join('-'); // converter DD/MM/YYYY para YYYY-MM-DD
+      
+      console.log('Data de hoje (Brasília):', todayBrasilia);
+      console.log('Data formatada para busca:', todayStr);
       
       // Agendamentos de hoje com detalhes
       const { data: todayAppts, error: todayError } = await supabase
@@ -102,6 +105,7 @@ export const useDashboardData = (companyName: string) => {
       }
 
       console.log('Agendamentos de hoje encontrados:', todayAppts?.length || 0);
+      console.log('Agendamentos de hoje detalhes:', todayAppts);
 
       // Transformar agendamentos de hoje
       const todayAppointmentsList = todayAppts?.map(apt => ({

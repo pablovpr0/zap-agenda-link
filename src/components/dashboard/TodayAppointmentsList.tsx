@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppointmentActions } from '@/hooks/useAppointmentActions';
 import { useToast } from '@/hooks/use-toast';
+import { getBrasiliaDate, formatBrazilianDate, formatBrazilianTime } from '@/lib/dateConfig';
 
 interface TodayAppointment {
   id: string;
@@ -28,10 +29,14 @@ const TodayAppointmentsList = ({ appointments, loading, onRefresh }: TodayAppoin
 
   const handleCompleteAppointment = async (appointmentId: string, clientName: string) => {
     try {
+      const currentDate = getBrasiliaDate();
+      const currentDateStr = formatBrazilianDate(currentDate).split('/').reverse().join('-'); // converter para YYYY-MM-DD
+      const currentTimeStr = formatBrazilianTime(currentDate);
+      
       await updateAppointment(
         appointmentId,
-        new Date().toISOString().split('T')[0], // data atual
-        new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), // horário atual
+        currentDateStr,
+        currentTimeStr,
         '', // não precisa do telefone para esta atualização
         clientName,
         () => {
@@ -57,7 +62,7 @@ const TodayAppointmentsList = ({ appointments, loading, onRefresh }: TodayAppoin
 
   const handleWhatsAppClick = (phone: string, clientName: string, appointmentTime: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
-    const today = new Date();
+    const today = getBrasiliaDate();
     const todayFormatted = format(today, "dd 'de' MMMM", { locale: ptBR });
     
     const message = `Olá, ${clientName}! 👋\n\n` +
