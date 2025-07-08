@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -64,15 +63,13 @@ const SlugSettingsSection = ({ slug, originalSlug, onSlugChange }: SlugSettingsS
   const baseDomain = getDomainConfig();
 
   return (
-    <div className="space-y-4 bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border-2 border-green-200">
-      <Label htmlFor="slug" className="flex items-center gap-3 text-base font-bold text-green-800">
-        <div className="bg-green-500 p-2 rounded-full">
-          <Link className="w-5 h-5 text-white" />
-        </div>
-        🔗 Link Personalizado
+    <div className="space-y-2">
+      <Label htmlFor="slug" className="flex items-center gap-2 text-sm font-medium">
+        <Link className="w-4 h-4" />
+        Link Personalizado
       </Label>
-      <div className="flex shadow-md rounded-lg overflow-hidden">
-        <span className="inline-flex items-center px-4 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 text-sm font-semibold border-r-2 border-green-300">
+      <div className="flex rounded-md shadow-sm">
+        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
           {baseDomain}/public/
         </span>
         <div className="relative flex-1">
@@ -80,7 +77,7 @@ const SlugSettingsSection = ({ slug, originalSlug, onSlugChange }: SlugSettingsS
             id="slug"
             value={slug}
             onChange={(e) => handleSlugChange(e.target.value)}
-            className="rounded-none border-0 focus:ring-2 focus:ring-green-500 font-medium"
+            className="rounded-l-none"
             placeholder="minha-empresa"
           />
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -89,17 +86,17 @@ const SlugSettingsSection = ({ slug, originalSlug, onSlugChange }: SlugSettingsS
         </div>
       </div>
       {!slugValidation.isValid && (
-        <p className="text-sm text-red-600 font-medium bg-red-50 p-2 rounded border border-red-200">
-          ❌ {slugValidation.error}
+        <p className="text-sm text-red-600">
+          {slugValidation.error}
         </p>
       )}
       {isSlugAvailable === false && (
-        <p className="text-sm text-red-600 font-medium bg-red-50 p-2 rounded border border-red-200">
-          ❌ Este slug já está sendo usado
+        <p className="text-sm text-red-600">
+          Este slug já está sendo usado
         </p>
       )}
-      <p className="text-sm text-green-700 bg-green-100 p-2 rounded border border-green-300 font-medium">
-        📱 URL personalizada para sua página de agendamentos
+      <p className="text-sm text-gray-600">
+        URL personalizada para sua página de agendamentos
       </p>
     </div>
   );

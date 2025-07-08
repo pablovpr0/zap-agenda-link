@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -124,23 +123,20 @@ const SlugSettings = ({ currentSlug, onSlugUpdate }: SlugSettingsProps) => {
   const canUpdate = validation.isValid && isAvailable && newSlug !== currentSlug && !isChecking;
 
   return (
-    <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-t-lg">
-        <CardTitle className="flex items-center gap-3 text-lg md:text-xl font-bold">
-          <div className="bg-white/20 p-2 rounded-full">
-            <Link className="w-6 md:w-7 h-6 md:h-7" />
-          </div>
-          🔗 Link Personalizado
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Link className="w-5 h-5" />
+          Link Personalizado
         </CardTitle>
-        <p className="text-green-100 text-sm mt-1">Configure sua URL personalizada de agendamentos</p>
       </CardHeader>
-      <CardContent className="space-y-6 p-6">
+      <CardContent className="space-y-4">
         <div>
-          <Label htmlFor="custom-slug" className="text-base font-semibold text-gray-800 mb-2 block">
+          <Label htmlFor="custom-slug" className="text-sm font-medium">
             Slug Personalizado
           </Label>
-          <div className="flex shadow-md rounded-lg overflow-hidden">
-            <span className="inline-flex items-center px-4 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 text-sm font-medium border-r">
+          <div className="flex rounded-md shadow-sm">
+            <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
               {baseDomain}/public/
             </span>
             <div className="relative flex-1">
@@ -148,7 +144,7 @@ const SlugSettings = ({ currentSlug, onSlugUpdate }: SlugSettingsProps) => {
                 id="custom-slug"
                 value={newSlug}
                 onChange={(e) => handleSlugChange(e.target.value)}
-                className="rounded-none border-0 focus:ring-2 focus:ring-green-500 text-base font-medium"
+                className="rounded-l-none"
                 placeholder="minha-empresa"
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -157,25 +153,24 @@ const SlugSettings = ({ currentSlug, onSlugUpdate }: SlugSettingsProps) => {
             </div>
           </div>
           {getStatusMessage() && (
-            <p className={`text-sm mt-2 font-medium ${validation.isValid && isAvailable ? 'text-green-600' : 'text-red-600'}`}>
+            <p className={`text-sm mt-1 ${validation.isValid && isAvailable ? 'text-green-600' : 'text-red-600'}`}>
               {getStatusMessage()}
             </p>
           )}
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border-2 border-blue-200 shadow-inner">
-          <Label className="text-base font-bold text-blue-800 mb-3 flex items-center gap-2 block">
-            📱 Preview da URL de Agendamento:
+        <div className="bg-gray-50 p-3 rounded-md">
+          <Label className="text-sm font-medium text-gray-700 mb-2 block">
+            Preview da URL:
           </Label>
-          <div className="flex items-center gap-3">
-            <code className="bg-white px-4 py-3 rounded-lg border-2 border-blue-300 text-green-600 flex-1 text-sm font-mono font-bold shadow-sm">
+          <div className="flex items-center gap-2">
+            <code className="bg-white px-2 py-1 rounded border text-sm flex-1">
               {previewUrl}
             </code>
             <Button
               variant="outline"
               size="sm"
               onClick={handleCopyUrl}
-              className="border-2 border-blue-300 text-blue-700 hover:bg-blue-100 shadow-md"
             >
               <Copy className="w-4 h-4" />
             </Button>
@@ -183,38 +178,34 @@ const SlugSettings = ({ currentSlug, onSlugUpdate }: SlugSettingsProps) => {
               variant="outline"
               size="sm"
               onClick={() => window.open(previewUrl, '_blank')}
-              className="border-2 border-blue-300 text-blue-700 hover:bg-blue-100 shadow-md"
             >
               <ExternalLink className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 rounded-xl border-2 border-amber-200">
-          <p className="font-bold mb-2 text-amber-800 flex items-center gap-2">
-            💡 Dicas para um slug profissional:
-          </p>
-          <ul className="text-sm space-y-1 list-disc list-inside text-amber-700">
+        <div className="text-sm text-gray-600">
+          <p className="font-medium mb-1">Dicas:</p>
+          <ul className="text-xs space-y-1 list-disc list-inside">
             <li>Use apenas letras minúsculas, números e hífens</li>
             <li>Mantenha entre 3-50 caracteres</li>
             <li>Evite hífens no início ou fim</li>
-            <li>Seja descritivo e fácil de lembrar</li>
           </ul>
         </div>
 
         <Button 
           onClick={handleUpdateSlug}
           disabled={!canUpdate || isUpdating}
-          className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-4 text-lg shadow-lg transform hover:scale-105 transition-all duration-200"
+          className="w-full"
         >
           {isUpdating ? (
             <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Atualizando Link...
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Atualizando...
             </>
           ) : (
             <>
-              <Link className="w-5 h-5 mr-2" />
+              <Link className="w-4 h-4 mr-2" />
               Atualizar Link Personalizado
             </>
           )}
