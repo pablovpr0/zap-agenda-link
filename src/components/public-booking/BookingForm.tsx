@@ -22,7 +22,7 @@ interface BookingFormProps {
     clientPhone: string;
     clientEmail: string;
     notes: string;
-  }) => Promise<void>;
+  }) => Promise<boolean>;
   generateAvailableTimes: (selectedDate: string) => Promise<string[]>;
 }
 
