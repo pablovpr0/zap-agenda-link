@@ -26,6 +26,8 @@ const App = () => (
             <Route path="/company-setup" element={<CompanySetup />} />
             <Route path="/public/:companySlug" element={<PublicBooking />} />
             <Route path="/" element={<Index />} />
+            {/* Rota para capturar slugs diretamente na raiz (ex: zapagenda.site/pablo) */}
+            <Route path="/:companySlug" element={<PublicBooking />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <PWAInstallPrompt />
