@@ -12,6 +12,11 @@ export const createAppointment = async (
 ) => {
   const { selectedService, selectedProfessional, selectedDate, selectedTime, clientName, clientPhone } = formData;
 
+  // Debug logs
+  console.log('🔧 createAppointment - formData:', formData);
+  console.log('🔧 createAppointment - companySettings:', companySettings);
+  console.log('🔧 createAppointment - company_id:', companySettings.company_id);
+
   // Verificar se horário ainda está disponível
   const { data: conflictCheck, error: conflictError } = await supabase
     .from('appointments')
@@ -49,6 +54,13 @@ export const createAppointment = async (
       })
       .eq('id', clientId);
   } else {
+    // Debug log antes da inserção do cliente
+    console.log('🔧 Inserindo novo cliente:', {
+      company_id: companySettings.company_id,
+      name: clientName,
+      phone: clientPhone,
+    });
+
     const { data: newClient, error: clientError } = await supabase
       .from('clients')
       .insert({
