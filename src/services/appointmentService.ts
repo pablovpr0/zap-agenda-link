@@ -71,52 +71,27 @@ export const createAppointment = async (
       phone: clientPhone,
     });
 
-    try {
-      // Garantir contexto público removendo qualquer sessão ativa temporariamente
-      const currentSession = supabase.auth.getSession();
-      
-      const { data: newClient, error: clientError } = await supabase
-        .from('clients')
-        .insert({
-          company_id: companySettings.company_id,
-          name: clientName,
-          phone: clientPhone,
-        })
-        .select('id')
-        .single();
+    const { data: newClient, error: clientError } = await supabase
+      .from('clients')
+      .insert({
+        company_id: companySettings.company_id,
+        name: clientName,
+        phone: clientPhone,
+      })
+      .select('id')
+      .single();
 
-      if (clientError) {
-        console.error('🚫 Erro detalhado ao criar cliente:', {
-          error: clientError,
-          message: clientError.message,
-          code: clientError.code,
-          details: clientError.details,
-          hint: clientError.hint
-        });
-        
-        // Erro específico para RLS
-        if (clientError.message?.includes('row-level security')) {
-          console.error('🚫 Erro de RLS - Dados enviados:', {
-            company_id: companySettings.company_id,
-            name: clientName,
-            phone: clientPhone
-          });
-          throw new Error('Erro de permissão ao criar cliente. Verifique as configurações de segurança.');
-        }
-        
-        throw new Error(`Erro ao criar cliente: ${clientError.message}`);
-      }
-
-      if (!newClient?.id) {
-        throw new Error('Cliente criado mas ID não retornado');
-      }
-
-      console.log('✅ Cliente criado com sucesso:', newClient.id);
-      clientId = newClient.id;
-    } catch (error: any) {
-      console.error('🚫 Falha total na criação do cliente:', error);
-      throw error;
+    if (clientError) {
+      console.error('🚫 Erro ao criar cliente:', clientError);
+      throw new Error(`Erro ao criar cliente: ${clientError.message}`);
     }
+
+    if (!newClient?.id) {
+      throw new Error('Cliente criado mas ID não retornado');
+    }
+
+    console.log('✅ Cliente criado com sucesso:', newClient.id);
+    clientId = newClient.id;
   }
 
   // Buscar duração do serviço
