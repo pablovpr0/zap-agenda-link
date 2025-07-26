@@ -5,6 +5,8 @@ import { Professional } from '@/services/professionalsService';
 
 export const loadCompanyDataBySlug = async (companySlug: string) => {
   console.log('🔍 Buscando empresa com slug:', companySlug);
+  console.log('🔍 Tipo do slug:', typeof companySlug);
+  console.log('🔍 Slug vazio?', !companySlug);
   
   // Buscar configurações da empresa pelo slug
   const { data: settings, error: settingsError } = await supabase
@@ -14,6 +16,8 @@ export const loadCompanyDataBySlug = async (companySlug: string) => {
     .maybeSingle();
 
   console.log('📊 Resultado da busca company_settings:', { settings, settingsError });
+  console.log('📊 Settings encontrado?', !!settings);
+  console.log('📊 Erro na busca?', !!settingsError);
 
   if (settingsError) throw settingsError;
   if (!settings) throw new Error(`Empresa não encontrada para o slug: ${companySlug}`);

@@ -13,6 +13,8 @@ const PublicBooking = () => {
   
   console.log('🌐 PublicBooking: Slug capturado da URL:', companySlug);
   console.log('🌐 PublicBooking: window.location.pathname:', window.location.pathname);
+  console.log('🌐 PublicBooking: window.location.href:', window.location.href);
+  console.log('🌐 PublicBooking: useParams result:', { companySlug });
 
   const {
     companySettings,
