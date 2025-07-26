@@ -11,7 +11,8 @@ import PublicBookingFooter from '@/components/public-booking/PublicBookingFooter
 const PublicBooking = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
   
-  console.log('PublicBooking carregado com slug:', companySlug);
+  console.log('🌐 PublicBooking: Slug capturado da URL:', companySlug);
+  console.log('🌐 PublicBooking: window.location.pathname:', window.location.pathname);
 
   const {
     companySettings,

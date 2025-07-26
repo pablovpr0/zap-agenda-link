@@ -15,8 +15,11 @@ export const useCompanyData = (companySlug: string) => {
   const [loading, setLoading] = useState(true);
 
   const loadCompanyData = async () => {
+    console.log('🚀 useCompanyData: Iniciando carregamento para slug:', companySlug);
     try {
       const { settings, profileData, servicesData } = await loadCompanyDataBySlug(companySlug);
+      
+      console.log('✅ useCompanyData: Dados carregados com sucesso:', { settings, profileData, servicesData });
       
       setCompanySettings(settings);
       setProfile(profileData);
@@ -24,9 +27,10 @@ export const useCompanyData = (companySlug: string) => {
 
       // Buscar profissionais ativos
       const professionalsData = await fetchActiveProfessionals(settings.company_id);
+      console.log('👥 useCompanyData: Profissionais carregados:', professionalsData);
       setProfessionals(professionalsData);
     } catch (error: any) {
-      console.error('Erro ao carregar dados da empresa:', error);
+      console.error('❌ useCompanyData: Erro ao carregar dados da empresa:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os dados da empresa.",

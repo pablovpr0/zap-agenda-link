@@ -4,12 +4,16 @@ import { CompanySettings, Profile, Service } from '@/types/publicBooking';
 import { Professional } from '@/services/professionalsService';
 
 export const loadCompanyDataBySlug = async (companySlug: string) => {
+  console.log('🔍 Buscando empresa com slug:', companySlug);
+  
   // Buscar configurações da empresa pelo slug
   const { data: settings, error: settingsError } = await supabase
     .from('company_settings')
     .select('*')
     .eq('slug', companySlug)
     .maybeSingle();
+
+  console.log('📊 Resultado da busca company_settings:', { settings, settingsError });
 
   if (settingsError) throw settingsError;
   if (!settings) throw new Error(`Empresa não encontrada para o slug: ${companySlug}`);
