@@ -347,7 +347,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_companies_with_slug: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          company_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
