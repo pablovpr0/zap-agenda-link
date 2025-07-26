@@ -5,6 +5,11 @@ export interface CompanySettings {
   slug: string;
   address?: string;
   phone?: string;
+  whatsapp?: string;
+  description?: string;
+  tempo_entrega?: number;
+  tempo_retirada?: number;
+  status_aberto?: boolean;
   working_days: number[];
   working_hours_start: string;
   working_hours_end: string;

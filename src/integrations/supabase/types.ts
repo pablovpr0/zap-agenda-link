@@ -137,6 +137,7 @@ export type Database = {
           company_id: string
           cover_image_url: string | null
           created_at: string
+          description: string | null
           id: string
           instagram_url: string | null
           logo_url: string | null
@@ -147,9 +148,13 @@ export type Database = {
           monthly_appointments_limit: number | null
           phone: string | null
           slug: string
+          status_aberto: boolean | null
+          tempo_entrega: number | null
+          tempo_retirada: number | null
           theme_color: string | null
           updated_at: string
           welcome_message: string | null
+          whatsapp: string | null
           working_days: number[]
           working_hours_end: string
           working_hours_start: string
@@ -161,6 +166,7 @@ export type Database = {
           company_id: string
           cover_image_url?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           instagram_url?: string | null
           logo_url?: string | null
@@ -171,9 +177,13 @@ export type Database = {
           monthly_appointments_limit?: number | null
           phone?: string | null
           slug: string
+          status_aberto?: boolean | null
+          tempo_entrega?: number | null
+          tempo_retirada?: number | null
           theme_color?: string | null
           updated_at?: string
           welcome_message?: string | null
+          whatsapp?: string | null
           working_days?: number[]
           working_hours_end?: string
           working_hours_start?: string
@@ -185,6 +195,7 @@ export type Database = {
           company_id?: string
           cover_image_url?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           instagram_url?: string | null
           logo_url?: string | null
@@ -195,9 +206,13 @@ export type Database = {
           monthly_appointments_limit?: number | null
           phone?: string | null
           slug?: string
+          status_aberto?: boolean | null
+          tempo_entrega?: number | null
+          tempo_retirada?: number | null
           theme_color?: string | null
           updated_at?: string
           welcome_message?: string | null
+          whatsapp?: string | null
           working_days?: number[]
           working_hours_end?: string
           working_hours_start?: string
