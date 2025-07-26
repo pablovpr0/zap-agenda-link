@@ -10,7 +10,7 @@ export const createAppointment = async (
   services: Service[],
   professionals: Professional[]
 ) => {
-  const { selectedService, selectedProfessional, selectedDate, selectedTime, clientName, clientPhone, clientEmail, notes } = formData;
+  const { selectedService, selectedProfessional, selectedDate, selectedTime, clientName, clientPhone } = formData;
 
   // Verificar se horário ainda está disponível
   const { data: conflictCheck, error: conflictError } = await supabase
@@ -45,7 +45,6 @@ export const createAppointment = async (
       .from('clients')
       .update({
         name: clientName,
-        email: clientEmail || null,
         updated_at: new Date().toISOString()
       })
       .eq('id', clientId);
@@ -56,8 +55,6 @@ export const createAppointment = async (
         company_id: companySettings.company_id,
         name: clientName,
         phone: clientPhone,
-        email: clientEmail || null,
-        notes: notes || null,
       })
       .select('id')
       .single();
@@ -82,7 +79,6 @@ export const createAppointment = async (
     appointment_time: selectedTime,
     duration: service?.duration || 60,
     status: 'confirmed',
-    notes: notes || null,
   };
 
   const { data: appointmentResult, error: appointmentError } = await supabase
@@ -112,8 +108,7 @@ export const generateWhatsAppMessage = (
   formattedDate: string,
   selectedTime: string,
   serviceName: string,
-  professionalName: string,
-  notes?: string
+  professionalName: string
 ) => {
   return `🗓️ *NOVO AGENDAMENTO*\n\n` +
     `👤 *Cliente:* ${clientName}\n` +
@@ -122,6 +117,5 @@ export const generateWhatsAppMessage = (
     `⏰ *Horário:* ${selectedTime}\n` +
     `💼 *Serviço:* ${serviceName}\n` +
     `👨‍💼 *Profissional:* ${professionalName}\n` +
-    `${notes ? `📝 *Observações:* ${notes}\n` : ''}` +
     `\n✅ Agendamento confirmado automaticamente!`;
 };

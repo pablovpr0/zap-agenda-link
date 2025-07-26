@@ -49,6 +49,4 @@ export interface BookingFormData {
   selectedTime: string;
   clientName: string;
   clientPhone: string;
-  clientEmail: string;
-  notes: string;
 }

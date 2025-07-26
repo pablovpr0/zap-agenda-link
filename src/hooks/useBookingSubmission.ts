@@ -69,8 +69,7 @@ export const useBookingSubmission = (
           result.formattedDate,
           selectedTime,
           result.service?.name || 'Não especificado',
-          result.professionalName,
-          formData.notes
+          result.professionalName
         );
 
         const cleanPhone = companySettings.phone.replace(/\D/g, '');

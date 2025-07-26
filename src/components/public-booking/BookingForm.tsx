@@ -20,8 +20,6 @@ interface BookingFormProps {
     selectedTime: string;
     clientName: string;
     clientPhone: string;
-    clientEmail: string;
-    notes: string;
   }) => Promise<boolean>;
   generateAvailableTimes: (selectedDate: string) => Promise<string[]>;
 }
@@ -38,8 +36,6 @@ const BookingForm = ({
   const [selectedTime, setSelectedTime] = useState('');
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
-  const [clientEmail, setClientEmail] = useState('');
-  const [notes, setNotes] = useState('');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
   // Load available times when date changes
@@ -64,9 +60,7 @@ const BookingForm = ({
       selectedDate,
       selectedTime,
       clientName,
-      clientPhone,
-      clientEmail,
-      notes
+      clientPhone
     });
 
     if (success) {
@@ -76,8 +70,6 @@ const BookingForm = ({
       setSelectedTime('');
       setClientName('');
       setClientPhone('');
-      setClientEmail('');
-      setNotes('');
       setAvailableTimes([]);
     }
   };
@@ -125,12 +117,8 @@ const BookingForm = ({
           <ClientForm
             clientName={clientName}
             clientPhone={clientPhone}
-            clientEmail={clientEmail}
-            notes={notes}
             onNameChange={setClientName}
             onPhoneChange={setClientPhone}
-            onEmailChange={setClientEmail}
-            onNotesChange={setNotes}
           />
 
           <Button 
