@@ -9,18 +9,20 @@ export const loadCompanyDataBySlug = async (companySlug: string) => {
     .from('company_settings')
     .select('*')
     .eq('slug', companySlug)
-    .single();
+    .maybeSingle();
 
   if (settingsError) throw settingsError;
+  if (!settings) throw new Error(`Empresa não encontrada para o slug: ${companySlug}`);
 
   // Buscar perfil da empresa
   const { data: profileData, error: profileError } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', settings.company_id)
-    .single();
+    .maybeSingle();
 
   if (profileError) throw profileError;
+  if (!profileData) throw new Error(`Perfil da empresa não encontrado para o ID: ${settings.company_id}`);
 
   // Buscar serviços ativos
   const { data: servicesData, error: servicesError } = await supabase
