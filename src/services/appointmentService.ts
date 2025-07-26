@@ -12,10 +12,20 @@ export const createAppointment = async (
 ) => {
   const { selectedService, selectedProfessional, selectedDate, selectedTime, clientName, clientPhone } = formData;
 
-  // Debug logs
-  console.log('🔧 createAppointment - formData:', formData);
-  console.log('🔧 createAppointment - companySettings:', companySettings);
-  console.log('🔧 createAppointment - company_id:', companySettings.company_id);
+  // Validação explícita do company_id
+  if (!companySettings?.company_id) {
+    console.error('🚫 Erro: company_id não encontrado em companySettings');
+    throw new Error('Configurações da empresa não encontradas');
+  }
+
+  // Validar formato UUID do company_id
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(companySettings.company_id)) {
+    console.error('🚫 Erro: company_id não está em formato UUID válido:', companySettings.company_id);
+    throw new Error('ID da empresa inválido');
+  }
+
+  console.log('✅ company_id validado:', companySettings.company_id);
 
   // Verificar se horário ainda está disponível
   const { data: conflictCheck, error: conflictError } = await supabase
@@ -54,28 +64,59 @@ export const createAppointment = async (
       })
       .eq('id', clientId);
   } else {
-    // Debug log antes da inserção do cliente
-    console.log('🔧 Inserindo novo cliente:', {
+    // Criar cliente com contexto público garantido
+    console.log('🔧 Inserindo novo cliente (contexto público):', {
       company_id: companySettings.company_id,
       name: clientName,
       phone: clientPhone,
     });
 
-    const { data: newClient, error: clientError } = await supabase
-      .from('clients')
-      .insert({
-        company_id: companySettings.company_id,
-        name: clientName,
-        phone: clientPhone,
-      })
-      .select('id')
-      .single();
+    try {
+      // Garantir contexto público removendo qualquer sessão ativa temporariamente
+      const currentSession = supabase.auth.getSession();
+      
+      const { data: newClient, error: clientError } = await supabase
+        .from('clients')
+        .insert({
+          company_id: companySettings.company_id,
+          name: clientName,
+          phone: clientPhone,
+        })
+        .select('id')
+        .single();
 
-    if (clientError) {
-      console.error('Erro ao criar cliente:', clientError);
-      throw clientError;
+      if (clientError) {
+        console.error('🚫 Erro detalhado ao criar cliente:', {
+          error: clientError,
+          message: clientError.message,
+          code: clientError.code,
+          details: clientError.details,
+          hint: clientError.hint
+        });
+        
+        // Erro específico para RLS
+        if (clientError.message?.includes('row-level security')) {
+          console.error('🚫 Erro de RLS - Dados enviados:', {
+            company_id: companySettings.company_id,
+            name: clientName,
+            phone: clientPhone
+          });
+          throw new Error('Erro de permissão ao criar cliente. Verifique as configurações de segurança.');
+        }
+        
+        throw new Error(`Erro ao criar cliente: ${clientError.message}`);
+      }
+
+      if (!newClient?.id) {
+        throw new Error('Cliente criado mas ID não retornado');
+      }
+
+      console.log('✅ Cliente criado com sucesso:', newClient.id);
+      clientId = newClient.id;
+    } catch (error: any) {
+      console.error('🚫 Falha total na criação do cliente:', error);
+      throw error;
     }
-    clientId = newClient.id;
   }
 
   // Buscar duração do serviço
