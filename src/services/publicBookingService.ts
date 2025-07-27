@@ -1,87 +1,57 @@
-
-import { supabase } from '@/integrations/supabase/client';
-import { CompanySettings, Profile, Service } from '@/types/publicBooking';
-import { Professional } from '@/services/professionalsService';
+import { getStorageData, MockCompanySettings, MockProfile, MockService, MockProfessional, MockAppointment, STORAGE_KEYS } from '@/data/mockData';
+import { Professional } from './professionalsService';
 
 export const loadCompanyDataBySlug = async (companySlug: string) => {
-  console.log('🔍 Buscando empresa com slug:', companySlug);
-  console.log('🔍 Tipo do slug:', typeof companySlug);
-  console.log('🔍 Slug vazio?', !companySlug);
-  
-  // Buscar configurações da empresa pelo slug
-  const { data: settings, error: settingsError } = await supabase
-    .from('company_settings')
-    .select('*')
-    .eq('slug', companySlug)
-    .maybeSingle();
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 200));
 
-  console.log('📊 Resultado da busca company_settings:', { settings, settingsError });
-  console.log('📊 Settings encontrado?', !!settings);
-  console.log('📊 Erro na busca?', !!settingsError);
+  const companySettings = getStorageData<MockCompanySettings | null>(STORAGE_KEYS.COMPANY_SETTINGS, null);
+  const profile = getStorageData<MockProfile | null>(STORAGE_KEYS.PROFILE, null);
+  const services = getStorageData<MockService[]>(STORAGE_KEYS.SERVICES, []);
 
-  if (settingsError) throw settingsError;
-  if (!settings) throw new Error(`Empresa não encontrada para o slug: ${companySlug}`);
+  // Check if slug matches
+  if (!companySettings || companySettings.company_slug !== companySlug) {
+    throw new Error('Empresa não encontrada');
+  }
 
-  // Buscar perfil da empresa
-  const { data: profileData, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', settings.company_id)
-    .maybeSingle();
-
-  if (profileError) throw profileError;
-  if (!profileData) throw new Error(`Perfil da empresa não encontrado para o ID: ${settings.company_id}`);
-
-  // Buscar serviços ativos
-  const { data: servicesData, error: servicesError } = await supabase
-    .from('services')
-    .select('*')
-    .eq('company_id', settings.company_id)
-    .eq('is_active', true)
-    .order('name');
-
-  if (servicesError) throw servicesError;
+  const activeServices = services.filter(service => 
+    service.company_id === companySettings.company_id && service.is_active
+  );
 
   return {
-    settings,
-    profileData,
-    servicesData: servicesData || []
+    companySettings,
+    profile,
+    services: activeServices
   };
 };
 
 export const fetchActiveProfessionals = async (companyId: string): Promise<Professional[]> => {
-  const { data, error } = await supabase
-    .from('professionals')
-    .select('*')
-    .eq('company_id', companyId)
-    .eq('is_active', true)
-    .order('name');
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 100));
 
-  if (error) throw error;
-  return data || [];
+  const professionals = getStorageData<MockProfessional[]>(STORAGE_KEYS.PROFESSIONALS, []);
+  
+  return professionals.filter(professional => 
+    professional.company_id === companyId && professional.is_active
+  );
 };
 
 export const checkAvailableTimes = async (
   companyId: string,
   selectedDate: string,
-  workingHoursStart: string,
-  workingHoursEnd: string,
-  appointmentInterval: number,
-  lunchBreakEnabled?: boolean,
-  lunchStartTime?: string,
-  lunchEndTime?: string
+  selectedService?: string,
+  selectedProfessional?: string
 ) => {
-  const { data: bookedAppointments, error } = await supabase
-    .from('appointments')
-    .select('appointment_time')
-    .eq('company_id', companyId)
-    .eq('appointment_date', selectedDate)
-    .neq('status', 'cancelled');
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 100));
 
-  if (error) {
-    console.error('Erro ao buscar agendamentos:', error);
-    return [];
-  }
-
-  return bookedAppointments?.map(apt => apt.appointment_time.substring(0, 5)) || [];
+  const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
+  
+  return appointments.filter(appointment =>
+    appointment.company_id === companyId &&
+    appointment.appointment_date === selectedDate &&
+    appointment.status !== 'cancelled' &&
+    (!selectedService || appointment.service_id === selectedService) &&
+    (!selectedProfessional || appointment.professional_id === selectedProfessional)
+  );
 };

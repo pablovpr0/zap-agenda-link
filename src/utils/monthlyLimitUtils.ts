@@ -1,5 +1,4 @@
-
-import { supabase } from '@/integrations/supabase/client';
+import { getStorageData, MockAppointment, MockClient, STORAGE_KEYS } from '@/data/mockData';
 
 export const checkMonthlyLimit = async (
   companyId: string,
@@ -25,26 +24,24 @@ export const checkMonthlyLimit = async (
     console.log(`Período: ${startOfMonth} até ${startOfNextMonth}`);
     console.log(`Limite configurado: ${monthlyAppointmentsLimit}`);
     
-    const { data: monthlyAppointments, error } = await supabase
-      .from('appointments')
-      .select(`
-        id,
-        appointment_date,
-        status,
-        clients!inner(phone)
-      `)
-      .eq('company_id', companyId)
-      .eq('clients.phone', clientPhone)
-      .gte('appointment_date', startOfMonth)
-      .lt('appointment_date', startOfNextMonth)
-      .neq('status', 'cancelled');
-
-    if (error) {
-      console.error('Erro ao verificar limite mensal:', error);
-      return true;
+    const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
+    const clients = getStorageData<MockClient[]>(STORAGE_KEYS.CLIENTS, []);
+    
+    // Find client by phone
+    const client = clients.find(c => c.phone === clientPhone && c.company_id === companyId);
+    if (!client) {
+      return true; // New client, allow booking
     }
 
-    const appointmentCount = monthlyAppointments?.length || 0;
+    const monthlyAppointments = appointments.filter(appointment =>
+      appointment.company_id === companyId &&
+      appointment.client_id === client.id &&
+      appointment.appointment_date >= startOfMonth &&
+      appointment.appointment_date < startOfNextMonth &&
+      appointment.status !== 'cancelled'
+    );
+
+    const appointmentCount = monthlyAppointments.length;
     console.log(`Cliente ${clientPhone} tem ${appointmentCount} agendamentos confirmados este mês`);
     
     const canBook = appointmentCount < monthlyAppointmentsLimit;

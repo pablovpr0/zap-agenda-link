@@ -1,125 +1,85 @@
+import { getStorageData, setStorageData, MockCompanySettings, STORAGE_KEYS } from '@/data/mockData';
 
-import { supabase } from '@/integrations/supabase/client';
-
-export const fetchCompanySettings = async (userId: string) => {
-  const { data: settings, error: settingsError } = await supabase
-    .from('company_settings')
-    .select('slug')
-    .eq('company_id', userId)
-    .single();
-
-  if (settingsError) {
-    console.error('Erro ao buscar configurações:', settingsError);
-    throw settingsError;
+export const fetchCompanySettings = async (userId: string): Promise<any> => {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  const settings = getStorageData<MockCompanySettings | null>(STORAGE_KEYS.COMPANY_SETTINGS, null);
+  
+  if (!settings || settings.company_id !== userId) {
+    return null;
   }
-
+  
   return settings;
 };
 
-export const createDefaultSettings = async (userId: string, companyName: string) => {
-  try {
-    console.log('Criando configurações padrão para:', userId);
-    
-    const companySlug = await generateUniqueSlug(companyName);
+export const createDefaultSettings = async (userId: string, companyName: string): Promise<void> => {
+  const slug = await generateUniqueSlug(companyName);
+  
+  const defaultSettings: MockCompanySettings = {
+    company_id: userId,
+    company_name: companyName,
+    company_slug: slug,
+    working_hours_start: '09:00',
+    working_hours_end: '18:00',
+    working_days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    appointment_duration: 60,
+    advance_booking_days: 30
+  };
 
-    const { error } = await supabase
-      .from('company_settings')
-      .insert({
-        company_id: userId,
-        slug: companySlug,
-        working_days: [1, 2, 3, 4, 5, 6],
-        working_hours_start: '09:00',
-        working_hours_end: '18:00',
-        appointment_interval: 30,
-        max_simultaneous_appointments: 1,
-        advance_booking_limit: 30,
-        theme_color: '#22c55e'
-      });
-
-    if (error) {
-      console.error('Erro ao criar configurações:', error);
-      throw error;
-    }
-
-    console.log('Configurações criadas com sucesso');
-  } catch (error: any) {
-    console.error('Erro ao criar configurações padrão:', error);
-    throw error;
-  }
+  setStorageData(STORAGE_KEYS.COMPANY_SETTINGS, defaultSettings);
 };
 
 export const generateUniqueSlug = async (companyName: string): Promise<string> => {
-  // Gerar slug base a partir do nome da empresa
-  let baseSlug = companyName
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 50));
+  
+  let slug = companyName
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-    .replace(/[^a-zA-Z0-9\s-]/g, '') // Remove caracteres especiais
-    .replace(/\s+/g, '-') // Substitui espaços por hífens
-    .replace(/-+/g, '-') // Remove hífens duplicados
-    .replace(/^-|-$/g, ''); // Remove hífens do início e fim
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 
-  // Garantir que o slug tenha pelo menos 3 caracteres
-  if (baseSlug.length < 3) {
-    baseSlug = `empresa-${Math.random().toString(36).substring(2, 8)}`;
-  }
-
-  let slug = baseSlug;
-  let counter = 1;
-
-  // Verificar se o slug já existe e gerar um único
-  while (await isSlugTaken(slug)) {
-    slug = `${baseSlug}-${counter}`;
+  // For simplicity in frontend-only mode, just add timestamp if needed
+  let counter = 0;
+  let finalSlug = slug;
+  
+  while (await isSlugTaken(finalSlug)) {
     counter++;
+    finalSlug = `${slug}-${counter}`;
   }
 
-  return slug;
+  return finalSlug;
 };
 
 export const isSlugTaken = async (slug: string): Promise<boolean> => {
-  const { data, error } = await supabase
-    .from('company_settings')
-    .select('id')
-    .eq('slug', slug)
-    .single();
-
-  if (error && error.code !== 'PGRST116') {
-    console.error('Erro ao verificar slug:', error);
-    return false;
-  }
-
-  return !!data;
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 50));
+  
+  const settings = getStorageData<MockCompanySettings | null>(STORAGE_KEYS.COMPANY_SETTINGS, null);
+  return settings?.company_slug === slug;
 };
 
 export const updateCompanySlug = async (userId: string, newSlug: string): Promise<boolean> => {
-  try {
-    // Validar formato do slug
-    const isValidSlug = /^[a-z0-9-]{3,50}$/.test(newSlug);
-    if (!isValidSlug) {
-      throw new Error('Slug deve conter apenas letras minúsculas, números e hífens (3-50 caracteres)');
-    }
-
-    // Verificar se o slug já está em uso
-    if (await isSlugTaken(newSlug)) {
-      throw new Error('Este slug já está sendo usado por outra empresa');
-    }
-
-    // Atualizar o slug
-    const { error } = await supabase
-      .from('company_settings')
-      .update({ 
-        slug: newSlug,
-        updated_at: new Date().toISOString()
-      })
-      .eq('company_id', userId);
-
-    if (error) throw error;
-
-    return true;
-  } catch (error: any) {
-    console.error('Erro ao atualizar slug:', error);
-    throw error;
+  const validation = validateSlug(newSlug);
+  if (!validation.isValid) {
+    throw new Error(validation.error);
   }
+
+  if (await isSlugTaken(newSlug)) {
+    throw new Error('Este slug já está em uso por outra empresa');
+  }
+
+  const settings = getStorageData<MockCompanySettings | null>(STORAGE_KEYS.COMPANY_SETTINGS, null);
+  if (settings && settings.company_id === userId) {
+    const updatedSettings = { ...settings, company_slug: newSlug };
+    setStorageData(STORAGE_KEYS.COMPANY_SETTINGS, updatedSettings);
+    return true;
+  }
+
+  return false;
 };
 
 export const validateSlug = (slug: string): { isValid: boolean; error?: string } => {
@@ -132,7 +92,7 @@ export const validateSlug = (slug: string): { isValid: boolean; error?: string }
   }
 
   if (!/^[a-z0-9-]+$/.test(slug)) {
-    return { isValid: false, error: 'Slug deve conter apenas letras minúsculas, números e hífens' };
+    return { isValid: false, error: 'Slug pode conter apenas letras minúsculas, números e hífens' };
   }
 
   if (slug.startsWith('-') || slug.endsWith('-')) {
@@ -143,10 +103,9 @@ export const validateSlug = (slug: string): { isValid: boolean; error?: string }
     return { isValid: false, error: 'Slug não pode conter hífens consecutivos' };
   }
 
-  // Palavras reservadas
-  const reservedWords = ['admin', 'api', 'www', 'app', 'mail', 'ftp', 'public', 'private'];
+  const reservedWords = ['admin', 'api', 'www', 'mail', 'ftp', 'localhost', 'root', 'support', 'help'];
   if (reservedWords.includes(slug)) {
-    return { isValid: false, error: 'Esta palavra é reservada e não pode ser usada' };
+    return { isValid: false, error: 'Este slug é uma palavra reservada' };
   }
 
   return { isValid: true };

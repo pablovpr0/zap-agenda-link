@@ -1,49 +1,84 @@
-
 import { useState, useEffect, createContext, useContext } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
+import { getStorageData, setStorageData, removeStorageData, STORAGE_KEYS, MockUser, initializeDefaultData } from '@/data/mockData';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: MockUser | null;
   loading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<MockUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    // Check if user is authenticated
+    const isAuthenticated = getStorageData(STORAGE_KEYS.IS_AUTHENTICATED, false);
+    if (isAuthenticated) {
+      const savedUser = getStorageData<MockUser | null>(STORAGE_KEYS.USER, null);
+      setUser(savedUser);
+      initializeDefaultData();
+    }
+    setLoading(false);
   }, []);
 
+  const signIn = async (email: string, password: string) => {
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Simple validation for demo
+    if (email && password) {
+      const newUser: MockUser = {
+        id: 'user-1',
+        email,
+        name: email.split('@')[0]
+      };
+      
+      setUser(newUser);
+      setStorageData(STORAGE_KEYS.USER, newUser);
+      setStorageData(STORAGE_KEYS.IS_AUTHENTICATED, true);
+      initializeDefaultData();
+    } else {
+      throw new Error('Email e senha são obrigatórios');
+    }
+  };
+
+  const signUp = async (email: string, password: string) => {
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Simple validation for demo
+    if (email && password) {
+      const newUser: MockUser = {
+        id: 'user-1',
+        email,
+        name: email.split('@')[0]
+      };
+      
+      setUser(newUser);
+      setStorageData(STORAGE_KEYS.USER, newUser);
+      setStorageData(STORAGE_KEYS.IS_AUTHENTICATED, true);
+      initializeDefaultData();
+    } else {
+      throw new Error('Email e senha são obrigatórios');
+    }
+  };
+
   const signOut = async () => {
-    await supabase.auth.signOut();
-    localStorage.removeItem('zapagenda_credentials');
+    setUser(null);
+    // Clear all data
+    Object.values(STORAGE_KEYS).forEach(key => {
+      removeStorageData(key);
+    });
+    removeStorageData('zapagenda_credentials');
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

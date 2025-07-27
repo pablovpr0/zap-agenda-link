@@ -1,77 +1,91 @@
+import { getStorageData, MockAppointment, MockClient, MockService, STORAGE_KEYS } from '@/data/mockData';
+import { format } from 'date-fns';
 
-import { supabase } from '@/integrations/supabase/client';
-import { getBrasiliaDate, formatBrazilianDate } from '@/lib/dateConfig';
-import { TodayAppointment, RecentAppointment } from '@/types/dashboard';
+interface TodayAppointment {
+  id: string;
+  client_name: string;
+  client_phone: string;
+  service_name: string;
+  appointment_time: string;
+  duration: number;
+  status: string;
+}
+
+interface RecentAppointment {
+  id: string;
+  client_name: string;
+  service_name: string;
+  appointment_date: string;
+  appointment_time: string;
+  status: string;
+}
 
 export const fetchTodayAppointments = async (userId: string): Promise<TodayAppointment[]> => {
-  const todayBrasilia = getBrasiliaDate();
-  const todayStr = formatBrazilianDate(todayBrasilia).split('/').reverse().join('-');
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  const today = format(new Date(), 'yyyy-MM-dd');
   
-  console.log('Data de hoje (Brasília):', todayBrasilia);
-  console.log('Data formatada para busca:', todayStr);
-  
-  const { data: todayAppts, error } = await supabase
-    .from('appointments')
-    .select(`
-      id,
-      appointment_time,
-      status,
-      clients(name, phone),
-      services(name)
-    `)
-    .eq('company_id', userId)
-    .eq('appointment_date', todayStr)
-    .neq('status', 'cancelled')
-    .order('appointment_time');
+  const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
+  const clients = getStorageData<MockClient[]>(STORAGE_KEYS.CLIENTS, []);
+  const services = getStorageData<MockService[]>(STORAGE_KEYS.SERVICES, []);
 
-  if (error) {
-    console.error('Erro ao buscar agendamentos de hoje:', error);
-    throw error;
-  }
+  const todayAppointments = appointments
+    .filter(appointment => 
+      appointment.company_id === userId &&
+      appointment.appointment_date === today &&
+      appointment.status !== 'cancelled'
+    )
+    .sort((a, b) => a.appointment_time.localeCompare(b.appointment_time))
+    .map(appointment => {
+      const client = clients.find(c => c.id === appointment.client_id);
+      const service = services.find(s => s.id === appointment.service_id);
+      
+      return {
+        id: appointment.id,
+        client_name: client?.name || 'Cliente não encontrado',
+        client_phone: client?.phone || '',
+        service_name: service?.name || 'Serviço não encontrado',
+        appointment_time: appointment.appointment_time,
+        duration: appointment.duration,
+        status: appointment.status
+      };
+    });
 
-  console.log('Agendamentos de hoje encontrados:', todayAppts?.length || 0);
-  console.log('Agendamentos de hoje detalhes:', todayAppts);
-
-  return todayAppts?.map(apt => ({
-    id: apt.id,
-    appointment_time: apt.appointment_time,
-    status: apt.status,
-    client_name: apt.clients?.name || 'Cliente não encontrado',
-    client_phone: apt.clients?.phone || '',
-    service_name: apt.services?.name || 'Serviço não encontrado'
-  })) || [];
+  console.log('Agendamentos de hoje encontrados:', todayAppointments.length);
+  return todayAppointments;
 };
 
 export const fetchRecentAppointments = async (userId: string): Promise<RecentAppointment[]> => {
-  const { data: recentAppts, error } = await supabase
-    .from('appointments')
-    .select(`
-      id,
-      appointment_date,
-      appointment_time,
-      status,
-      clients(name, phone),
-      services(name)
-    `)
-    .eq('company_id', userId)
-    .order('appointment_date', { ascending: false })
-    .order('appointment_time', { ascending: false })
-    .limit(5);
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 100));
 
-  if (error) {
-    console.error('Erro ao buscar agendamentos recentes:', error);
-    throw error;
-  }
+  const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
+  const clients = getStorageData<MockClient[]>(STORAGE_KEYS.CLIENTS, []);
+  const services = getStorageData<MockService[]>(STORAGE_KEYS.SERVICES, []);
 
-  console.log('Agendamentos recentes encontrados:', recentAppts?.length || 0);
+  const recentAppointments = appointments
+    .filter(appointment => appointment.company_id === userId)
+    .sort((a, b) => {
+      const dateA = new Date(a.appointment_date + ' ' + a.appointment_time);
+      const dateB = new Date(b.appointment_date + ' ' + b.appointment_time);
+      return dateB.getTime() - dateA.getTime();
+    })
+    .slice(0, 5)
+    .map(appointment => {
+      const client = clients.find(c => c.id === appointment.client_id);
+      const service = services.find(s => s.id === appointment.service_id);
+      
+      return {
+        id: appointment.id,
+        client_name: client?.name || 'Cliente não encontrado',
+        service_name: service?.name || 'Serviço não encontrado',
+        appointment_date: appointment.appointment_date,
+        appointment_time: appointment.appointment_time,
+        status: appointment.status
+      };
+    });
 
-  return recentAppts?.map(apt => ({
-    id: apt.id,
-    appointment_date: apt.appointment_date,
-    appointment_time: apt.appointment_time,
-    status: apt.status,
-    client_name: apt.clients?.name || 'Cliente não encontrado',
-    client_phone: apt.clients?.phone || '',
-    service_name: apt.services?.name || 'Serviço não encontrado'
-  })) || [];
+  console.log('Agendamentos recentes encontrados:', recentAppointments.length);
+  return recentAppointments;
 };
