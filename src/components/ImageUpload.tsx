@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, X, Image } from 'lucide-react';
 
@@ -55,29 +54,19 @@ const ImageUpload = ({
     setUploading(true);
 
     try {
-      // Gerar nome único para o arquivo
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-
-      // Fazer upload para o Supabase Storage
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, file);
-
-      if (error) throw error;
-
-      // Obter URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(data.path);
-
-      setPreview(publicUrl);
-      onImageUploaded(publicUrl);
-
-      toast({
-        title: "Upload realizado com sucesso!",
-        description: "A imagem foi carregada com sucesso.",
-      });
+      // Simular upload - em um ambiente real, você enviaria para um serviço de armazenamento
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        setPreview(dataUrl);
+        onImageUploaded(dataUrl);
+        
+        toast({
+          title: "Upload realizado com sucesso!",
+          description: "A imagem foi carregada com sucesso.",
+        });
+      };
+      reader.readAsDataURL(file);
 
     } catch (error: any) {
       console.error('Erro no upload:', error);

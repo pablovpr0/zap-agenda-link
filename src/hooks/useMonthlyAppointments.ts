@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { getStorageData, MockAppointment, MockClient, MockService, STORAGE_KEYS } from '@/data/mockData';
 
 interface Appointment {
   id: string;
@@ -38,70 +38,40 @@ export const useMonthlyAppointments = (currentDate: Date) => {
       
       console.log('Carregando agendamentos para o período:', startDate, 'até', endDate);
       
-      const { data: appointmentData, error } = await supabase
-        .from('appointments')
-        .select(`
-          id,
-          appointment_date,
-          appointment_time,
-          status,
-          client_id,
-          service_id
-        `)
-        .eq('company_id', user.id)
-        .gte('appointment_date', startDate)
-        .lte('appointment_date', endDate)
-        .order('appointment_date')
-        .order('appointment_time');
+      const appointmentData = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
+      const clients = getStorageData<MockClient[]>(STORAGE_KEYS.CLIENTS, []);
+      const services = getStorageData<MockService[]>(STORAGE_KEYS.SERVICES, []);
 
-      if (error) {
-        console.error('Erro ao buscar agendamentos:', error);
-        throw error;
-      }
+      // Filtrar agendamentos do mês e da empresa
+      const monthlyAppointments = appointmentData.filter(apt => 
+        apt.company_id === user.id &&
+        apt.appointment_date >= startDate &&
+        apt.appointment_date <= endDate
+      );
 
-      console.log('Agendamentos encontrados:', appointmentData?.length || 0);
+      console.log('Agendamentos encontrados:', monthlyAppointments.length);
 
-      const processedAppointments: Appointment[] = [];
-      
-      if (appointmentData && appointmentData.length > 0) {
-        for (const apt of appointmentData) {
-          try {
-            const { data: clientData } = await supabase
-              .from('clients')
-              .select('name, phone')
-              .eq('id', apt.client_id)
-              .single();
+      const processedAppointments: Appointment[] = monthlyAppointments.map(apt => {
+        const client = clients.find(c => c.id === apt.client_id);
+        const service = services.find(s => s.id === apt.service_id);
 
-            const { data: serviceData } = await supabase
-              .from('services')
-              .select('name')
-              .eq('id', apt.service_id)
-              .single();
+        return {
+          id: apt.id,
+          appointment_date: apt.appointment_date,
+          appointment_time: apt.appointment_time,
+          client_name: client?.name || 'Cliente não encontrado',
+          client_phone: client?.phone || '',
+          service_name: service?.name || 'Serviço não encontrado',
+          status: apt.status
+        };
+      });
 
-            processedAppointments.push({
-              id: apt.id,
-              appointment_date: apt.appointment_date,
-              appointment_time: apt.appointment_time,
-              client_name: clientData?.name || 'Cliente não encontrado',
-              client_phone: clientData?.phone || '',
-              service_name: serviceData?.name || 'Serviço não encontrado',
-              status: apt.status
-            });
-
-          } catch (procError) {
-            console.error('Erro ao processar agendamento:', apt.id, procError);
-            processedAppointments.push({
-              id: apt.id,
-              appointment_date: apt.appointment_date,
-              appointment_time: apt.appointment_time,
-              client_name: 'Cliente não encontrado',
-              client_phone: '',
-              service_name: 'Serviço não encontrado',
-              status: apt.status
-            });
-          }
-        }
-      }
+      // Ordenar por data e hora
+      processedAppointments.sort((a, b) => {
+        const dateA = new Date(`${a.appointment_date}T${a.appointment_time}`);
+        const dateB = new Date(`${b.appointment_date}T${b.appointment_time}`);
+        return dateA.getTime() - dateB.getTime();
+      });
 
       setAppointments(processedAppointments);
       console.log('Total de agendamentos processados:', processedAppointments.length);

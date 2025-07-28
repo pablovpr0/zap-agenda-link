@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getStorageData, setStorageData, MockAppointment, STORAGE_KEYS } from '@/data/mockData';
 
 export const useAppointmentActions = () => {
   const { toast } = useToast();
@@ -12,12 +12,9 @@ export const useAppointmentActions = () => {
   const deleteAppointment = async (appointmentId: string, clientPhone: string, clientName: string, onSuccess?: () => void) => {
     setIsDeleting(true);
     try {
-      const { error } = await supabase
-        .from('appointments')
-        .delete()
-        .eq('id', appointmentId);
-
-      if (error) throw error;
+      const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
+      const updatedAppointments = appointments.filter(apt => apt.id !== appointmentId);
+      setStorageData(STORAGE_KEYS.APPOINTMENTS, updatedAppointments);
 
       toast({
         title: "Agendamento excluído",
@@ -40,12 +37,13 @@ export const useAppointmentActions = () => {
   const cancelAppointment = async (appointmentId: string, clientPhone: string, clientName: string, onSuccess?: () => void) => {
     setIsCancelling(true);
     try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({ status: 'cancelled' })
-        .eq('id', appointmentId);
-
-      if (error) throw error;
+      const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
+      const updatedAppointments = appointments.map(apt => 
+        apt.id === appointmentId 
+          ? { ...apt, status: 'cancelled' as const }
+          : apt
+      );
+      setStorageData(STORAGE_KEYS.APPOINTMENTS, updatedAppointments);
 
       toast({
         title: "Agendamento cancelado",
@@ -80,16 +78,13 @@ export const useAppointmentActions = () => {
         ? newDate.split('/').reverse().join('-') 
         : newDate;
 
-      const { error } = await supabase
-        .from('appointments')
-        .update({ 
-          appointment_date: formattedDate,
-          appointment_time: newTime,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', appointmentId);
-
-      if (error) throw error;
+      const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
+      const updatedAppointments = appointments.map(apt => 
+        apt.id === appointmentId 
+          ? { ...apt, appointment_date: formattedDate, appointment_time: newTime }
+          : apt
+      );
+      setStorageData(STORAGE_KEYS.APPOINTMENTS, updatedAppointments);
 
       toast({
         title: "Agendamento atualizado",

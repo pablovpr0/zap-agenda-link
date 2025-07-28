@@ -1,13 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardData } from '@/types/dashboard';
-import { fetchCompanySettings, createDefaultSettings } from '@/services/companySettingsService';
-import { fetchTodayAppointments, fetchRecentAppointments } from '@/services/appointmentsService';
-import { fetchTotalClients } from '@/services/clientsService';
-import { generatePublicBookingUrl } from '@/lib/domainConfig';
+import { getStorageData, MockCompanySettings, MockAppointment, MockClient, MockService, STORAGE_KEYS } from '@/data/mockData';
 
 export const useDashboardData = (companyName: string) => {
   const { user } = useAuth();
@@ -27,25 +23,6 @@ export const useDashboardData = (companyName: string) => {
   useEffect(() => {
     if (user) {
       loadDashboardData();
-      
-      // Configurar realtime subscription para agendamentos
-      const channel = supabase
-        .channel('dashboard-appointments')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'appointments',
-          filter: `company_id=eq.${user.id}`
-        }, (payload) => {
-          console.log('Agendamento alterado via realtime:', payload);
-          loadDashboardData();
-        })
-        .subscribe();
-
-      return () => {
-        console.log('Removendo canal de realtime');
-        supabase.removeChannel(channel);
-      };
     }
   }, [user]);
 
@@ -57,30 +34,62 @@ export const useDashboardData = (companyName: string) => {
       console.log('Carregando dados do dashboard para usuário:', user.id);
       
       // Buscar configurações da empresa
-      let settings;
-      try {
-        settings = await fetchCompanySettings(user.id);
-      } catch (error) {
-        // Se não encontrar, criar configurações padrão
-        await createDefaultSettings(user.id, companyName);
-        // Tentar buscar novamente após criar
-        settings = await fetchCompanySettings(user.id);
+      const settings = getStorageData<MockCompanySettings>(STORAGE_KEYS.COMPANY_SETTINGS, null);
+      const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
+      const clients = getStorageData<MockClient[]>(STORAGE_KEYS.CLIENTS, []);
+      const services = getStorageData(STORAGE_KEYS.SERVICES, []);
+
+      if (!settings) {
+        console.error('Configurações da empresa não encontradas');
+        return;
       }
 
-      // Gerar a URL correta usando o domínio personalizado
-      const bookingLink = generatePublicBookingUrl(settings.slug);
+      // Gerar URL de agendamento
+      const bookingLink = `${window.location.origin}/booking/${settings.company_slug}`;
       console.log('URL de agendamento gerada:', bookingLink);
 
-      // Buscar todos os dados em paralelo
-      const [todayAppointmentsList, totalClients, recentAppointments] = await Promise.all([
-        fetchTodayAppointments(user.id),
-        fetchTotalClients(user.id),
-        fetchRecentAppointments(user.id)
-      ]);
+      // Filtrar dados da empresa
+      const companyClients = clients.filter(c => c.company_id === user.id);
+      const companyAppointments = appointments.filter(a => a.company_id === user.id);
+
+      // Agendamentos de hoje
+      const today = new Date().toISOString().slice(0, 10);
+      const todayAppointmentsList = companyAppointments
+        .filter(apt => apt.appointment_date === today && apt.status !== 'cancelled')
+        .map(apt => {
+          const client = companyClients.find(c => c.id === apt.client_id);
+          const service = services.find(s => s.id === apt.service_id);
+          return {
+            id: apt.id,
+            appointment_time: apt.appointment_time,
+            client_name: client?.name || 'Cliente não encontrado',
+            client_phone: client?.phone || '',
+            service_name: service?.name || 'Serviço não encontrado',
+            status: apt.status
+          };
+        });
+
+      // Agendamentos recentes
+      const recentAppointments = companyAppointments
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 5)
+        .map(apt => {
+          const client = companyClients.find(c => c.id === apt.client_id);
+          const service = services.find(s => s.id === apt.service_id);
+          return {
+            id: apt.id,
+            appointment_date: apt.appointment_date,
+            appointment_time: apt.appointment_time,
+            client_name: client?.name || 'Cliente não encontrado',
+            client_phone: client?.phone || '',
+            service_name: service?.name || 'Serviço não encontrado',
+            status: apt.status
+          };
+        });
 
       setData({
         todayAppointments: todayAppointmentsList.length,
-        totalClients,
+        totalClients: companyClients.length,
         monthlyRevenue: 0,
         completionRate: 85,
         bookingLink,

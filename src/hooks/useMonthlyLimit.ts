@@ -1,8 +1,8 @@
 
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { getStorageData, MockCompanySettings, MockAppointment, STORAGE_KEYS } from '@/data/mockData';
 
 export const useMonthlyLimit = () => {
   const { toast } = useToast();
@@ -15,14 +15,10 @@ export const useMonthlyLimit = () => {
     setChecking(true);
     try {
       // Buscar configurações da empresa
-      const { data: settings, error: settingsError } = await supabase
-        .from('company_settings')
-        .select('monthly_appointments_limit')
-        .eq('company_id', user.id)
-        .single();
+      const settings = getStorageData<MockCompanySettings>(STORAGE_KEYS.COMPANY_SETTINGS, null);
 
-      if (settingsError || !settings?.monthly_appointments_limit) {
-        console.log('Limite mensal não configurado ou erro ao buscar configurações');
+      if (!settings?.monthly_appointments_limit) {
+        console.log('Limite mensal não configurado');
         return true; // Se não há limite configurado, permite o agendamento
       }
 
@@ -30,24 +26,20 @@ export const useMonthlyLimit = () => {
       const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
 
       // Buscar agendamentos do mês atual para este cliente
-      const { data: monthlyAppointments, error } = await supabase
-        .from('appointments')
-        .select(`
-          id,
-          clients!inner(phone)
-        `)
-        .eq('company_id', user.id)
-        .eq('clients.phone', clientPhone)
-        .gte('appointment_date', `${currentMonth}-01`)
-        .lt('appointment_date', `${currentMonth}-32`)
-        .neq('status', 'cancelled');
+      const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
+      const clients = getStorageData(STORAGE_KEYS.CLIENTS, []);
+      
+      const client = clients.find(c => c.phone === clientPhone && c.company_id === user.id);
+      if (!client) return true;
 
-      if (error) {
-        console.error('Erro ao verificar limite mensal:', error);
-        return true; // Em caso de erro, permite o agendamento
-      }
+      const monthlyAppointments = appointments.filter(apt => 
+        apt.company_id === user.id &&
+        apt.client_id === client.id &&
+        apt.appointment_date.startsWith(currentMonth) &&
+        apt.status !== 'cancelled'
+      );
 
-      const appointmentCount = monthlyAppointments?.length || 0;
+      const appointmentCount = monthlyAppointments.length;
       console.log(`Cliente ${clientPhone} tem ${appointmentCount} agendamentos este mês. Limite: ${monthlyLimit}`);
 
       if (appointmentCount >= monthlyLimit) {
