@@ -1,8 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import MerchantDashboard from '../components/MerchantDashboard';
 import MonthlyAgenda from '../components/MonthlyAgenda';
 import SettingsPanel from '../components/SettingsPanel';
@@ -18,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { getStorageData, MockProfile, STORAGE_KEYS } from '@/data/mockData';
 
 type ViewType = 'dashboard' | 'agenda' | 'settings' | 'clients' | 'services';
 
@@ -39,18 +38,14 @@ const Index = () => {
 
     // Check if profile is complete and get company name
     const checkProfile = async () => {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      const profileData = getStorageData<MockProfile>(STORAGE_KEYS.PROFILE, null);
 
-      if (!profile || !profile.company_name) {
+      if (!profileData || !profileData.company_name) {
         navigate('/company-setup');
         return;
       }
 
-      setCompanyName(profile.company_name);
+      setCompanyName(profileData.company_name);
       setProfileComplete(true);
     };
 

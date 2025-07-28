@@ -1,3 +1,4 @@
+
 // Mock data for frontend-only version
 export interface MockUser {
   id: string;
@@ -56,7 +57,8 @@ export interface MockCompanySettings {
   working_hours_end: string;
   lunch_break_start?: string;
   lunch_break_end?: string;
-  working_days: string[];
+  lunch_break_enabled?: boolean;
+  working_days: number[];
   appointment_duration: number;
   advance_booking_days: number;
   monthly_appointments_limit?: number;
@@ -69,6 +71,8 @@ export interface MockProfile {
   company_logo?: string;
   company_address?: string;
   company_website?: string;
+  business_type?: string;
+  profile_image_url?: string;
 }
 
 // Default data
@@ -84,15 +88,17 @@ export const defaultCompanySettings: MockCompanySettings = {
   company_slug: 'minha-empresa',
   working_hours_start: '09:00',
   working_hours_end: '18:00',
-  working_days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+  working_days: [1, 2, 3, 4, 5],
   appointment_duration: 60,
-  advance_booking_days: 30
+  advance_booking_days: 30,
+  lunch_break_enabled: false
 };
 
 export const defaultProfile: MockProfile = {
   id: 'user-1',
   company_name: 'Minha Empresa',
-  company_description: 'Sua empresa de serviços'
+  company_description: 'Sua empresa de serviços',
+  business_type: 'Serviços gerais'
 };
 
 // Storage keys

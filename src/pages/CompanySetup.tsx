@@ -1,6 +1,4 @@
-
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Camera, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import type { User } from '@supabase/supabase-js';
+import { useAuth } from '@/hooks/useAuth';
+import { getStorageData, setStorageData, MockProfile, STORAGE_KEYS } from '@/data/mockData';
 
 const businessTypes = [
   'Cabeleireiro(a)',
@@ -35,7 +34,7 @@ const businessTypes = [
 ];
 
 const CompanySetup = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const [companyName, setCompanyName] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [profileImage, setProfileImage] = useState<File | null>(null);
@@ -48,28 +47,22 @@ const CompanySetup = () => {
   useEffect(() => {
     // Check authentication
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (!user) {
         navigate('/auth');
         return;
       }
-      setUser(session.user);
 
       // Check if profile already exists
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+      const profileData = getStorageData<MockProfile>(STORAGE_KEYS.PROFILE, null);
 
-      if (profile && profile.company_name) {
+      if (profileData && profileData.company_name) {
         // Profile already complete, redirect to dashboard
         navigate('/');
       }
     };
 
     checkUser();
-  }, [navigate]);
+  }, [navigate, user]);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -78,23 +71,12 @@ const CompanySetup = () => {
     setUploading(true);
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-      const filePath = `profile-images/${fileName}`;
+      // Simulate image upload
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      const { error: uploadError } = await supabase.storage
-        .from('profile-images')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      const { data } = supabase.storage
-        .from('profile-images')
-        .getPublicUrl(filePath);
-
-      setProfileImageUrl(data.publicUrl);
+      // Generate a temporary URL for the image
+      const imageUrl = URL.createObjectURL(file);
+      setProfileImageUrl(imageUrl);
       setProfileImage(file);
 
       toast({
@@ -129,19 +111,17 @@ const CompanySetup = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          company_name: companyName,
-          business_type: businessType,
-          profile_image_url: profileImageUrl || null,
-          updated_at: new Date().toISOString(),
-        });
+      // Simulate saving profile
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      if (error) {
-        throw error;
-      }
+      const profileData: MockProfile = {
+        id: user.id,
+        company_name: companyName,
+        business_type: businessType,
+        profile_image_url: profileImageUrl || undefined,
+      };
+
+      setStorageData(STORAGE_KEYS.PROFILE, profileData);
 
       toast({
         title: "Perfil criado com sucesso!",

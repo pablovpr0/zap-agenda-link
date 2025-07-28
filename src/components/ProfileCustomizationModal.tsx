@@ -1,14 +1,13 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { User, Palette, Upload, Link, Settings } from 'lucide-react';
-import ImageUpload from './ImageUpload';
+import { Camera, Upload, Palette } from 'lucide-react';
+import { getStorageData, setStorageData, MockProfile, STORAGE_KEYS } from '@/data/mockData';
 
 interface ProfileCustomizationModalProps {
   isOpen: boolean;
@@ -19,20 +18,13 @@ interface ProfileCustomizationModalProps {
 const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustomizationModalProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  
-  // Form state
+
   const [companyName, setCompanyName] = useState('');
-  const [businessType, setBusinessType] = useState('');
-  const [logoUrl, setLogoUrl] = useState('');
-  const [themeColor, setThemeColor] = useState('#22c55e');
-  const [welcomeMessage, setWelcomeMessage] = useState('');
-  const [instagramUrl, setInstagramUrl] = useState('');
-  const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
-  const [monthlyLimit, setMonthlyLimit] = useState(4);
+  const [companyDescription, setCompanyDescription] = useState('');
+  const [companyLogo, setCompanyLogo] = useState<File | null>(null);
+  const [companyLogoUrl, setCompanyLogoUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -41,45 +33,15 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
   }, [isOpen, user]);
 
   const loadProfileData = async () => {
-    if (!user) return;
-    
     setLoading(true);
     try {
-      // Load profile data
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError && profileError.code !== 'PGRST116') throw profileError;
-
-      if (profile) {
-        setCompanyName(profile.company_name || '');
-        setBusinessType(profile.business_type || '');
+      const profileData = getStorageData<MockProfile>(STORAGE_KEYS.PROFILE, null);
+      if (profileData) {
+        setCompanyName(profileData.company_name);
+        setCompanyDescription(profileData.company_description || '');
+        setCompanyLogoUrl(profileData.company_logo || '');
       }
-
-      // Load company settings
-      const { data: settings, error: settingsError } = await supabase
-        .from('company_settings')
-        .select('*')
-        .eq('company_id', user.id)
-        .single();
-
-      if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
-
-      if (settings) {
-        setLogoUrl(settings.logo_url || '');
-        setThemeColor(settings.theme_color || '#22c55e');
-        setWelcomeMessage(settings.welcome_message || '');
-        setInstagramUrl(settings.instagram_url || '');
-        setAddress(settings.address || '');
-        setPhone(settings.phone || '');
-        setMonthlyLimit(settings.monthly_appointments_limit || 4);
-      }
-
     } catch (error: any) {
-      console.error('Erro ao carregar dados do perfil:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os dados do perfil.",
@@ -90,107 +52,72 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
     }
   };
 
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+
+    try {
+      // In a real application, you would upload the image to a storage service
+      // and get the URL from there. For this example, we'll use a placeholder.
+      setCompanyLogoUrl('https://via.placeholder.com/150'); // Placeholder URL
+      setCompanyLogo(file);
+
+      toast({
+        title: "Logo enviado com sucesso!",
+        description: "O logo da empresa foi atualizado.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao enviar logo",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!companyName.trim()) {
+
+    if (!companyName) {
       toast({
-        title: "Nome obrigatório",
-        description: "Por favor, informe o nome da empresa.",
+        title: "Nome da empresa obrigatório",
+        description: "Por favor, preencha o nome da empresa.",
         variant: "destructive",
       });
       return;
     }
 
-    setSubmitting(true);
+    setLoading(true);
 
     try {
-      // Update profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user!.id,
-          company_name: companyName,
-          business_type: businessType || null,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (profileError) throw profileError;
-
-      // Create slug from company name
-      const companySlug = companyName
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-        .replace(/[^a-zA-Z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-
-      // Check if company settings already exist
-      const { data: existingSettings, error: checkError } = await supabase
-        .from('company_settings')
-        .select('id')
-        .eq('company_id', user!.id)
-        .single();
-
-      if (checkError && checkError.code !== 'PGRST116') throw checkError;
-
-      const settingsData = {
-        company_id: user!.id,
-        slug: companySlug,
-        logo_url: logoUrl || null,
-        theme_color: themeColor,
-        welcome_message: welcomeMessage || null,
-        instagram_url: instagramUrl || null,
-        address: address || null,
-        phone: phone || null,
-        monthly_appointments_limit: monthlyLimit,
-        updated_at: new Date().toISOString(),
+      const updatedProfile: MockProfile = {
+        id: user?.id || 'user-1',
+        company_name: companyName,
+        company_description: companyDescription,
+        company_logo: companyLogoUrl,
       };
 
-      if (existingSettings) {
-        // Update existing settings
-        const { error: settingsError } = await supabase
-          .from('company_settings')
-          .update(settingsData)
-          .eq('company_id', user!.id);
-
-        if (settingsError) throw settingsError;
-      } else {
-        // Create new settings with required fields
-        const { error: settingsError } = await supabase
-          .from('company_settings')
-          .insert({
-            ...settingsData,
-            // Campos obrigatórios com valores padrão
-            working_days: [1, 2, 3, 4, 5, 6],
-            working_hours_start: '09:00',
-            working_hours_end: '18:00',
-            appointment_interval: 30,
-            max_simultaneous_appointments: 1,
-            advance_booking_limit: 30,
-          });
-
-        if (settingsError) throw settingsError;
-      }
+      setStorageData(STORAGE_KEYS.PROFILE, updatedProfile);
 
       toast({
-        title: "Perfil atualizado!",
-        description: "As informações foram salvas com sucesso.",
+        title: "Perfil atualizado com sucesso!",
+        description: "As informações do perfil foram atualizadas.",
       });
 
       onSuccess();
       onClose();
-
     } catch (error: any) {
-      console.error('Erro ao salvar perfil:', error);
       toast({
-        title: "Erro",
-        description: error.message || "Não foi possível salvar o perfil. Tente novamente.",
+        title: "Erro ao salvar perfil",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
@@ -199,8 +126,8 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5 text-whatsapp-green" />
-            Personalizar Perfil da Empresa
+            <Palette className="w-5 h-5 text-whatsapp-green" />
+            Personalizar Perfil
           </DialogTitle>
         </DialogHeader>
 
@@ -210,140 +137,57 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Informações básicas */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <User className="w-5 h-5" />
-                Informações Básicas
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="companyName">Nome da Empresa *</Label>
-                  <Input
-                    id="companyName"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="Ex: Salão Beleza & Estilo"
-                    required
+            {/* Company Logo */}
+            <div className="flex flex-col items-center space-y-4">
+              <div className="relative">
+                {companyLogoUrl ? (
+                  <img
+                    src={companyLogoUrl}
+                    alt="Company Logo"
+                    className="w-24 h-24 rounded-full object-cover border-4 border-green-100"
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="businessType">Tipo de Negócio</Label>
-                  <Input
-                    id="businessType"
-                    value={businessType}
-                    onChange={(e) => setBusinessType(e.target.value)}
-                    placeholder="Ex: Salão de Beleza, Barbearia, Clínica"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="address">Endereço</Label>
-                  <Input
-                    id="address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Rua das Flores, 123 - Centro - Cidade/UF"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone WhatsApp</Label>
-                  <Input
-                    id="phone"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="(11) 99999-9999"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Visual */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Palette className="w-5 h-5" />
-                Personalização Visual
-              </h3>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Upload className="w-4 h-4" />
-                    Logo da Empresa
-                  </Label>
-                  <ImageUpload
-                    currentImageUrl={logoUrl}
-                    onImageUploaded={setLogoUrl}
-                    bucket="company-logos"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="themeColor">Cor do Tema</Label>
-                  <div className="flex items-center gap-4">
-                    <Input
-                      id="themeColor"
-                      type="color"
-                      value={themeColor}
-                      onChange={(e) => setThemeColor(e.target.value)}
-                      className="w-20 h-10"
-                    />
-                    <Input
-                      value={themeColor}
-                      onChange={(e) => setThemeColor(e.target.value)}
-                      placeholder="#22c55e"
-                      className="flex-1"
-                    />
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-gray-200 border-4 border-green-100 flex items-center justify-center">
+                    <Camera className="w-8 h-8 text-gray-400" />
                   </div>
-                </div>
+                )}
+                <label className="absolute bottom-0 right-0 bg-green-600 rounded-full p-2 cursor-pointer hover:bg-green-700 transition-colors">
+                  <Upload className="w-4 h-4 text-white" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                    disabled={uploading}
+                  />
+                </label>
               </div>
+              <p className="text-sm text-gray-500 text-center">
+                {uploading ? "Enviando..." : "Clique para alterar o logo"}
+              </p>
             </div>
 
-            {/* Mensagens e Links */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Link className="w-5 h-5" />
-                Mensagens e Configurações
-              </h3>
+            {/* Company Name */}
+            <div className="space-y-2">
+              <Label htmlFor="company-name">Nome da Empresa</Label>
+              <Input
+                id="company-name"
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="Digite o nome da sua empresa"
+              />
+            </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="welcomeMessage">Mensagem de Boas-vindas</Label>
-                  <Input
-                    id="welcomeMessage"
-                    value={welcomeMessage}
-                    onChange={(e) => setWelcomeMessage(e.target.value)}
-                    placeholder="Ex: Seja bem-vindo! Agende seu horário conosco."
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="instagramUrl">Instagram</Label>
-                  <Input
-                    id="instagramUrl"
-                    value={instagramUrl}
-                    onChange={(e) => setInstagramUrl(e.target.value)}
-                    placeholder="https://instagram.com/seuusuario"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="monthlyLimit">Limite de Agendamentos por Cliente/Mês</Label>
-                  <Input
-                    id="monthlyLimit"
-                    type="number"
-                    min="1"
-                    max="50"
-                    value={monthlyLimit}
-                    onChange={(e) => setMonthlyLimit(Number(e.target.value))}
-                  />
-                </div>
-              </div>
+            {/* Company Description */}
+            <div className="space-y-2">
+              <Label htmlFor="company-description">Descrição da Empresa</Label>
+              <Textarea
+                id="company-description"
+                value={companyDescription}
+                onChange={(e) => setCompanyDescription(e.target.value)}
+                placeholder="Escreva uma breve descrição da sua empresa"
+              />
             </div>
 
             {/* Botões */}
@@ -351,12 +195,12 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancelar
               </Button>
-              <Button 
-                type="submit" 
-                disabled={submitting}
+              <Button
+                type="submit"
+                disabled={loading}
                 className="bg-whatsapp-green hover:bg-green-600"
               >
-                {submitting ? "Salvando..." : "Salvar Perfil"}
+                {loading ? "Salvando..." : "Salvar Alterações"}
               </Button>
             </div>
           </form>

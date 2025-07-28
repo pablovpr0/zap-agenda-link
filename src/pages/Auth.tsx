@@ -1,342 +1,261 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Eye, EyeOff } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Eye, EyeOff, Mail, Lock, User, Phone, AlertCircle, CheckCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const { signUp, signIn, isLoading, user } = useAuth();
+  const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [resetEmail, setResetEmail] = useState('');
-  const [isResetting, setIsResetting] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Load saved credentials on component mount
-  useState(() => {
-    const savedCredentials = localStorage.getItem('zapagenda_credentials');
-    if (savedCredentials) {
-      const { email: savedEmail, password: savedPassword } = JSON.parse(savedCredentials);
-      setEmail(savedEmail || '');
-      setPassword(savedPassword || '');
-      setRememberMe(true);
+  useEffect(() => {
+    if (user) {
+      navigate('/');
     }
-  });
+  }, [user, navigate]);
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const validateEmail = (email: string) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+
+  const validatePassword = (password: string) => {
+    return password.length >= 6;
+  };
+
+  const validateName = (name: string) => {
+    return name.length >= 2;
+  };
+
+  const validatePhone = (phone: string) => {
+    const regex = /^[0-9]{8,}$/;
+    return regex.test(phone);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha email e senha.",
-        variant: "destructive",
-      });
+    setEmailError('');
+    setPasswordError('');
+    setNameError('');
+    setPhoneError('');
+
+    let isValid = true;
+
+    if (!validateEmail(email)) {
+      setEmailError('Email inválido');
+      isValid = false;
+    }
+
+    if (!validatePassword(password)) {
+      setPasswordError('A senha deve ter pelo menos 6 caracteres');
+      isValid = false;
+    }
+
+    if (isRegistering) {
+      if (!validateName(name)) {
+        setNameError('O nome deve ter pelo menos 2 caracteres');
+        isValid = false;
+      }
+
+      if (!validatePhone(phone)) {
+        setPhoneError('Telefone inválido');
+        isValid = false;
+      }
+    }
+
+    if (!isValid) {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl
-        }
-      });
+    if (isRegistering) {
+      const { error } = await signUp({ email, password, name, phone });
 
       if (error) {
-        if (error.message.includes('User already registered')) {
-          toast({
-            title: "Usuário já cadastrado",
-            description: "Este email já está cadastrado. Tente fazer login.",
-            variant: "destructive",
-          });
-        } else {
-          throw error;
-        }
-      } else {
-        // Save credentials if remember me is checked
-        if (rememberMe) {
-          localStorage.setItem('zapagenda_credentials', JSON.stringify({ email, password }));
-        }
-
         toast({
-          title: "Cadastro realizado!",
-          description: "Verifique seu email para confirmar a conta.",
+          title: "Erro ao registrar",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Registro realizado com sucesso!",
+          description: "Verifique seu email para confirmar sua conta.",
         });
       }
-    } catch (error: any) {
-      toast({
-        title: "Erro no cadastro",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha email e senha.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    } else {
+      const { error } = await signIn({ email, password });
 
       if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          toast({
-            title: "Credenciais inválidas",
-            description: "Email ou senha incorretos.",
-            variant: "destructive",
-          });
-        } else {
-          throw error;
-        }
-      } else {
-        // Save credentials if remember me is checked
-        if (rememberMe) {
-          localStorage.setItem('zapagenda_credentials', JSON.stringify({ email, password }));
-        } else {
-          localStorage.removeItem('zapagenda_credentials');
-        }
-
-        navigate('/');
+        toast({
+          title: "Erro ao entrar",
+          description: error.message,
+          variant: "destructive",
+        });
       }
-    } catch (error: any) {
-      toast({
-        title: "Erro no login",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!resetEmail) {
-      toast({
-        title: "Campo obrigatório",
-        description: "Por favor, insira seu email.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsResetting(true);
-
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/`,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Email enviado!",
-        description: "Verifique sua caixa de entrada para redefinir a senha.",
-      });
-      
-      setResetEmail('');
-    } catch (error: any) {
-      toast({
-        title: "Erro ao redefinir senha",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsResetting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-3 md:p-4">
-      <Card className="w-full max-w-sm md:max-w-md">
-        <CardHeader className="text-center pb-4">
-          <CardTitle className="text-xl md:text-2xl font-bold text-green-600">ZapAgenda</CardTitle>
-          <p className="text-gray-600 text-sm">Sistema de Agendamento Online</p>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold text-green-600">ZapAgenda</CardTitle>
+          <p className="text-gray-600">Gerencie seus agendamentos de forma fácil e rápida</p>
         </CardHeader>
-        <CardContent className="p-4 md:p-6">
+        <CardContent>
           <Tabs defaultValue="login" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login" className="text-sm">Entrar</TabsTrigger>
-              <TabsTrigger value="register" className="text-sm">Cadastrar</TabsTrigger>
+            <TabsList>
+              <TabsTrigger value="login" onClick={() => setIsRegistering(false)}>Entrar</TabsTrigger>
+              <TabsTrigger value="register" onClick={() => setIsRegistering(true)}>Criar Conta</TabsTrigger>
             </TabsList>
-
             <TabsContent value="login" className="space-y-4">
-              <form onSubmit={handleSignIn} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email-login">Email</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
-                    id="email-login"
+                    id="email"
                     type="email"
+                    placeholder="seuemail@exemplo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="seu@email.com"
-                    className="w-full"
-                    autoComplete="email"
+                    required
                   />
+                  {emailError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{emailError}</AlertDescription>
+                    </Alert>
+                  )}
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="password-login">Senha</Label>
+                  <Label htmlFor="password">Senha</Label>
                   <div className="relative">
                     <Input
-                      id="password-login"
+                      id="password"
                       type={showPassword ? "text" : "password"}
+                      placeholder="********"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Digite sua senha"
-                      className="w-full pr-10"
-                      autoComplete="current-password"
+                      required
                     />
-                    <Button
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-gray-400" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-gray-400" />
-                      )}
-                    </Button>
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
+                  {passwordError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{passwordError}</AlertDescription>
+                    </Alert>
+                  )}
                 </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                  />
-                  <Label htmlFor="remember" className="text-sm text-gray-600">
-                    Salvar login e senha
-                  </Label>
-                </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  disabled={isLoading}
-                >
+                <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
                   {isLoading ? "Entrando..." : "Entrar"}
                 </Button>
               </form>
-
-              {/* Password Reset */}
-              <div className="border-t pt-4">
-                <p className="text-sm text-gray-600 mb-3 text-center">Esqueceu sua senha?</p>
-                <form onSubmit={handlePasswordReset} className="space-y-3">
-                  <Input
-                    type="email"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    placeholder="Digite seu email"
-                    className="w-full text-sm"
-                  />
-                  <Button 
-                    type="submit" 
-                    variant="outline" 
-                    className="w-full text-sm"
-                    disabled={isResetting}
-                  >
-                    {isResetting ? "Enviando..." : "Redefinir Senha"}
-                  </Button>
-                </form>
-              </div>
             </TabsContent>
-
             <TabsContent value="register" className="space-y-4">
-              <form onSubmit={handleSignUp} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email-register">Email</Label>
+                  <Label htmlFor="name">Nome</Label>
                   <Input
-                    id="email-register"
+                    id="name"
+                    type="text"
+                    placeholder="Seu nome completo"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                  {nameError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{nameError}</AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="(99) 99999-9999"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                  />
+                  {phoneError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{phoneError}</AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
                     type="email"
+                    placeholder="seuemail@exemplo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="seu@email.com"
-                    className="w-full"
-                    autoComplete="email"
+                    required
                   />
+                  {emailError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{emailError}</AlertDescription>
+                    </Alert>
+                  )}
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="password-register">Senha</Label>
+                  <Label htmlFor="password">Senha</Label>
                   <div className="relative">
                     <Input
-                      id="password-register"
+                      id="password"
                       type={showPassword ? "text" : "password"}
+                      placeholder="********"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Crie uma senha"
-                      className="w-full pr-10"
-                      autoComplete="new-password"
+                      required
                     />
-                    <Button
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-gray-400" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-gray-400" />
-                      )}
-                    </Button>
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
+                  {passwordError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{passwordError}</AlertDescription>
+                    </Alert>
+                  )}
                 </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="remember-register"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                  />
-                  <Label htmlFor="remember-register" className="text-sm text-gray-600">
-                    Salvar login e senha
-                  </Label>
-                </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Cadastrando..." : "Cadastrar"}
+                <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
+                  {isLoading ? "Criando conta..." : "Criar Conta"}
                 </Button>
               </form>
             </TabsContent>

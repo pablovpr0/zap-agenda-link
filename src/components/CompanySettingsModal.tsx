@@ -69,7 +69,7 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
         setPhone(settings.company_phone || '');
         setSlug(settings.company_slug || '');
         setOriginalSlug(settings.company_slug || '');
-        setLunchBreakEnabled(!!settings.lunch_break_start);
+        setLunchBreakEnabled(settings.lunch_break_enabled || false);
         setLunchStartTime(settings.lunch_break_start || '12:00');
         setLunchEndTime(settings.lunch_break_end || '13:00');
       }
@@ -131,6 +131,7 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
         monthly_appointments_limit: monthlyAppointmentsLimit,
         company_phone: phone || undefined,
         company_slug: slug,
+        lunch_break_enabled: lunchBreakEnabled,
         lunch_break_start: lunchBreakEnabled ? lunchStartTime : undefined,
         lunch_break_end: lunchBreakEnabled ? lunchEndTime : undefined,
       };

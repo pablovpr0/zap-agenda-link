@@ -37,7 +37,7 @@ export const useCompanyData = (companySlug: string) => {
         slug: settings.company_slug,
         working_hours_start: settings.working_hours_start,
         working_hours_end: settings.working_hours_end,
-        lunch_break_enabled: settings.lunch_break_start ? true : false,
+        lunch_break_enabled: settings.lunch_break_enabled || false,
         lunch_start_time: settings.lunch_break_start || '',
         lunch_end_time: settings.lunch_break_end || '',
         working_days: settings.working_days,

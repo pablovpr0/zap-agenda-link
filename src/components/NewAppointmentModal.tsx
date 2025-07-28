@@ -4,14 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import StandardCalendar from '@/components/StandardCalendar';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { CalendarIcon, Clock, User, Phone, Plus } from 'lucide-react';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
-import { CalendarDays, Clock, User, MessageSquare } from 'lucide-react';
+import { getStorageData, setStorageData, MockClient, MockService, MockProfessional, MockAppointment, STORAGE_KEYS } from '@/data/mockData';
 
 interface NewAppointmentModalProps {
   isOpen: boolean;
@@ -22,93 +23,39 @@ interface NewAppointmentModalProps {
 const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModalProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
+  const [clientName, setClientName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
+  const [selectedService, setSelectedService] = useState('');
+  const [selectedProfessional, setSelectedProfessional] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [services, setServices] = useState<MockService[]>([]);
+  const [professionals, setProfessionals] = useState<MockProfessional[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [clients, setClients] = useState<any[]>([]);
-  const [services, setServices] = useState<any[]>([]);
-  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
-  const [availableDates, setAvailableDates] = useState<Date[]>([]);
-  const [companySettings, setCompanySettings] = useState<any>(null);
-  
-  // Form state
-  const [selectedClient, setSelectedClient] = useState('');
-  const [selectedService, setSelectedService] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
-  const [notes, setNotes] = useState('');
-  
-  // New client form
-  const [isNewClient, setIsNewClient] = useState(false);
-  const [newClientName, setNewClientName] = useState('');
-  const [newClientPhone, setNewClientPhone] = useState('');
-  const [newClientEmail, setNewClientEmail] = useState('');
 
   useEffect(() => {
     if (isOpen && user) {
-      loadInitialData();
+      loadData();
     }
   }, [isOpen, user]);
 
-  useEffect(() => {
-    if (selectedDate && user) {
-      loadAvailableTimes();
-    }
-  }, [selectedDate, user]);
-
-  const loadInitialData = async () => {
-    if (!user) return;
-    
+  const loadData = async () => {
     setLoading(true);
     try {
-      // Load clients
-      const { data: clientsData, error: clientsError } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('company_id', user.id)
-        .order('name');
+      const servicesData = getStorageData<MockService[]>(STORAGE_KEYS.SERVICES, []);
+      const professionalsData = getStorageData<MockProfessional[]>(STORAGE_KEYS.PROFESSIONALS, []);
 
-      if (clientsError) throw clientsError;
-      setClients(clientsData || []);
+      // Filter services and professionals by company_id
+      const filteredServices = servicesData.filter(service => service.company_id === user?.id && service.is_active);
+      const filteredProfessionals = professionalsData.filter(professional => professional.company_id === user?.id && professional.is_active);
 
-      // Load services
-      const { data: servicesData, error: servicesError } = await supabase
-        .from('services')
-        .select('*')
-        .eq('company_id', user.id)
-        .eq('is_active', true)
-        .order('name');
-
-      if (servicesError) throw servicesError;
-      setServices(servicesData || []);
-
-      // Load company settings
-      const { data: settingsData, error: settingsError } = await supabase
-        .from('company_settings')
-        .select('*')
-        .eq('company_id', user.id)
-        .single();
-
-      if (settingsError) throw settingsError;
-      setCompanySettings(settingsData);
-
-      // Generate available dates (próximos 30 dias)
-      const dates = [];
-      const today = new Date();
-      for (let i = 0; i < 30; i++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + i);
-        if (date.getDay() !== 0) { // Excluir domingos
-          dates.push(date);
-        }
-      }
-      setAvailableDates(dates);
-
+      setServices(filteredServices);
+      setProfessionals(filteredProfessionals);
     } catch (error: any) {
-      console.error('Erro ao carregar dados:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível carregar os dados necessários.",
+        description: "Não foi possível carregar os dados.",
         variant: "destructive",
       });
     } finally {
@@ -116,113 +63,10 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
     }
   };
 
-  const loadAvailableTimes = async () => {
-    if (!user || !selectedDate) return;
-
-    try {
-      // Buscar configurações da empresa
-      const { data: settings, error: settingsError } = await supabase
-        .from('company_settings')
-        .select('working_hours_start, working_hours_end, appointment_interval')
-        .eq('company_id', user.id)
-        .single();
-
-      if (settingsError) throw settingsError;
-
-      // Gerar horários disponíveis
-      const times = [];
-      const [startHour, startMinute] = settings.working_hours_start.split(':').map(Number);
-      const [endHour, endMinute] = settings.working_hours_end.split(':').map(Number);
-      
-      let currentTime = new Date();
-      currentTime.setHours(startHour, startMinute, 0, 0);
-      
-      const endTime = new Date();
-      endTime.setHours(endHour, endMinute, 0, 0);
-      
-      while (currentTime < endTime) {
-        times.push(format(currentTime, 'HH:mm'));
-        currentTime = new Date(currentTime.getTime() + settings.appointment_interval * 60000);
-      }
-
-      // Buscar horários já agendados para esta data
-      const { data: bookedAppointments, error: bookedError } = await supabase
-        .from('appointments')
-        .select('appointment_time')
-        .eq('company_id', user.id)
-        .eq('appointment_date', selectedDate)
-        .neq('status', 'cancelled');
-
-      if (bookedError) throw bookedError;
-
-      // Filtrar horários já ocupados
-      const bookedTimes = bookedAppointments?.map(apt => apt.appointment_time.substring(0, 5)) || [];
-      const availableTimesList = times.filter(time => !bookedTimes.includes(time));
-      
-      setAvailableTimes(availableTimesList);
-
-    } catch (error: any) {
-      console.error('Erro ao carregar horários:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os horários disponíveis.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const checkMonthlyLimit = async (clientPhone: string) => {
-    if (!companySettings || !companySettings.monthly_appointments_limit) {
-      console.log('Limite mensal não configurado, permitindo agendamento');
-      return true;
-    }
-
-    try {
-      const currentDate = new Date();
-      const currentMonth = currentDate.getMonth() + 1;
-      const currentYear = currentDate.getFullYear();
-      
-      const startOfMonth = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`;
-      const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
-      const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
-      const startOfNextMonth = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01`;
-      
-      console.log(`Verificando limite mensal para cliente ${clientPhone}`);
-      console.log(`Limite configurado: ${companySettings.monthly_appointments_limit}`);
-      
-      const { data: monthlyAppointments, error } = await supabase
-        .from('appointments')
-        .select(`
-          id,
-          appointment_date,
-          status,
-          clients!inner(phone)
-        `)
-        .eq('company_id', user!.id)
-        .eq('clients.phone', clientPhone)
-        .gte('appointment_date', startOfMonth)
-        .lt('appointment_date', startOfNextMonth)
-        .neq('status', 'cancelled');
-
-      if (error) {
-        console.error('Erro ao verificar limite mensal:', error);
-        return true;
-      }
-
-      const appointmentCount = monthlyAppointments?.length || 0;
-      console.log(`Cliente ${clientPhone} tem ${appointmentCount} agendamentos confirmados este mês`);
-      
-      return appointmentCount < companySettings.monthly_appointments_limit;
-    } catch (error) {
-      console.error('Erro ao verificar limite mensal:', error);
-      return true;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!selectedDate || !selectedTime || !selectedService) {
+
+    if (!clientName || !clientPhone || !selectedService || !selectedDate) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -231,135 +75,65 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       return;
     }
 
-    if (!selectedClient && !isNewClient) {
-      toast({
-        title: "Cliente obrigatório",
-        description: "Selecione um cliente ou cadastre um novo.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (isNewClient && (!newClientName || !newClientPhone)) {
-      toast({
-        title: "Dados do cliente",
-        description: "Nome e telefone são obrigatórios para novos clientes.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Verificar limite mensal antes de criar o agendamento
-    let clientPhone = '';
-    if (isNewClient) {
-      clientPhone = newClientPhone;
-    } else {
-      const selectedClientData = clients.find(c => c.id === selectedClient);
-      clientPhone = selectedClientData?.phone || '';
-    }
-
-    if (clientPhone) {
-      const canBook = await checkMonthlyLimit(clientPhone);
-      if (!canBook) {
-        toast({
-          title: "Limite de agendamentos atingido",
-          description: `Este cliente já atingiu o limite de ${companySettings.monthly_appointments_limit} agendamentos por mês.`,
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
     setSubmitting(true);
 
     try {
-      let clientId = selectedClient;
+      // Format the selected date to 'YYYY-MM-DD'
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
 
-      // Create new client if needed
-      if (isNewClient) {
-        // Verificar se já existe cliente com esse telefone
-        const { data: existingClient } = await supabase
-          .from('clients')
-          .select('id')
-          .eq('company_id', user!.id)
-          .eq('phone', newClientPhone)
-          .maybeSingle();
+      // Create or find client
+      let clientId;
+      const clients = getStorageData<MockClient[]>(STORAGE_KEYS.CLIENTS, []);
+      let existingClient = clients.find(client => client.company_id === user?.id && client.phone === clientPhone);
 
-        if (existingClient) {
-          clientId = existingClient.id;
-          // Atualizar dados do cliente existente
-          await supabase
-            .from('clients')
-            .update({
-              name: newClientName,
-              email: newClientEmail || null,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', clientId);
-        } else {
-          const { data: newClient, error: clientError } = await supabase
-            .from('clients')
-            .insert({
-              company_id: user!.id,
-              name: newClientName,
-              phone: newClientPhone,
-              email: newClientEmail || null,
-            })
-            .select('id')
-            .single();
-
-          if (clientError) throw clientError;
-          clientId = newClient.id;
-        }
-      }
-
-      // Verificar se horário ainda está disponível
-      const { data: conflictCheck } = await supabase
-        .from('appointments')
-        .select('id')
-        .eq('company_id', user!.id)
-        .eq('appointment_date', selectedDate)
-        .eq('appointment_time', selectedTime)
-        .neq('status', 'cancelled');
-
-      if (conflictCheck && conflictCheck.length > 0) {
-        toast({
-          title: "Horário indisponível",
-          description: "Este horário já foi ocupado. Por favor, escolha outro horário.",
-          variant: "destructive",
-        });
-        await loadAvailableTimes(); // Recarregar horários
-        return;
+      if (existingClient) {
+        clientId = existingClient.id;
+        // Update existing client
+        existingClient = { ...existingClient, name: clientName };
+        const updatedClients = clients.map(client => client.id === clientId ? existingClient! : client);
+        setStorageData(STORAGE_KEYS.CLIENTS, updatedClients);
+      } else {
+        // Create new client
+        clientId = `client-${Date.now()}`;
+        const newClient: MockClient = {
+          id: clientId,
+          company_id: user!.id,
+          name: clientName,
+          phone: clientPhone,
+          created_at: new Date().toISOString()
+        };
+        clients.push(newClient);
+        setStorageData(STORAGE_KEYS.CLIENTS, clients);
       }
 
       // Create appointment
-      const service = services.find(s => s.id === selectedService);
-      const { error: appointmentError } = await supabase
-        .from('appointments')
-        .insert({
-          company_id: user!.id,
-          client_id: clientId,
-          service_id: selectedService,
-          appointment_date: selectedDate,
-          appointment_time: selectedTime,
-          duration: service?.duration || 60,
-          status: 'confirmed',
-          notes: notes || null,
-        });
+      const appointmentId = `appointment-${Date.now()}`;
+      const newAppointment: MockAppointment = {
+        id: appointmentId,
+        company_id: user!.id,
+        client_id: clientId,
+        service_id: selectedService,
+        professional_id: selectedProfessional || undefined,
+        appointment_date: formattedDate,
+        appointment_time: '09:00', // Mock time
+        duration: 60, // Mock duration
+        status: 'confirmed',
+        created_at: new Date().toISOString()
+      };
 
-      if (appointmentError) throw appointmentError;
+      const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
+      appointments.push(newAppointment);
+      setStorageData(STORAGE_KEYS.APPOINTMENTS, appointments);
 
       toast({
         title: "Agendamento criado!",
-        description: `Agendamento criado para ${format(new Date(selectedDate), "dd 'de' MMMM", { locale: ptBR })} às ${selectedTime}.`,
+        description: "O agendamento foi criado com sucesso.",
       });
 
       onSuccess();
       onClose();
-      resetForm();
 
     } catch (error: any) {
-      console.error('Erro ao criar agendamento:', error);
       toast({
         title: "Erro",
         description: "Não foi possível criar o agendamento. Tente novamente.",
@@ -370,25 +144,12 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
     }
   };
 
-  const resetForm = () => {
-    setSelectedClient('');
-    setSelectedService('');
-    setSelectedDate('');
-    setSelectedTime('');
-    setNotes('');
-    setIsNewClient(false);
-    setNewClientName('');
-    setNewClientPhone('');
-    setNewClientEmail('');
-    setAvailableTimes([]);
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-whatsapp-green" />
+            <Plus className="w-5 h-5 text-whatsapp-green" />
             Novo Agendamento
           </DialogTitle>
         </DialogHeader>
@@ -399,95 +160,60 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Client Selection */}
-            <div className="space-y-3">
-              <Label className="flex items-center gap-2">
-                <User className="w-4 h-4 text-whatsapp-green" />
-                Cliente
-              </Label>
-              
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={!isNewClient ? "default" : "outline"}
-                  onClick={() => setIsNewClient(false)}
-                  className="flex-1"
-                >
-                  Cliente Existente
-                </Button>
-                <Button
-                  type="button"
-                  variant={isNewClient ? "default" : "outline"}
-                  onClick={() => setIsNewClient(true)}
-                  className="flex-1"
-                >
-                  Novo Cliente
-                </Button>
-              </div>
+            {/* Client Name */}
+            <div className="space-y-2">
+              <Label htmlFor="client-name">Nome do Cliente</Label>
+              <Input
+                id="client-name"
+                type="text"
+                placeholder="Nome completo do cliente"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                required
+              />
+            </div>
 
-              {!isNewClient ? (
-                <Select value={selectedClient} onValueChange={setSelectedClient}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name} - {client.phone}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label htmlFor="newClientName">Nome *</Label>
-                      <Input
-                        id="newClientName"
-                        value={newClientName}
-                        onChange={(e) => setNewClientName(e.target.value)}
-                        placeholder="Nome do cliente"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="newClientPhone">Telefone *</Label>
-                      <Input
-                        id="newClientPhone"
-                        value={newClientPhone}
-                        onChange={(e) => setNewClientPhone(e.target.value)}
-                        placeholder="(11) 99999-9999"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="newClientEmail">E-mail</Label>
-                    <Input
-                      id="newClientEmail"
-                      type="email"
-                      value={newClientEmail}
-                      onChange={(e) => setNewClientEmail(e.target.value)}
-                      placeholder="email@exemplo.com"
-                    />
-                  </div>
-                </div>
-              )}
+            {/* Client Phone */}
+            <div className="space-y-2">
+              <Label htmlFor="client-phone">Telefone do Cliente</Label>
+              <Input
+                id="client-phone"
+                type="tel"
+                placeholder="(XX) XXXX-XXXX"
+                value={clientPhone}
+                onChange={(e) => setClientPhone(e.target.value)}
+                required
+              />
             </div>
 
             {/* Service Selection */}
             <div className="space-y-2">
-              <Label>Serviço</Label>
-              <Select value={selectedService} onValueChange={setSelectedService}>
+              <Label htmlFor="service">Serviço</Label>
+              <Select value={selectedService} onValueChange={setSelectedService} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um serviço" />
                 </SelectTrigger>
                 <SelectContent>
                   {services.map((service) => (
                     <SelectItem key={service.id} value={service.id}>
-                      {service.name} - {service.duration}min
-                      {service.price && ` - R$ ${service.price}`}
+                      {service.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Professional Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="professional">Profissional (Opcional)</Label>
+              <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Qualquer profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  {professionals.map((professional) => (
+                    <SelectItem key={professional.id} value={professional.id}>
+                      {professional.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -496,76 +222,46 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
 
             {/* Date Selection */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <CalendarDays className="w-4 h-4 text-whatsapp-green" />
-                Data
-              </Label>
-              <StandardCalendar
-                availableDates={availableDates}
-                selectedDate={selectedDate}
-                onDateSelect={setSelectedDate}
-                showNavigation={true}
-                highlightToday={true}
-              />
-            </div>
-
-            {/* Time Selection */}
-            {selectedDate && (
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-whatsapp-green" />
-                  Horário
-                </Label>
-                {availableTimes.length === 0 ? (
-                  <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-lg">
-                    Nenhum horário disponível para esta data
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-4 gap-2">
-                    {availableTimes.map((time) => (
-                      <Button
-                        key={time}
-                        type="button"
-                        variant={selectedTime === time ? "default" : "outline"}
-                        onClick={() => setSelectedTime(time)}
-                        className="text-sm"
-                      >
-                        {time}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label htmlFor="notes" className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-whatsapp-green" />
-                Observações
-              </Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Observações adicionais (opcional)"
-                rows={3}
-              />
+              <Label>Data</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? (
+                      format(selectedDate, "PPP", { locale: ptBR })
+                    ) : (
+                      <span>Selecione uma data</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center" side="bottom">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    disabled={(date) =>
+                      date < new Date()
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Submit Button */}
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={submitting}
-                className="bg-whatsapp-green hover:bg-green-600"
-              >
-                {submitting ? "Criando..." : "Criar Agendamento"}
-              </Button>
-            </div>
+            <Button 
+              type="submit" 
+              className="w-full bg-whatsapp-green hover:bg-green-600"
+              disabled={submitting}
+            >
+              {submitting ? "Criando..." : "Criar Agendamento"}
+            </Button>
           </form>
         )}
       </DialogContent>

@@ -50,19 +50,8 @@ export const useTimeSlotGeneration = () => {
       const selectedDateObj = new Date(selectedDate + 'T00:00:00');
       const dayOfWeek = selectedDateObj.getDay();
       
-      // Verificar se é um dia de trabalho (convertendo para o formato esperado)
-      const workingDaysMap = {
-        0: 7, // domingo
-        1: 1, // segunda
-        2: 2, // terça
-        3: 3, // quarta
-        4: 4, // quinta
-        5: 5, // sexta
-        6: 6  // sábado
-      };
-      
-      const dayNumber = workingDaysMap[dayOfWeek as keyof typeof workingDaysMap];
-      if (!settings.working_days.includes(dayNumber)) {
+      // Verificar se é um dia de trabalho
+      if (!settings.working_days.includes(dayOfWeek === 0 ? 7 : dayOfWeek)) {
         setTimeSlots([]);
         return;
       }
@@ -89,8 +78,8 @@ export const useTimeSlotGeneration = () => {
         }
 
         // Verificar se está durante o horário de almoço
-        if (available && settings.lunch_break_enabled && settings.lunch_start_time && settings.lunch_end_time &&
-            isTimeDuringLunch(timeString, settings.lunch_start_time, settings.lunch_end_time)) {
+        if (available && settings.lunch_break_enabled && settings.lunch_break_start && settings.lunch_break_end &&
+            isTimeDuringLunch(timeString, settings.lunch_break_start, settings.lunch_break_end)) {
           available = false;
           reason = 'Horário de almoço';
         }

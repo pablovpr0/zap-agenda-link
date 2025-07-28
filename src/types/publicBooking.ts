@@ -1,37 +1,26 @@
 
 export interface CompanySettings {
-  id: string;
   company_id: string;
+  company_name: string;
+  company_phone?: string;
   slug: string;
-  address?: string;
-  phone?: string;
-  whatsapp?: string;
-  description?: string;
-  tempo_entrega?: number;
-  tempo_retirada?: number;
-  status_aberto?: boolean;
-  working_days: number[];
   working_hours_start: string;
   working_hours_end: string;
-  appointment_interval: number;
-  max_simultaneous_appointments: number;
-  advance_booking_limit: number;
-  monthly_appointments_limit: number;
   lunch_break_enabled?: boolean;
   lunch_start_time?: string;
   lunch_end_time?: string;
-  instagram_url?: string;
-  logo_url?: string;
-  cover_image_url?: string;
-  theme_color: string;
-  welcome_message?: string;
+  working_days: number[];
+  appointment_interval: number;
+  advance_booking_limit: number;
 }
 
 export interface Profile {
   id: string;
   company_name: string;
-  business_type: string;
-  profile_image_url?: string;
+  company_description?: string;
+  company_logo?: string;
+  company_address?: string;
+  company_website?: string;
 }
 
 export interface Service {
