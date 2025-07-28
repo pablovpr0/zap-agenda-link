@@ -22,7 +22,7 @@ export const createDefaultSettings = async (userId: string, companyName: string)
     company_slug: slug,
     working_hours_start: '09:00',
     working_hours_end: '18:00',
-    working_days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    working_days: [1, 2, 3, 4, 5],
     appointment_duration: 60,
     advance_booking_days: 30
   };

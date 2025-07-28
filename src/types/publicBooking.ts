@@ -4,6 +4,9 @@ export interface CompanySettings {
   company_name: string;
   company_phone?: string;
   slug: string;
+  logo_url?: string;
+  welcome_message?: string;
+  instagram_url?: string;
   working_hours_start: string;
   working_hours_end: string;
   lunch_break_enabled?: boolean;
@@ -12,6 +15,8 @@ export interface CompanySettings {
   working_days: number[];
   appointment_interval: number;
   advance_booking_limit: number;
+  monthly_appointments_limit?: number;
+  phone?: string;
 }
 
 export interface Profile {
@@ -21,6 +26,7 @@ export interface Profile {
   company_logo?: string;
   company_address?: string;
   company_website?: string;
+  business_type?: string;
 }
 
 export interface Service {
@@ -38,4 +44,6 @@ export interface BookingFormData {
   selectedTime: string;
   clientName: string;
   clientPhone: string;
+  clientEmail?: string;
+  notes?: string;
 }

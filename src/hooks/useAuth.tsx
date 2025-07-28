@@ -1,88 +1,16 @@
-import { useState, useEffect, createContext, useContext } from 'react';
-import { getStorageData, setStorageData, removeStorageData, STORAGE_KEYS, MockUser, initializeDefaultData } from '@/data/mockData';
+
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { getStorageData, setStorageData, removeStorageData, MockUser, STORAGE_KEYS, initializeDefaultData } from '@/data/mockData';
 
 interface AuthContextType {
   user: MockUser | null;
-  loading: boolean;
+  isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<MockUser | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Check if user is authenticated
-    const isAuthenticated = getStorageData(STORAGE_KEYS.IS_AUTHENTICATED, false);
-    if (isAuthenticated) {
-      const savedUser = getStorageData<MockUser | null>(STORAGE_KEYS.USER, null);
-      setUser(savedUser);
-      initializeDefaultData();
-    }
-    setLoading(false);
-  }, []);
-
-  const signIn = async (email: string, password: string) => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Simple validation for demo
-    if (email && password) {
-      const newUser: MockUser = {
-        id: 'user-1',
-        email,
-        name: email.split('@')[0]
-      };
-      
-      setUser(newUser);
-      setStorageData(STORAGE_KEYS.USER, newUser);
-      setStorageData(STORAGE_KEYS.IS_AUTHENTICATED, true);
-      initializeDefaultData();
-    } else {
-      throw new Error('Email e senha são obrigatórios');
-    }
-  };
-
-  const signUp = async (email: string, password: string) => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Simple validation for demo
-    if (email && password) {
-      const newUser: MockUser = {
-        id: 'user-1',
-        email,
-        name: email.split('@')[0]
-      };
-      
-      setUser(newUser);
-      setStorageData(STORAGE_KEYS.USER, newUser);
-      setStorageData(STORAGE_KEYS.IS_AUTHENTICATED, true);
-      initializeDefaultData();
-    } else {
-      throw new Error('Email e senha são obrigatórios');
-    }
-  };
-
-  const signOut = async () => {
-    setUser(null);
-    // Clear all data
-    Object.values(STORAGE_KEYS).forEach(key => {
-      removeStorageData(key);
-    });
-    removeStorageData('zapagenda_credentials');
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -90,4 +18,109 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+};
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<MockUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const isAuthenticated = getStorageData(STORAGE_KEYS.IS_AUTHENTICATED, false);
+        if (isAuthenticated) {
+          const storedUser = getStorageData<MockUser | null>(STORAGE_KEYS.USER, null);
+          if (storedUser) {
+            setUser(storedUser);
+            initializeDefaultData();
+          }
+        }
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  const signIn = async (email: string, password: string): Promise<void> => {
+    setIsLoading(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const mockUser: MockUser = {
+        id: 'user-1',
+        email,
+        name: 'Usuário Demo'
+      };
+
+      setStorageData(STORAGE_KEYS.USER, mockUser);
+      setStorageData(STORAGE_KEYS.IS_AUTHENTICATED, true);
+      setUser(mockUser);
+      initializeDefaultData();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signUp = async (email: string, password: string, name: string): Promise<void> => {
+    setIsLoading(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const mockUser: MockUser = {
+        id: 'user-1',
+        email,
+        name
+      };
+
+      setStorageData(STORAGE_KEYS.USER, mockUser);
+      setStorageData(STORAGE_KEYS.IS_AUTHENTICATED, true);
+      setUser(mockUser);
+      initializeDefaultData();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signOut = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      // Clear all storage
+      removeStorageData(STORAGE_KEYS.USER);
+      removeStorageData(STORAGE_KEYS.IS_AUTHENTICATED);
+      removeStorageData(STORAGE_KEYS.COMPANY_SETTINGS);
+      removeStorageData(STORAGE_KEYS.PROFILE);
+      removeStorageData(STORAGE_KEYS.CLIENTS);
+      removeStorageData(STORAGE_KEYS.SERVICES);
+      removeStorageData(STORAGE_KEYS.PROFESSIONALS);
+      removeStorageData(STORAGE_KEYS.APPOINTMENTS);
+      
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const value = {
+    user,
+    isLoading,
+    signIn,
+    signUp,
+    signOut
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
