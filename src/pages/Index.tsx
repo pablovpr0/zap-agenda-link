@@ -21,7 +21,7 @@ import { getStorageData, MockProfile, STORAGE_KEYS } from '@/data/mockData';
 type ViewType = 'dashboard' | 'agenda' | 'settings' | 'clients' | 'services';
 
 const Index = () => {
-  const { user, loading, signOut } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [profileComplete, setProfileComplete] = useState(false);
@@ -29,7 +29,7 @@ const Index = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
-    if (loading) return;
+    if (isLoading) return;
 
     if (!user) {
       navigate('/auth');
@@ -50,7 +50,7 @@ const Index = () => {
     };
 
     checkProfile();
-  }, [user, loading, navigate]);
+  }, [user, isLoading, navigate]);
 
   const handleLogout = async () => {
     await signOut();
@@ -62,7 +62,7 @@ const Index = () => {
     window.location.reload();
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-whatsapp-bg flex items-center justify-center">
         <div className="text-center">
