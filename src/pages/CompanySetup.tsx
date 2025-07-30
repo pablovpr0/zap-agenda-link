@@ -66,25 +66,30 @@ const CompanySetup = () => {
 
     try {
       console.log('Starting company setup process for user:', user.id);
+      console.log('Company name:', companyName.trim());
+      console.log('Business type:', businessType.trim());
       
-      // Use upsert to create or update the profile
-      const profile = await upsertProfile(user.id, {
+      // Step 1: Create or update the profile
+      const profileData = {
         company_name: companyName.trim(),
         business_type: businessType.trim() || null,
-      });
+      };
 
-      console.log('Profile upserted successfully:', profile);
+      console.log('Attempting to save profile with data:', profileData);
+      const profile = await upsertProfile(user.id, profileData);
+      console.log('Profile saved successfully:', profile);
 
-      // Create default company settings
+      // Step 2: Create default company settings (non-blocking)
       try {
+        console.log('Creating default company settings...');
         await createDefaultSettings(user.id, companyName.trim());
         console.log('Default settings created successfully');
       } catch (settingsError: any) {
-        console.error('Error creating default settings:', settingsError);
+        console.error('Error creating default settings (non-blocking):', settingsError);
         // Don't fail the whole process if settings creation fails
         toast({
-          title: "Aviso",
-          description: "Empresa criada, mas algumas configurações padrão podem precisar ser ajustadas.",
+          title: "Parcialmente configurado",
+          description: "Empresa criada, mas algumas configurações padrão serão definidas depois.",
           variant: "default",
         });
       }
@@ -94,13 +99,23 @@ const CompanySetup = () => {
         description: "Agora você pode começar a usar o ZapAgenda!",
       });
 
-      // Redirect to main app
-      navigate('/');
+      // Small delay to ensure data is persisted
+      setTimeout(() => {
+        navigate('/');
+      }, 500);
+
     } catch (error: any) {
-      console.error('Error setting up company:', error);
+      console.error('Error in company setup:', error);
+      
+      let errorMessage = "Não foi possível configurar a empresa. Tente novamente.";
+      
+      if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Erro ao configurar empresa",
-        description: error.message || "Não foi possível configurar a empresa. Tente novamente.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
