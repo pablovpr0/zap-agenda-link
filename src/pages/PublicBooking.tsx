@@ -17,10 +17,12 @@ const PublicBooking = () => {
   console.log('🌐 PublicBooking: useParams result:', { companySlug });
 
   const {
+    companyData,
     companySettings,
     profile,
     services,
     loading,
+    error,
     submitting,
     generateAvailableDates,
     generateAvailableTimes,
@@ -31,7 +33,7 @@ const PublicBooking = () => {
     return <LoadingState />;
   }
 
-  if (!companySettings || !profile) {
+  if (error || !companyData || !companySettings || !profile) {
     console.error('Empresa não encontrada para slug:', companySlug);
     return <ErrorState companySlug={companySlug} />;
   }
@@ -55,8 +57,7 @@ const PublicBooking = () => {
       <div className="container mx-auto px-4 py-6 max-w-md">
         {/* Header da empresa */}
         <EnhancedCompanyHeader 
-          companySettings={companySettings}
-          profile={profile}
+          companyData={companyData}
         />
 
         {/* Seção informativa sobre agendamento */}
