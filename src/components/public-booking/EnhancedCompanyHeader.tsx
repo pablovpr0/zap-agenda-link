@@ -1,53 +1,138 @@
 
-import { CheckCircle, Star } from 'lucide-react';
-import { CompanySettings, Profile } from '@/types/publicBooking';
+import { Building2, MapPin, Phone, Instagram, MessageCircle } from 'lucide-react';
+import { CompanyData } from '@/hooks/useCompanyData';
 
 interface EnhancedCompanyHeaderProps {
-  companySettings: CompanySettings;
-  profile: Profile;
+  companyData: CompanyData;
 }
 
-const EnhancedCompanyHeader = ({ companySettings, profile }: EnhancedCompanyHeaderProps) => {
+const EnhancedCompanyHeader = ({ companyData }: EnhancedCompanyHeaderProps) => {
+  const handleWhatsAppClick = () => {
+    if (companyData.whatsapp) {
+      const cleanPhone = companyData.whatsapp.replace(/\D/g, '');
+      const message = encodeURIComponent('Olá! Gostaria de agendar um horário.');
+      const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${message}`;
+      window.open(whatsappUrl, '_blank');
+    }
+  };
+
+  const handleInstagramClick = () => {
+    if (companyData.instagram_url) {
+      window.open(companyData.instagram_url, '_blank');
+    }
+  };
+
+  const themeColor = companyData.theme_color || '#22c55e';
+  
+  // Usar profile_image_url primeiro, depois logo_url como fallback
+  const profileImage = companyData.profile_image_url || companyData.logo_url;
+
   return (
-    <div className="text-center mb-8">
-      <div className="bg-white rounded-2xl p-8 shadow-xl border border-green-100 relative overflow-hidden">
-        {/* Decoração de fundo */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-100 to-blue-100 rounded-full -translate-y-16 translate-x-16 opacity-50"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-purple-100 to-pink-100 rounded-full translate-y-12 -translate-x-12 opacity-50"></div>
-        
-        <div className="relative z-10">
-          {companySettings.logo_url && (
-            <div className="flex justify-center mb-6">
-              <div className="relative">
-                <img 
-                  src={companySettings.logo_url} 
-                  alt={profile.company_name} 
-                  className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
-                />
-                <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full p-2">
-                  <CheckCircle className="w-4 h-4 text-white" />
-                </div>
+    <div className="relative">
+      {/* Cover Image */}
+      {companyData.cover_image_url && (
+        <div 
+          className="h-32 md:h-48 bg-cover bg-center relative"
+          style={{ 
+            backgroundImage: `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${companyData.cover_image_url})` 
+          }}
+        />
+      )}
+      
+      {/* Main Header Content */}
+      <div className={`${companyData.cover_image_url ? 'bg-white -mt-16 mx-4 rounded-t-2xl relative z-10' : 'bg-gradient-to-br from-green-50 to-green-100'} p-6`}>
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+          {/* Profile Image */}
+          <div className="flex-shrink-0">
+            {profileImage ? (
+              <img
+                src={profileImage}
+                alt={companyData.company_name}
+                className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover border-4 border-white shadow-lg"
+              />
+            ) : (
+              <div 
+                className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg"
+                style={{ backgroundColor: themeColor }}
+              >
+                {companyData.company_name.charAt(0).toUpperCase()}
               </div>
+            )}
+          </div>
+
+          {/* Company Info */}
+          <div className="flex-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+              {companyData.company_name}
+            </h1>
+            
+            {companyData.business_type && (
+              <div className="flex items-center gap-2 text-gray-600 mb-2">
+                <Building2 className="w-4 h-4" />
+                <span className="text-sm md:text-base">{companyData.business_type}</span>
+              </div>
+            )}
+
+            {companyData.description && (
+              <p className="text-gray-600 text-sm md:text-base mb-3 leading-relaxed">
+                {companyData.description}
+              </p>
+            )}
+
+            {/* Contact Info */}
+            <div className="flex flex-wrap gap-4 text-sm">
+              {companyData.address && (
+                <div className="flex items-center gap-2 text-gray-600">
+                  <MapPin className="w-4 h-4 flex-shrink-0" />
+                  <span>{companyData.address}</span>
+                </div>
+              )}
+              
+              {companyData.phone && (
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Phone className="w-4 h-4 flex-shrink-0" />
+                  <span>{companyData.phone}</span>
+                </div>
+              )}
             </div>
-          )}
-          
-          <h1 className="text-3xl font-bold text-gray-800 mb-3 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-            {profile.company_name}
-          </h1>
-          
-          {profile.business_type && (
-            <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
-              <Star className="w-4 h-4" />
-              {profile.business_type}
+
+            {/* Social Media */}
+            <div className="flex gap-3 mt-3">
+              {companyData.whatsapp && (
+                <button
+                  onClick={handleWhatsAppClick}
+                  className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>WhatsApp</span>
+                </button>
+              )}
+              
+              {companyData.instagram_url && (
+                <button
+                  onClick={handleInstagramClick}
+                  className="flex items-center gap-2 px-3 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors text-sm"
+                >
+                  <Instagram className="w-4 h-4" />
+                  <span>Instagram</span>
+                </button>
+              )}
             </div>
-          )}
-          
-          {companySettings.welcome_message && (
-            <p className="text-gray-700 text-sm leading-relaxed bg-gray-50 p-4 rounded-xl">
-              {companySettings.welcome_message}
-            </p>
-          )}
+          </div>
         </div>
+
+        {/* Welcome Message */}
+        {companyData.welcome_message && (
+          <div 
+            className="mt-6 p-4 rounded-lg border-l-4 text-sm md:text-base"
+            style={{ 
+              backgroundColor: `${themeColor}10`, 
+              borderLeftColor: themeColor 
+            }}
+          >
+            <p className="text-gray-700">{companyData.welcome_message}</p>
+          </div>
+        )}
       </div>
     </div>
   );

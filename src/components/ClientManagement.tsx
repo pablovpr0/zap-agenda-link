@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -208,55 +207,92 @@ const ClientManagement = () => {
   };
 
   return (
-    <div className="container py-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle>Gerenciar Clientes</CardTitle>
-          <div className="flex gap-2">
-            <Button onClick={exportToExcel} variant="outline" className="flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Exportar Excel
-            </Button>
-            <Button onClick={handleOpenNewClientModal}>
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Cliente
-            </Button>
+    <div className="container max-w-6xl mx-auto p-3 md:p-6">
+      <Card className="shadow-lg">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-xl md:text-2xl">Gerenciar Clientes</CardTitle>
+              <p className="text-sm text-gray-600 mt-1">Gerencie sua base de clientes</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button 
+                onClick={exportToExcel} 
+                variant="outline" 
+                className="flex items-center gap-2 text-sm"
+                size="sm"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Exportar</span> Excel
+              </Button>
+              <Button 
+                onClick={handleOpenNewClientModal}
+                className="bg-whatsapp-green hover:bg-green-600"
+                size="sm"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Cliente
+              </Button>
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            <div className="relative">
-              <Input
-                type="search"
-                placeholder="Buscar cliente..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <Search className="absolute top-2.5 right-2 w-5 h-5 text-gray-500" />
-            </div>
+        
+        <CardContent className="space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Input
+              type="search"
+              placeholder="Buscar por nome ou telefone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+          </div>
 
-            {loading ? (
-              <div className="text-center">Carregando clientes...</div>
-            ) : filteredClients.length === 0 ? (
-              <div className="text-center">Nenhum cliente encontrado.</div>
-            ) : (
-              <div className="grid gap-2">
-                {filteredClients.map(client => (
-                  <Card key={client.id} className="border">
-                    <CardContent className="flex items-center justify-between p-3">
-                      <div>
-                        <h3 className="font-medium">{client.name}</h3>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <Phone className="w-4 h-4" />
-                          {client.phone}
+          {/* Client List */}
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-whatsapp-green mx-auto mb-2"></div>
+              <p className="text-gray-500">Carregando clientes...</p>
+            </div>
+          ) : filteredClients.length === 0 ? (
+            <div className="text-center py-8">
+              <User className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+              <p className="text-gray-500">
+                {searchTerm ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado ainda.'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {filteredClients.map(client => (
+                <Card key={client.id} className="border hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        <div className="bg-whatsapp-green/10 p-2 rounded-full flex-shrink-0">
+                          <User className="w-5 h-5 text-whatsapp-green" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-medium text-gray-800 truncate">{client.name}</h3>
+                          <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
+                            <Phone className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">{client.phone}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
+                            <Calendar className="w-3 h-3 flex-shrink-0" />
+                            <span>Cadastrado em {new Date(client.created_at).toLocaleDateString('pt-BR')}</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleWhatsAppClick(client.phone, client.name)}
-                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50 p-2"
+                          title="Enviar WhatsApp"
                         >
                           <MessageCircle className="w-4 h-4" />
                         </Button>
@@ -264,16 +300,18 @@ const ClientManagement = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleOpenDeleteDialog(client)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
+                          title="Remover cliente"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -295,42 +333,37 @@ const ClientManagement = () => {
 
       {/* New Client Modal */}
       <Dialog open={isNewClientModalOpen} onOpenChange={setNewClientModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Adicionar Novo Cliente</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Nome
-              </Label>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome Completo</Label>
               <Input
                 type="text"
                 id="name"
                 value={newClientName}
                 onChange={(e) => setNewClientName(e.target.value)}
-                className="col-span-3"
+                placeholder="Digite o nome completo"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="phone" className="text-right">
-                Telefone
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Telefone</Label>
               <Input
                 type="tel"
                 id="phone"
                 value={newClientPhone}
                 onChange={(e) => setNewClientPhone(e.target.value)}
-                className="col-span-3"
                 placeholder="(11) 99999-9999"
               />
             </div>
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col sm:flex-row justify-end gap-2">
             <Button type="button" variant="secondary" onClick={handleCloseNewClientModal}>
               Cancelar
             </Button>
-            <Button type="submit" onClick={handleCreateNewClient}>
+            <Button type="submit" onClick={handleCreateNewClient} className="bg-whatsapp-green hover:bg-green-600">
               Adicionar
             </Button>
           </div>

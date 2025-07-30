@@ -60,19 +60,19 @@ const ReportsButton = () => {
         return total + (apt.services?.price || 0);
       }, 0);
 
-      // Gerar texto do relatório
-      const reportText = `📊 *RELATÓRIO DE ATENDIMENTOS*
+      // Gerar texto do relatório profissional
+      const reportText = `RELATÓRIO DE ATENDIMENTOS
 
-📅 *Período:* ${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}
+Período: ${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}
 
-👥 *Total de Clientes Atendidos:* ${totalClients}
+Total de Clientes Atendidos: ${totalClients}
 
-📋 *Procedimentos Realizados:*
-${Object.entries(serviceStats).map(([service, count]) => `• ${service}: ${count}x`).join('\n')}
+Procedimentos Realizados:
+${Object.entries(serviceStats).map(([service, count]) => `- ${service}: ${count}x`).join('\n')}
 
-💰 *Faturamento Total:* R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+Faturamento Total: R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
 
-✅ Total de Atendimentos: ${appointments?.length || 0}`;
+Total de Atendimentos: ${appointments?.length || 0}`;
 
       return reportText;
 
@@ -119,6 +119,12 @@ ${Object.entries(serviceStats).map(([service, count]) => `• ${service}: ${coun
     });
   };
 
+  // Função para determinar se uma data está no range selecionado
+  const isDateInRange = (date: Date) => {
+    if (!startDate || !endDate) return false;
+    return date >= startDate && date <= endDate;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -146,6 +152,12 @@ ${Object.entries(serviceStats).map(([service, count]) => `• ${service}: ${coun
                 disabled={(date) => date > new Date()}
                 locale={ptBR}
                 className="rounded-md border"
+                modifiers={{
+                  selected: (date) => isDateInRange(date)
+                }}
+                modifiersStyles={{
+                  selected: { backgroundColor: '#D0FFCF' }
+                }}
               />
             </div>
 
@@ -158,6 +170,12 @@ ${Object.entries(serviceStats).map(([service, count]) => `• ${service}: ${coun
                 disabled={(date) => date > new Date() || (startDate && date < startDate)}
                 locale={ptBR}
                 className="rounded-md border"
+                modifiers={{
+                  selected: (date) => isDateInRange(date)
+                }}
+                modifiersStyles={{
+                  selected: { backgroundColor: '#D0FFCF' }
+                }}
               />
             </div>
           </div>
