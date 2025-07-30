@@ -1,4 +1,5 @@
-import { getStorageData, MockAppointment, MockClient, STORAGE_KEYS } from '@/data/mockData';
+
+import { supabase } from '@/integrations/supabase/client';
 
 export const checkMonthlyLimit = async (
   companyId: string,
@@ -6,7 +7,7 @@ export const checkMonthlyLimit = async (
   monthlyAppointmentsLimit?: number
 ) => {
   if (!monthlyAppointmentsLimit) {
-    console.log('Limite mensal não configurado, permitindo agendamento');
+    console.log('📊 Limite mensal não configurado, permitindo agendamento');
     return true;
   }
 
@@ -20,36 +21,52 @@ export const checkMonthlyLimit = async (
     const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
     const startOfNextMonth = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01`;
     
-    console.log(`Verificando limite mensal para cliente ${clientPhone}`);
-    console.log(`Período: ${startOfMonth} até ${startOfNextMonth}`);
-    console.log(`Limite configurado: ${monthlyAppointmentsLimit}`);
+    console.log(`📊 Verificando limite mensal para cliente ${clientPhone}`);
+    console.log(`📅 Período: ${startOfMonth} até ${startOfNextMonth}`);
+    console.log(`📊 Limite configurado: ${monthlyAppointmentsLimit}`);
     
-    const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
-    const clients = getStorageData<MockClient[]>(STORAGE_KEYS.CLIENTS, []);
+    // Buscar cliente por telefone
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('phone', clientPhone)
+      .eq('company_id', companyId)
+      .maybeSingle();
     
-    // Find client by phone
-    const client = clients.find(c => c.phone === clientPhone && c.company_id === companyId);
+    if (clientError) {
+      console.error('❌ Erro ao buscar cliente:', clientError);
+      return true; // Em caso de erro, permitir agendamento
+    }
+    
     if (!client) {
-      return true; // New client, allow booking
+      console.log('👤 Cliente novo, permitindo agendamento');
+      return true; // Novo cliente, pode agendar
     }
 
-    const monthlyAppointments = appointments.filter(appointment =>
-      appointment.company_id === companyId &&
-      appointment.client_id === client.id &&
-      appointment.appointment_date >= startOfMonth &&
-      appointment.appointment_date < startOfNextMonth &&
-      appointment.status !== 'cancelled'
-    );
+    // Buscar agendamentos do mês atual
+    const { data: appointments, error: appointmentsError } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('client_id', client.id)
+      .gte('appointment_date', startOfMonth)
+      .lt('appointment_date', startOfNextMonth)
+      .neq('status', 'cancelled');
 
-    const appointmentCount = monthlyAppointments.length;
-    console.log(`Cliente ${clientPhone} tem ${appointmentCount} agendamentos confirmados este mês`);
+    if (appointmentsError) {
+      console.error('❌ Erro ao buscar agendamentos:', appointmentsError);
+      return true; // Em caso de erro, permitir agendamento
+    }
+
+    const appointmentCount = appointments?.length || 0;
+    console.log(`📊 Cliente ${clientPhone} tem ${appointmentCount} agendamentos confirmados este mês`);
     
     const canBook = appointmentCount < monthlyAppointmentsLimit;
-    console.log(`Pode agendar: ${canBook}`);
+    console.log(`✅ Pode agendar: ${canBook}`);
     
     return canBook;
   } catch (error) {
-    console.error('Erro ao verificar limite mensal:', error);
-    return true;
+    console.error('❌ Erro ao verificar limite mensal:', error);
+    return true; // Em caso de erro, permitir agendamento
   }
 };
