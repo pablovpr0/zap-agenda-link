@@ -6,19 +6,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Trash2, Plus, Search, Phone, User, Calendar } from 'lucide-react';
+import { Trash2, Plus, Search, Phone, User, Calendar, MessageCircle, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { getStorageData, setStorageData, MockClient, MockAppointment, STORAGE_KEYS } from '@/data/mockData';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Client {
+  id: string;
+  company_id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  created_at: string;
+}
 
 const ClientManagement = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [clients, setClients] = useState<MockClient[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedClient, setSelectedClient] = useState<MockClient | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isNewClientModalOpen, setNewClientModalOpen] = useState(false);
   const [newClientName, setNewClientName] = useState('');
@@ -34,9 +43,23 @@ const ClientManagement = () => {
   const loadClients = async () => {
     setLoading(true);
     try {
-      const storedClients = getStorageData<MockClient[]>(STORAGE_KEYS.CLIENTS, []);
-      const userClients = storedClients.filter(client => client.company_id === user?.id);
-      setClients(userClients);
+      const { data: clientsData, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('company_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Erro ao carregar clientes:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar a lista de clientes.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setClients(clientsData || []);
     } catch (error) {
       console.error('Erro ao carregar clientes:', error);
       toast({
@@ -49,12 +72,54 @@ const ClientManagement = () => {
     }
   };
 
+  const exportToExcel = () => {
+    if (clients.length === 0) {
+      toast({
+        title: "Nenhum cliente",
+        description: "Não há clientes para exportar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create CSV content
+    const headers = ['Nome', 'Telefone', 'Email', 'Data de Cadastro'];
+    const csvContent = [
+      headers.join(','),
+      ...clients.map(client => [
+        `"${client.name}"`,
+        `"${client.phone}"`,
+        `"${client.email || ''}"`,
+        `"${new Date(client.created_at).toLocaleDateString('pt-BR')}"`
+      ].join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `clientes_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+
+    toast({
+      title: "Exportado com sucesso!",
+      description: "A lista de clientes foi exportada para CSV.",
+    });
+  };
+
+  const handleWhatsAppClick = (phone: string, name: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const message = encodeURIComponent(`Olá ${name}! Como posso ajudá-lo?`);
+    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${message}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.phone.includes(searchTerm)
   );
 
-  const handleOpenDeleteDialog = (client: MockClient) => {
+  const handleOpenDeleteDialog = (client: Client) => {
     setSelectedClient(client);
     setDeleteDialogOpen(true);
   };
@@ -68,9 +133,14 @@ const ClientManagement = () => {
     if (!selectedClient) return;
 
     try {
-      const updatedClients = clients.filter(client => client.id !== selectedClient.id);
-      setStorageData(STORAGE_KEYS.CLIENTS, updatedClients);
-      setClients(updatedClients);
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', selectedClient.id);
+
+      if (error) throw error;
+
+      setClients(clients.filter(client => client.id !== selectedClient.id));
       toast({
         title: "Cliente removido",
         description: "O cliente foi removido com sucesso.",
@@ -108,17 +178,19 @@ const ClientManagement = () => {
     }
 
     try {
-      const newClient: MockClient = {
-        id: `client-${Date.now()}`,
-        company_id: user.id,
-        name: newClientName,
-        phone: newClientPhone,
-        created_at: new Date().toISOString()
-      };
+      const { data, error } = await supabase
+        .from('clients')
+        .insert({
+          company_id: user.id,
+          name: newClientName,
+          phone: newClientPhone
+        })
+        .select()
+        .single();
 
-      const updatedClients = [...clients, newClient];
-      setStorageData(STORAGE_KEYS.CLIENTS, updatedClients);
-      setClients(updatedClients);
+      if (error) throw error;
+
+      setClients([data, ...clients]);
       toast({
         title: "Cliente adicionado",
         description: "O cliente foi adicionado com sucesso.",
@@ -138,12 +210,18 @@ const ClientManagement = () => {
   return (
     <div className="container py-6">
       <Card>
-        <CardHeader className="flex items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle>Gerenciar Clientes</CardTitle>
-          <Button onClick={handleOpenNewClientModal}>
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Cliente
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={exportToExcel} variant="outline" className="flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Exportar Excel
+            </Button>
+            <Button onClick={handleOpenNewClientModal}>
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Cliente
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
@@ -174,14 +252,14 @@ const ClientManagement = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="space-x-1">
-                          <User className="w-3 h-3" />
-                          <span>0</span>
-                        </Badge>
-                        <Badge variant="secondary" className="space-x-1">
-                          <Calendar className="w-3 h-3" />
-                          <span>0</span>
-                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleWhatsAppClick(client.phone, client.name)}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -244,10 +322,11 @@ const ClientManagement = () => {
                 value={newClientPhone}
                 onChange={(e) => setNewClientPhone(e.target.value)}
                 className="col-span-3"
+                placeholder="(11) 99999-9999"
               />
             </div>
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={handleCloseNewClientModal}>
               Cancelar
             </Button>

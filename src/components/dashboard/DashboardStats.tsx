@@ -43,7 +43,7 @@ const DashboardStats = ({ stats }: DashboardStatsProps) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs md:text-sm font-medium text-whatsapp-muted">Receita</p>
-              <p className="text-lg md:text-2xl font-bold text-gray-800">R$ {stats.monthlyRevenue}</p>
+              <p className="text-lg md:text-2xl font-bold text-gray-800">R$ {stats.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
             </div>
             <DollarSign className="w-6 md:w-8 h-6 md:h-8 text-whatsapp-green" />
           </div>

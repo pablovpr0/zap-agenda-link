@@ -2,6 +2,7 @@
 import { CompanySettings } from '@/types/publicBooking';
 import { generateAvailableDates, generateTimeSlots } from '@/utils/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { getBrasiliaDate, formatBrazilianDate } from '@/lib/dateConfig';
 
 export const useAvailableTimes = (companySettings: CompanySettings | null) => {
   const generateAvailableDatesForCompany = () => {
@@ -19,13 +20,13 @@ export const useAvailableTimes = (companySettings: CompanySettings | null) => {
     );
     
     try {
-      // Buscar agendamentos existentes para a data
+      // Buscar agendamentos existentes para a data (incluindo status confirmado e pendente)
       const { data: appointments, error } = await supabase
         .from('appointments')
         .select('appointment_time')
         .eq('company_id', companySettings.company_id)
         .eq('appointment_date', selectedDate)
-        .neq('status', 'cancelled');
+        .in('status', ['confirmed', 'pending']); // Incluir agendamentos confirmados e pendentes
 
       if (error) {
         console.error('Erro ao verificar horários disponíveis:', error);

@@ -5,6 +5,7 @@ import PublicBookingLink from './PublicBookingLink';
 import WelcomeSection from './WelcomeSection';
 import TodayAppointmentsList from './TodayAppointmentsList';
 import MonthlyAgenda from '../MonthlyAgenda';
+import ReportsButton from '../reports/ReportsButton';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
 
@@ -71,6 +72,11 @@ const DashboardContent = ({
           
           {/* Removido RecentAppointments */}
         </div>
+      </div>
+
+      {/* Botão de Relatórios no final da página */}
+      <div className="flex justify-center pt-6">
+        <ReportsButton />
       </div>
     </div>
   );

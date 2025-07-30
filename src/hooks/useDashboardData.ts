@@ -6,6 +6,7 @@ import { fetchCompanySettings } from '@/services/companySettingsService';
 import { generatePublicBookingUrl } from '@/lib/domainConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardData } from '@/types/dashboard';
+import { getBrasiliaDate, formatBrazilianDate } from '@/lib/dateConfig';
 
 export const useDashboardData = (companyName?: string) => {
   const { user } = useAuth();
@@ -47,8 +48,9 @@ export const useDashboardData = (companyName?: string) => {
         setDashboardData(prev => ({ ...prev, bookingLink: publicUrl }));
       }
 
-      // Fetch dashboard statistics
-      const today = new Date().toISOString().split('T')[0];
+      // Use Brasília timezone for dates
+      const todayBrasilia = getBrasiliaDate();
+      const today = formatBrazilianDate(todayBrasilia).split('/').reverse().join('-'); // Convert DD/MM/YYYY to YYYY-MM-DD
       
       // Today's appointments
       const { data: todayAppointments, error: todayError } = await supabase
@@ -71,25 +73,25 @@ export const useDashboardData = (companyName?: string) => {
         console.error('Error fetching clients:', clientsError);
       }
 
-      // Monthly appointments for revenue calculation
-      const currentMonth = new Date();
+      // Monthly revenue - only from COMPLETED appointments (not scheduled)
+      const currentMonth = getBrasiliaDate();
       const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).toISOString().split('T')[0];
       const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).toISOString().split('T')[0];
 
-      const { data: monthlyAppointments, error: monthlyError } = await supabase
+      const { data: completedAppointments, error: monthlyError } = await supabase
         .from('appointments')
         .select('service_id, services(price)')
         .eq('company_id', user.id)
         .gte('appointment_date', firstDay)
         .lte('appointment_date', lastDay)
-        .eq('status', 'confirmed');
+        .eq('status', 'completed'); // Only count completed appointments for revenue
 
       if (monthlyError) {
-        console.error('Error fetching monthly appointments:', monthlyError);
+        console.error('Error fetching completed appointments:', monthlyError);
       }
 
-      // Calculate monthly revenue
-      const monthlyRevenue = monthlyAppointments?.reduce((total, apt: any) => {
+      // Calculate monthly revenue from completed appointments
+      const monthlyRevenue = completedAppointments?.reduce((total, apt: any) => {
         return total + (apt.services?.price || 0);
       }, 0) || 0;
 
