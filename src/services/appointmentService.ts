@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { BookingFormData, CompanySettings, Service } from '@/types/publicBooking';
 import { Professional } from './professionalsService';
@@ -13,6 +12,14 @@ export const createAppointment = async (
   const { selectedService, selectedDate, selectedTime, clientName, clientPhone } = formData;
   
   console.log('🔧 createAppointment: Iniciando criação do agendamento');
+  console.log('📋 Parâmetros recebidos:', {
+    selectedService,
+    selectedDate,
+    selectedTime,
+    clientName,
+    clientPhone: clientPhone ? `${clientPhone.substring(0, 4)}****` : 'não informado',
+    companyId: companySettings.company_id
+  });
   
   // Encontrar o serviço selecionado
   const service = services.find(s => s.id === selectedService);
@@ -24,21 +31,28 @@ export const createAppointment = async (
 
   // Criar ou encontrar cliente
   console.log('👤 Criando/encontrando cliente...');
-  const { data: clientData, error: clientError } = await supabase
-    .rpc('create_public_client', {
-      p_company_id: companySettings.company_id,
-      p_name: clientName,
-      p_phone: clientPhone,
-      p_email: formData.clientEmail || null
-    });
+  
+  let clientId: string;
+  try {
+    const { data: clientData, error: clientError } = await supabase
+      .rpc('create_public_client', {
+        p_company_id: companySettings.company_id,
+        p_name: clientName,
+        p_phone: clientPhone,
+        p_email: formData.clientEmail || null
+      });
 
-  if (clientError) {
-    console.error('❌ Erro ao criar cliente:', clientError);
-    throw new Error(`Erro ao criar cliente: ${clientError.message}`);
+    if (clientError) {
+      console.error('❌ Erro ao criar cliente:', clientError);
+      throw new Error(`Erro ao criar cliente: ${clientError.message}`);
+    }
+
+    clientId = clientData;
+    console.log('✅ Cliente criado/encontrado:', clientId);
+  } catch (error: any) {
+    console.error('❌ Erro crítico ao criar cliente:', error);
+    throw new Error(`Falha ao processar dados do cliente: ${error.message}`);
   }
-
-  const clientId = clientData;
-  console.log('✅ Cliente criado/encontrado:', clientId);
 
   // Determinar profissional (usar o primeiro ativo se não especificado)
   let professionalId = formData.selectedProfessional;
@@ -46,26 +60,62 @@ export const createAppointment = async (
     professionalId = professionals[0].id;
   }
 
-  // Criar agendamento
+  console.log('👨‍⚕️ Profissional selecionado:', professionalId);
+
+  // Criar agendamento com tratamento de erro aprimorado
   console.log('📅 Criando agendamento...');
-  const { data: appointmentData, error: appointmentError } = await supabase
-    .rpc('create_public_appointment', {
-      p_company_id: companySettings.company_id,
-      p_client_id: clientId,
-      p_service_id: selectedService,
-      p_professional_id: professionalId,
-      p_appointment_date: selectedDate,
-      p_appointment_time: selectedTime,
-      p_duration: service.duration
-    });
+  console.log('🔧 Parâmetros da função RPC:', {
+    p_company_id: companySettings.company_id,
+    p_client_id: clientId,
+    p_service_id: selectedService,
+    p_professional_id: professionalId,
+    p_appointment_date: selectedDate,
+    p_appointment_time: selectedTime,
+    p_duration: service.duration
+  });
 
-  if (appointmentError) {
-    console.error('❌ Erro ao criar agendamento:', appointmentError);
-    throw new Error(`Erro ao criar agendamento: ${appointmentError.message}`);
+  let appointmentId: string;
+  try {
+    const { data: appointmentData, error: appointmentError } = await supabase
+      .rpc('create_public_appointment', {
+        p_company_id: companySettings.company_id,
+        p_client_id: clientId,
+        p_service_id: selectedService,
+        p_professional_id: professionalId,
+        p_appointment_date: selectedDate,
+        p_appointment_time: selectedTime,
+        p_duration: service.duration
+      });
+
+    if (appointmentError) {
+      console.error('❌ Erro RPC ao criar agendamento:', {
+        error: appointmentError,
+        code: appointmentError.code,
+        details: appointmentError.details,
+        hint: appointmentError.hint,
+        message: appointmentError.message
+      });
+      
+      // Tratamento específico para diferentes tipos de erro
+      if (appointmentError.message?.includes('ocupado')) {
+        throw new Error('Este horário já está ocupado. Por favor, escolha outro horário.');
+      } else if (appointmentError.message?.includes('function')) {
+        throw new Error('Erro do sistema ao processar agendamento. Tente novamente em alguns instantes.');
+      } else {
+        throw new Error(`Erro ao criar agendamento: ${appointmentError.message}`);
+      }
+    }
+
+    if (!appointmentData) {
+      throw new Error('Agendamento criado mas ID não retornado');
+    }
+
+    appointmentId = appointmentData;
+    console.log('✅ Agendamento criado com sucesso:', appointmentId);
+  } catch (error: any) {
+    console.error('❌ Erro crítico ao criar agendamento:', error);
+    throw error; // Re-throw para manter a mensagem de erro específica
   }
-
-  const appointmentId = appointmentData;
-  console.log('✅ Agendamento criado:', appointmentId);
 
   // Enviar notificação via WhatsApp para o comerciante
   if (companySettings.phone) {
