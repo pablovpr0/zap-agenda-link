@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export const fetchCompanySettings = async (userId: string) => {
-  console.log('Fetching company settings for user:', userId);
+  console.log('🔍 fetchCompanySettings: Buscando configurações para usuário:', userId);
   
   try {
     const { data, error } = await supabase
@@ -12,39 +12,46 @@ export const fetchCompanySettings = async (userId: string) => {
       .maybeSingle();
 
     if (error) {
-      console.error('Error fetching company settings:', error);
-      throw new Error('Erro ao buscar configurações da empresa');
+      console.error('❌ fetchCompanySettings: Erro:', error);
+      throw new Error(`Erro ao buscar configurações: ${error.message}`);
     }
 
+    console.log('✅ fetchCompanySettings: Configurações encontradas:', data);
     return data;
   } catch (error: any) {
-    console.error('Service error in fetchCompanySettings:', error);
-    throw new Error(error.message || 'Erro ao buscar configurações da empresa');
+    console.error('❌ fetchCompanySettings: Erro no serviço:', error);
+    throw error;
   }
 };
 
 export const createDefaultSettings = async (userId: string, companyName: string): Promise<void> => {
-  console.log('Creating default settings for user:', userId, 'company:', companyName);
+  console.log('🚀 createDefaultSettings: Criando configurações padrão para:', userId, companyName);
   
   try {
-    // Check if settings already exist
+    // Verificar se já existem configurações
     const existingSettings = await fetchCompanySettings(userId);
     if (existingSettings) {
-      console.log('Company settings already exist, skipping creation');
+      console.log('ℹ️ createDefaultSettings: Configurações já existem, pulando criação');
       return;
     }
 
+    // Gerar slug único
     const slug = await generateUniqueSlug(companyName);
+    console.log('📝 createDefaultSettings: Slug gerado:', slug);
     
     const defaultSettings = {
       company_id: userId,
       slug,
-      working_days: [1, 2, 3, 4, 5], // Monday to Friday
+      working_days: [1, 2, 3, 4, 5], // Segunda a Sexta
       working_hours_start: '09:00:00',
       working_hours_end: '18:00:00',
-      appointment_interval: 60,
+      appointment_interval: 30,
       advance_booking_limit: 30,
-      monthly_appointments_limit: 10
+      monthly_appointments_limit: 10,
+      status_aberto: true,
+      lunch_break_enabled: false,
+      lunch_start_time: '12:00:00',
+      lunch_end_time: '13:00:00'
     };
 
     const { error } = await supabase
@@ -52,29 +59,30 @@ export const createDefaultSettings = async (userId: string, companyName: string)
       .insert(defaultSettings);
 
     if (error) {
-      console.error('Error creating company settings:', error);
-      throw new Error('Erro ao criar configurações da empresa');
+      console.error('❌ createDefaultSettings: Erro ao inserir:', error);
+      throw new Error(`Erro ao criar configurações: ${error.message}`);
     }
 
-    console.log('Default settings created successfully with slug:', slug);
+    console.log('✅ createDefaultSettings: Configurações criadas com sucesso');
   } catch (error: any) {
-    console.error('Service error in createDefaultSettings:', error);
-    throw new Error(error.message || 'Erro ao criar configurações da empresa');
+    console.error('❌ createDefaultSettings: Erro no serviço:', error);
+    throw error;
   }
 };
 
 export const generateUniqueSlug = async (companyName: string): Promise<string> => {
   try {
+    // Criar slug base
     let slug = companyName
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '')
-      .substring(0, 50); // Limit length
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^a-z0-9]/g, '-') // Substitui caracteres especiais por hífen
+      .replace(/-+/g, '-') // Remove hífens consecutivos
+      .replace(/^-|-$/g, '') // Remove hífens do início e fim
+      .substring(0, 50); // Limita tamanho
 
-    // Ensure slug is not empty
+    // Garantir que não está vazio
     if (!slug) {
       slug = 'empresa';
     }
@@ -82,6 +90,7 @@ export const generateUniqueSlug = async (companyName: string): Promise<string> =
     let counter = 0;
     let finalSlug = slug;
     
+    // Verificar se o slug já existe
     while (await isSlugTaken(finalSlug)) {
       counter++;
       finalSlug = `${slug}-${counter}`;
@@ -89,8 +98,8 @@ export const generateUniqueSlug = async (companyName: string): Promise<string> =
 
     return finalSlug;
   } catch (error: any) {
-    console.error('Error generating unique slug:', error);
-    // Return a fallback slug
+    console.error('❌ generateUniqueSlug: Erro:', error);
+    // Retornar slug de fallback em caso de erro
     return `empresa-${Date.now()}`;
   }
 };
@@ -104,24 +113,26 @@ export const isSlugTaken = async (slug: string): Promise<boolean> => {
       .maybeSingle();
 
     if (error) {
-      console.error('Error checking slug availability:', error);
-      return false; // Assume available if error
+      console.error('⚠️ isSlugTaken: Erro ao verificar slug:', error);
+      return false; // Assumir disponível se houver erro
     }
 
     return data !== null;
   } catch (error: any) {
-    console.error('Service error in isSlugTaken:', error);
-    return false; // Assume available if error
+    console.error('❌ isSlugTaken: Erro no serviço:', error);
+    return false; // Assumir disponível se houver erro
   }
 };
 
 export const updateCompanySlug = async (userId: string, newSlug: string): Promise<boolean> => {
   try {
+    // Validar slug
     const validation = validateSlug(newSlug);
     if (!validation.isValid) {
       throw new Error(validation.error);
     }
 
+    // Verificar se já está em uso
     if (await isSlugTaken(newSlug)) {
       throw new Error('Este slug já está em uso por outra empresa');
     }
@@ -132,14 +143,15 @@ export const updateCompanySlug = async (userId: string, newSlug: string): Promis
       .eq('company_id', userId);
 
     if (error) {
-      console.error('Error updating company slug:', error);
-      throw new Error('Erro ao atualizar slug da empresa');
+      console.error('❌ updateCompanySlug: Erro ao atualizar:', error);
+      throw new Error(`Erro ao atualizar slug: ${error.message}`);
     }
 
+    console.log('✅ updateCompanySlug: Slug atualizado com sucesso');
     return true;
   } catch (error: any) {
-    console.error('Service error in updateCompanySlug:', error);
-    throw new Error(error.message || 'Erro ao atualizar slug da empresa');
+    console.error('❌ updateCompanySlug: Erro no serviço:', error);
+    throw error;
   }
 };
 

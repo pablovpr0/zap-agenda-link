@@ -353,6 +353,12 @@ export type Database = {
           company_id: string
         }[]
       }
+      get_public_company_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          company_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
