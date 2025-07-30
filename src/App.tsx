@@ -10,6 +10,9 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CompanySetup from "./pages/CompanySetup";
 import PublicBooking from "./pages/PublicBooking";
+import CreateTestCompany from "./pages/CreateTestCompany";
+import DebugPublicBooking from "./pages/DebugPublicBooking";
+import FixPabloLink from "./pages/FixPabloLink";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +27,9 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/company-setup" element={<CompanySetup />} />
+            <Route path="/create-test-company" element={<CreateTestCompany />} />
+            <Route path="/fix-pablo" element={<FixPabloLink />} />
+            <Route path="/debug/:companySlug" element={<DebugPublicBooking />} />
             <Route path="/public/:companySlug" element={<PublicBooking />} />
             <Route path="/" element={<Index />} />
             {/* Rota para capturar slugs diretamente na raiz (ex: zapagenda.site/pablo) */}

@@ -22,21 +22,27 @@ const EnhancedCompanyHeader = ({ companySettings, profile }: EnhancedCompanyHead
                 <img 
                   src={companySettings.logo_url} 
                   alt={profile.company_name} 
-                  className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                  className="company-logo"
                 />
-                <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full p-2">
+                <div className="absolute -bottom-2 -right-2 public-bg-primary rounded-full p-2">
                   <CheckCircle className="w-4 h-4 text-white" />
                 </div>
               </div>
             </div>
           )}
           
-          <h1 className="text-3xl font-bold text-gray-800 mb-3 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-            {profile.company_name}
+          <h1 className="text-3xl font-bold text-gray-800 mb-3">
+            <span className="public-gradient bg-clip-text text-transparent">
+              {profile.company_name}
+            </span>
           </h1>
           
           {profile.business_type && (
-            <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-4" 
+                 style={{
+                   backgroundColor: 'var(--public-theme-background)',
+                   color: 'var(--public-theme-primary)'
+                 }}>
               <Star className="w-4 h-4" />
               {profile.business_type}
             </div>

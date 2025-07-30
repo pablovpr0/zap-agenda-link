@@ -28,7 +28,7 @@ const ClientForm = ({
             value={clientName}
             onChange={(e) => onNameChange(e.target.value)}
             placeholder="Seu nome completo"
-            className="pl-10 border-green-200 focus:border-green-400 focus:ring-green-100 bg-green-50"
+            className="pl-10 public-border-primary border-opacity-30 focus:public-border-primary focus:ring-opacity-20 bg-opacity-10 public-bg-primary"
             required
           />
         </div>
@@ -42,7 +42,7 @@ const ClientForm = ({
             value={clientPhone}
             onChange={(e) => onPhoneChange(e.target.value)}
             placeholder="(11) 99999-9999"
-            className="pl-10 border-green-200 focus:border-green-400 focus:ring-green-100 bg-green-50"
+            className="pl-10 public-border-primary border-opacity-30 focus:public-border-primary focus:ring-opacity-20 bg-opacity-10 public-bg-primary"
             required
           />
         </div>

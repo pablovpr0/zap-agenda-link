@@ -16,6 +16,13 @@ export const useCompanyData = (companySlug: string) => {
 
   const loadCompanyData = async () => {
     console.log('🚀 useCompanyData: Iniciando carregamento para slug:', companySlug);
+    
+    if (!companySlug || companySlug.trim() === '') {
+      console.error('❌ useCompanyData: Slug vazio ou inválido');
+      setLoading(false);
+      return;
+    }
+    
     try {
       const { settings, profileData, servicesData } = await loadCompanyDataBySlug(companySlug);
       
@@ -25,15 +32,21 @@ export const useCompanyData = (companySlug: string) => {
       setProfile(profileData);
       setServices(servicesData);
 
-      // Buscar profissionais ativos
-      const professionalsData = await fetchActiveProfessionals(settings.company_id);
-      console.log('👥 useCompanyData: Profissionais carregados:', professionalsData);
-      setProfessionals(professionalsData);
+      // Buscar profissionais ativos (opcional, pode falhar)
+      try {
+        const professionalsData = await fetchActiveProfessionals(settings.company_id);
+        console.log('👥 useCompanyData: Profissionais carregados:', professionalsData);
+        setProfessionals(professionalsData);
+      } catch (profError) {
+        console.warn('⚠️ useCompanyData: Erro ao carregar profissionais (não crítico):', profError);
+        setProfessionals([]);
+      }
+      
     } catch (error: any) {
       console.error('❌ useCompanyData: Erro ao carregar dados da empresa:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível carregar os dados da empresa.",
+        description: `Não foi possível carregar os dados da empresa: ${error.message}`,
         variant: "destructive",
       });
     } finally {

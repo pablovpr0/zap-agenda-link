@@ -2,6 +2,11 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { loadSavedTheme, applyTheme } from './utils/themes'
+
+// Aplicar tema salvo ao carregar a aplicação
+const savedTheme = loadSavedTheme();
+applyTheme(savedTheme);
 
 createRoot(document.getElementById("root")!).render(<App />);
 

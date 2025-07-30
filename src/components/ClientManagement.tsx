@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Users, Plus, Phone, Mail, Search, Edit, Trash2 } from 'lucide-react';
+import { Users, Plus, Phone, Mail, Search, Edit, Trash2, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -164,6 +164,22 @@ const ClientManagement = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleWhatsAppContact = (phone: string, clientName: string) => {
+    // Limpar o telefone removendo caracteres especiais
+    const cleanPhone = phone.replace(/\D/g, '');
+    
+    // Adicionar código do país se não tiver
+    const formattedPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+    
+    // Criar mensagem personalizada
+    const message = `Olá ${clientName}! Aqui é da empresa. Como posso ajudá-lo?`;
+    const encodedMessage = encodeURIComponent(message);
+    
+    // Abrir WhatsApp
+    const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const filteredClients = clients.filter(client =>
@@ -331,12 +347,22 @@ const ClientManagement = () => {
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 md:gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleWhatsAppContact(client.phone, client.name)}
+                      className="border-green-300 text-green-600 hover:bg-green-50"
+                      title="Contatar via WhatsApp"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => handleEditClient(client)}
                       className="border-whatsapp"
+                      title="Editar cliente"
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -345,6 +371,7 @@ const ClientManagement = () => {
                       variant="outline"
                       onClick={() => handleDeleteClient(client.id)}
                       className="border-red-300 text-red-600 hover:bg-red-50"
+                      title="Excluir cliente"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

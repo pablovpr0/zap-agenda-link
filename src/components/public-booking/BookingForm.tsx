@@ -21,7 +21,7 @@ interface BookingFormProps {
     clientName: string;
     clientPhone: string;
   }) => Promise<boolean>;
-  generateAvailableTimes: (selectedDate: string) => Promise<string[]>;
+  generateAvailableTimes: (selectedDate: string, serviceDuration?: number) => Promise<string[]>;
 }
 
 const BookingForm = ({ 
@@ -38,19 +38,30 @@ const BookingForm = ({
   const [clientPhone, setClientPhone] = useState('');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
-  // Load available times when date changes
+  // Load available times when date or service changes
   useEffect(() => {
     const loadAvailableTimes = async () => {
       if (selectedDate) {
-        const times = await generateAvailableTimes(selectedDate);
+        // Encontrar duração do serviço selecionado
+        const selectedServiceData = services.find(s => s.id === selectedService);
+        const serviceDuration = selectedServiceData?.duration;
+        
+        console.log('🔄 Carregando horários para:', { selectedDate, selectedService, serviceDuration });
+        
+        const times = await generateAvailableTimes(selectedDate, serviceDuration);
         setAvailableTimes(times);
+        
+        // Limpar horário selecionado se não estiver mais disponível
+        if (selectedTime && !times.includes(selectedTime)) {
+          setSelectedTime('');
+        }
       } else {
         setAvailableTimes([]);
       }
     };
 
     loadAvailableTimes();
-  }, [selectedDate, generateAvailableTimes]);
+  }, [selectedDate, selectedService, generateAvailableTimes, services, selectedTime]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

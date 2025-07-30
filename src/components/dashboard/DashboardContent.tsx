@@ -4,6 +4,7 @@ import QuickActions from './QuickActions';
 import PublicBookingLink from './PublicBookingLink';
 import WelcomeSection from './WelcomeSection';
 import TodayAppointmentsList from './TodayAppointmentsList';
+import RevenueCard from './RevenueCard';
 import MonthlyAgenda from '../MonthlyAgenda';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
@@ -64,12 +65,12 @@ const DashboardContent = ({
         </div>
 
         <div className="space-y-4 md:space-y-6">
+          <RevenueCard />
+          
           <TodayAppointmentsList 
             appointments={data.todayAppointmentsList}
             loading={loading}
           />
-          
-          {/* Removido RecentAppointments */}
         </div>
       </div>
     </div>

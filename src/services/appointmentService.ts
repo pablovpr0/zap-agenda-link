@@ -27,28 +27,61 @@ export const createAppointment = async (
 
   console.log('✅ company_id validado:', companySettings.company_id);
 
-  // Verificar se horário ainda está disponível
-  const { data: conflictCheck, error: conflictError } = await supabase
+  // Verificar limite mensal do cliente antes de prosseguir
+  const { data: monthlyAppointments, error: monthlyError } = await supabase
     .from('appointments')
-    .select('id')
+    .select(`
+      id,
+      clients!inner(phone)
+    `)
     .eq('company_id', companySettings.company_id)
-    .eq('appointment_date', selectedDate)
-    .eq('appointment_time', selectedTime)
+    .eq('clients.phone', clientPhone)
+    .gte('appointment_date', new Date().toISOString().slice(0, 7) + '-01')
+    .lt('appointment_date', new Date().toISOString().slice(0, 7) + '-32')
     .neq('status', 'cancelled');
 
-  if (conflictError) {
-    console.error('Erro ao verificar conflitos:', conflictError);
+  if (!monthlyError && monthlyAppointments) {
+    // Buscar limite mensal da empresa
+    const { data: settings } = await supabase
+      .from('company_settings')
+      .select('monthly_appointments_limit')
+      .eq('company_id', companySettings.company_id)
+      .single();
+
+    const monthlyLimit = settings?.monthly_appointments_limit || 4;
+    
+    if (monthlyAppointments.length >= monthlyLimit) {
+      throw new Error(`Este cliente já atingiu o limite de ${monthlyLimit} agendamentos por mês.`);
+    }
   }
 
-  if (conflictCheck && conflictCheck.length > 0) {
-    throw new Error('Este horário já foi ocupado. Por favor, escolha outro horário.');
+  // Validação robusta de conflitos usando a nova função
+  const service = services.find(s => s.id === selectedService);
+  const serviceDuration = service?.duration || 60;
+  
+  // Importar a função de validação
+  const { validateAppointmentSlot } = await import('@/utils/appointmentValidation');
+  
+  const conflictValidation = await validateAppointmentSlot(
+    companySettings.company_id,
+    selectedDate,
+    selectedTime,
+    serviceDuration
+  );
+
+  if (conflictValidation.hasConflict) {
+    const conflictMsg = conflictValidation.conflictDetails 
+      ? `Este horário conflita com o agendamento de ${conflictValidation.conflictDetails.existingClientName} (${conflictValidation.conflictDetails.existingServiceName}) às ${conflictValidation.conflictDetails.existingAppointmentTime}. Por favor, escolha outro horário.`
+      : 'Este horário não está mais disponível. Por favor, escolha outro horário.';
+    
+    throw new Error(conflictMsg);
   }
 
-  // Criar ou buscar cliente
+  // Criar ou buscar cliente - sempre salvar/atualizar informações
   let clientId;
   const { data: existingClient } = await supabase
     .from('clients')
-    .select('id')
+    .select('id, name, email')
     .eq('company_id', companySettings.company_id)
     .eq('phone', clientPhone)
     .maybeSingle();
@@ -56,6 +89,7 @@ export const createAppointment = async (
   if (existingClient) {
     clientId = existingClient.id;
     
+    // Sempre atualizar o nome do cliente caso tenha mudado
     await supabase
       .from('clients')
       .update({
@@ -63,9 +97,11 @@ export const createAppointment = async (
         updated_at: new Date().toISOString()
       })
       .eq('id', clientId);
+      
+    console.log('✅ Cliente existente atualizado:', clientId);
   } else {
-    // Criar cliente com contexto público garantido
-    console.log('🔧 Inserindo novo cliente (contexto público):', {
+    // Criar novo cliente automaticamente quando faz agendamento público
+    console.log('🔧 Inserindo novo cliente automaticamente (agendamento público):', {
       company_id: companySettings.company_id,
       name: clientName,
       phone: clientPhone,
@@ -77,6 +113,7 @@ export const createAppointment = async (
         company_id: companySettings.company_id,
         name: clientName,
         phone: clientPhone,
+        notes: 'Cliente cadastrado automaticamente via agendamento público'
       })
       .select('id')
       .single();
@@ -90,14 +127,11 @@ export const createAppointment = async (
       throw new Error('Cliente criado mas ID não retornado');
     }
 
-    console.log('✅ Cliente criado com sucesso:', newClient.id);
+    console.log('✅ Novo cliente criado automaticamente:', newClient.id);
     clientId = newClient.id;
   }
 
-  // Buscar duração do serviço
-  const service = services.find(s => s.id === selectedService);
-
-  // Criar agendamento
+  // Criar agendamento (usando a variável service já definida anteriormente)
   const appointmentData = {
     company_id: companySettings.company_id,
     client_id: clientId,

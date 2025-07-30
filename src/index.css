@@ -3,6 +3,118 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Variáveis CSS para temas dinâmicos */
+:root {
+  --theme-primary: #25d366;
+  --theme-secondary: #128c7e;
+  --theme-accent: #34d399;
+  --theme-background: #f0fdf4;
+  --theme-gradient: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  
+  /* Variáveis específicas para página pública */
+  --public-theme-primary: #25d366;
+  --public-theme-secondary: #128c7e;
+  --public-theme-accent: #34d399;
+  --public-theme-background: #f0fdf4;
+  --public-theme-gradient: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+}
+
+/* Classes utilitárias para temas */
+.theme-primary {
+  color: var(--theme-primary);
+}
+
+.theme-bg-primary {
+  background-color: var(--theme-primary);
+}
+
+.theme-border-primary {
+  border-color: var(--theme-primary);
+}
+
+.theme-gradient {
+  background: var(--theme-gradient);
+}
+
+/* Aplicar tema aos componentes existentes */
+.bg-whatsapp-green {
+  background-color: var(--theme-primary) !important;
+}
+
+.text-whatsapp-green {
+  color: var(--theme-primary) !important;
+}
+
+.border-whatsapp {
+  border-color: var(--theme-primary) !important;
+}
+
+.hover\:bg-green-600:hover {
+  background-color: var(--theme-secondary) !important;
+}
+
+/* Logo arredondada e grande */
+.company-logo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--theme-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Classes específicas para página pública */
+.public-page {
+  background: var(--public-theme-background);
+}
+
+.public-primary {
+  color: var(--public-theme-primary) !important;
+}
+
+.public-bg-primary {
+  background-color: var(--public-theme-primary) !important;
+}
+
+.public-border-primary {
+  border-color: var(--public-theme-primary) !important;
+}
+
+.public-gradient {
+  background: var(--public-theme-gradient) !important;
+}
+
+.public-button {
+  background-color: var(--public-theme-primary) !important;
+  border-color: var(--public-theme-primary) !important;
+}
+
+.public-button:hover {
+  background-color: var(--public-theme-secondary) !important;
+  border-color: var(--public-theme-secondary) !important;
+}
+
+/* Aplicar tema público aos componentes existentes na página pública */
+.public-page .bg-whatsapp-green {
+  background-color: var(--public-theme-primary) !important;
+}
+
+.public-page .text-whatsapp-green {
+  color: var(--public-theme-primary) !important;
+}
+
+.public-page .border-whatsapp {
+  border-color: var(--public-theme-primary) !important;
+}
+
+.public-page .hover\:bg-green-600:hover {
+  background-color: var(--public-theme-secondary) !important;
+}
+
+.public-page .bg-gradient-to-br {
+  background: var(--public-theme-gradient) !important;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

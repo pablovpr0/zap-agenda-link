@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { User, Palette, Upload, Link, Settings } from 'lucide-react';
+import { User, Palette, Upload, Link, Settings, Users } from 'lucide-react';
 import ImageUpload from './ImageUpload';
+import ThemeSelector from './ThemeSelector';
 
 interface ProfileCustomizationModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
   const [businessType, setBusinessType] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [themeColor, setThemeColor] = useState('#22c55e');
+  const [selectedThemeId, setSelectedThemeId] = useState<string>('');
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [instagramUrl, setInstagramUrl] = useState('');
   const [address, setAddress] = useState('');
@@ -71,6 +73,7 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
       if (settings) {
         setLogoUrl(settings.logo_url || '');
         setThemeColor(settings.theme_color || '#22c55e');
+        setSelectedThemeId(settings.selected_theme_id || '');
         setWelcomeMessage(settings.welcome_message || '');
         setInstagramUrl(settings.instagram_url || '');
         setAddress(settings.address || '');
@@ -140,6 +143,7 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
         slug: companySlug,
         logo_url: logoUrl || null,
         theme_color: themeColor,
+        selected_theme_id: selectedThemeId || null,
         welcome_message: welcomeMessage || null,
         instagram_url: instagramUrl || null,
         address: address || null,
@@ -274,41 +278,38 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <Upload className="w-4 h-4" />
-                    Logo da Empresa
+                    Logo da Empresa (Foto de Perfil)
                   </Label>
                   <ImageUpload
                     currentImageUrl={logoUrl}
                     onImageUploaded={setLogoUrl}
                     bucket="company-logos"
                   />
+                  <p className="text-xs text-gray-500">
+                    A logo será exibida em formato arredondado e tamanho grande
+                  </p>
                 </div>
 
+                {/* Seletor de Temas */}
                 <div className="space-y-2">
-                  <Label htmlFor="themeColor">Cor do Tema</Label>
-                  <div className="flex items-center gap-4">
-                    <Input
-                      id="themeColor"
-                      type="color"
-                      value={themeColor}
-                      onChange={(e) => setThemeColor(e.target.value)}
-                      className="w-20 h-10"
-                    />
-                    <Input
-                      value={themeColor}
-                      onChange={(e) => setThemeColor(e.target.value)}
-                      placeholder="#22c55e"
-                      className="flex-1"
-                    />
-                  </div>
+                  <ThemeSelector 
+                    onThemeChange={(theme) => {
+                      setThemeColor(theme.colors.primary);
+                      setSelectedThemeId(theme.id);
+                    }}
+                  />
+                  <p className="text-xs text-gray-500">
+                    O tema selecionado será aplicado na página pública de agendamento dos seus clientes
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Mensagens e Links */}
+            {/* Mensagens e Configurações */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Link className="w-5 h-5" />
-                Mensagens e Configurações
+                Mensagens e Links
               </h3>
 
               <div className="space-y-4">
@@ -323,7 +324,7 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="instagramUrl">Instagram</Label>
+                  <Label htmlFor="instagramUrl">Link do Instagram</Label>
                   <Input
                     id="instagramUrl"
                     value={instagramUrl}
@@ -331,7 +332,17 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
                     placeholder="https://instagram.com/seuusuario"
                   />
                 </div>
+              </div>
+            </div>
 
+            {/* Configurações de Agendamento */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Configurações de Agendamento
+              </h3>
+
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="monthlyLimit">Limite de Agendamentos por Cliente/Mês</Label>
                   <Input
@@ -342,6 +353,9 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
                     value={monthlyLimit}
                     onChange={(e) => setMonthlyLimit(Number(e.target.value))}
                   />
+                  <p className="text-xs text-gray-500">
+                    Defina quantos agendamentos cada cliente pode fazer por mês (identificado pelo telefone)
+                  </p>
                 </div>
               </div>
             </div>

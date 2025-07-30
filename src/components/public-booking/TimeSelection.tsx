@@ -20,8 +20,8 @@ const TimeSelection = ({ availableTimes, selectedTime, onTimeSelect }: TimeSelec
             className={`
               p-3 text-sm rounded-lg border transition-all duration-200
               ${selectedTime === time 
-                ? 'bg-green-500 text-white border-green-500 shadow-md' 
-                : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+                ? 'public-bg-primary text-white public-border-primary shadow-md' 
+                : 'public-border-primary border-opacity-30 public-primary hover:bg-opacity-10 hover:public-bg-primary'
               }
             `}
           >

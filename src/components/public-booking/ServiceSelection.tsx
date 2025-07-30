@@ -22,19 +22,19 @@ const ServiceSelection = ({ services, selectedService, onServiceChange }: Servic
     <div className="space-y-2">
       <Label className="text-gray-700 font-medium">Escolha o serviço</Label>
       <Select value={selectedService} onValueChange={onServiceChange} required>
-        <SelectTrigger className="border-green-200 focus:border-green-400 focus:ring-green-100 bg-green-50">
+        <SelectTrigger className="public-border-primary border-opacity-30 focus:public-border-primary focus:ring-opacity-20 bg-opacity-10 public-bg-primary">
           <SelectValue placeholder="Qual serviço você deseja?" />
         </SelectTrigger>
         <SelectContent>
           {services.map((service) => (
-            <SelectItem key={service.id} value={service.id} className="hover:bg-green-50">
+            <SelectItem key={service.id} value={service.id} className="hover:public-bg-primary hover:bg-opacity-10">
               <div className="flex justify-between items-center w-full">
                 <span className="font-medium">{service.name}</span>
                 <div className="flex items-center gap-2 text-sm text-gray-600 ml-4">
                   <Clock className="w-3 h-3" />
                   {service.duration}min
                   {service.price && (
-                    <span className="font-medium text-green-600">
+                    <span className="font-medium public-primary">
                       R$ {service.price.toFixed(2)}
                     </span>
                   )}
