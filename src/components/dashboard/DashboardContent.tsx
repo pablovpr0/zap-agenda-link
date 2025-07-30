@@ -25,7 +25,7 @@ const DashboardContent = ({
   onShowSettings,  
   onShowMonthlyAgenda
 }: DashboardContentProps) => {
-  const { data, loading } = useDashboardData(companyName);
+  const { data, loading } = useDashboardData();
   const { linkCopied, handleCopyLink, handleViewPublicPage, handleShareWhatsApp } = useDashboardActions(data.bookingLink);
 
   return (

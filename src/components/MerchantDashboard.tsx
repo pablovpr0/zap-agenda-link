@@ -11,7 +11,7 @@ interface MerchantDashboardProps {
 }
 
 const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps) => {
-  const { data, loading, refreshData } = useDashboardData(companyName);
+  const { data, loading, refreshData } = useDashboardData();
   const { linkCopied, handleCopyLink, handleViewPublicPage, handleShareWhatsApp } = useDashboardActions(data.bookingLink);
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
 

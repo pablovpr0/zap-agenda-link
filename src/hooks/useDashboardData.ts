@@ -4,8 +4,10 @@ import { useAuth } from './useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { fetchCompanySettings } from '@/services/companySettingsService';
 import { generatePublicBookingUrl } from '@/lib/domainConfig';
+import { supabase } from '@/integrations/supabase/client';
+import { DashboardData } from '@/types/dashboard';
 
-export const useDashboardData = () => {
+export const useDashboardData = (companyName?: string) => {
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -14,29 +16,144 @@ export const useDashboardData = () => {
   const [linkCopied, setLinkCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Dashboard data state
+  const [dashboardData, setDashboardData] = useState<DashboardData>({
+    todayAppointments: 0,
+    totalClients: 0,
+    monthlyRevenue: 0,
+    completionRate: 0,
+    bookingLink: '',
+    recentAppointments: [],
+    todayAppointmentsList: []
+  });
+
+  const loadData = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Fetch company settings
+      const settings = await fetchCompanySettings(user.id);
+      setCompanySettings(settings);
+      
+      if (settings?.slug) {
+        const publicUrl = generatePublicBookingUrl(settings.slug);
+        setBookingLink(publicUrl);
+        setDashboardData(prev => ({ ...prev, bookingLink: publicUrl }));
+      }
+
+      // Fetch dashboard statistics
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Today's appointments
+      const { data: todayAppointments, error: todayError } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('company_id', user.id)
+        .eq('appointment_date', today);
+
+      if (todayError) {
+        console.error('Error fetching today appointments:', todayError);
+      }
+
+      // Total clients
+      const { data: clients, error: clientsError } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('company_id', user.id);
+
+      if (clientsError) {
+        console.error('Error fetching clients:', clientsError);
+      }
+
+      // Monthly appointments for revenue calculation
+      const currentMonth = new Date();
+      const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).toISOString().split('T')[0];
+      const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).toISOString().split('T')[0];
+
+      const { data: monthlyAppointments, error: monthlyError } = await supabase
+        .from('appointments')
+        .select('service_id, services(price)')
+        .eq('company_id', user.id)
+        .gte('appointment_date', firstDay)
+        .lte('appointment_date', lastDay)
+        .eq('status', 'confirmed');
+
+      if (monthlyError) {
+        console.error('Error fetching monthly appointments:', monthlyError);
+      }
+
+      // Calculate monthly revenue
+      const monthlyRevenue = monthlyAppointments?.reduce((total, apt: any) => {
+        return total + (apt.services?.price || 0);
+      }, 0) || 0;
+
+      // Recent appointments
+      const { data: recentAppointments, error: recentError } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          appointment_date,
+          appointment_time,
+          status,
+          clients(name, phone),
+          services(name)
+        `)
+        .eq('company_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (recentError) {
+        console.error('Error fetching recent appointments:', recentError);
+      }
+
+      // Format data
+      const formattedTodayList = (todayAppointments || []).map((apt: any) => ({
+        id: apt.id,
+        appointment_time: apt.appointment_time,
+        status: apt.status,
+        client_name: apt.client_name || 'Cliente',
+        client_phone: apt.client_phone || '',
+        service_name: apt.service_name || 'Serviço'
+      }));
+
+      const formattedRecentList = (recentAppointments || []).map((apt: any) => ({
+        id: apt.id,
+        appointment_date: apt.appointment_date,
+        appointment_time: apt.appointment_time,
+        status: apt.status,
+        client_name: apt.clients?.name || 'Cliente',
+        client_phone: apt.clients?.phone || '',
+        service_name: apt.services?.name || 'Serviço'
+      }));
+
+      setDashboardData({
+        todayAppointments: todayAppointments?.length || 0,
+        totalClients: clients?.length || 0,
+        monthlyRevenue,
+        completionRate: 85, // Mock completion rate
+        bookingLink: publicUrl,
+        recentAppointments: formattedRecentList,
+        todayAppointmentsList: formattedTodayList
+      });
+
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      if (!user?.id) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const settings = await fetchCompanySettings(user.id);
-        setCompanySettings(settings);
-        
-        if (settings?.slug) {
-          const publicUrl = generatePublicBookingUrl(settings.slug);
-          setBookingLink(publicUrl);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
+    if (user?.id) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
   }, [user?.id]);
 
   const handleCopyLink = async () => {
@@ -78,6 +195,8 @@ export const useDashboardData = () => {
     bookingLink,
     linkCopied,
     loading,
+    data: dashboardData,
+    refreshData: loadData,
     handleCopyLink,
     handleViewPublicPage,
     handleShareWhatsApp
