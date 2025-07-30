@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Store } from 'lucide-react';
-import { fetchProfile, updateProfile, createProfile } from '@/services/profileService';
+import { fetchProfile, upsertProfile } from '@/services/profileService';
 import { createDefaultSettings } from '@/services/companySettingsService';
 
 const CompanySetup = () => {
@@ -24,6 +24,7 @@ const CompanySetup = () => {
     if (isLoading) return;
 
     if (!user) {
+      console.log('No user found, redirecting to auth');
       navigate('/auth');
       return;
     }
@@ -31,14 +32,18 @@ const CompanySetup = () => {
     // Check if profile already exists and is complete
     const checkExistingProfile = async () => {
       try {
+        console.log('Checking existing profile for user:', user.id);
         const profile = await fetchProfile(user.id);
+        console.log('Profile found:', profile);
+        
         if (profile?.company_name) {
           // Profile is already complete, redirect to main app
+          console.log('Profile is complete, redirecting to main app');
           navigate('/');
         }
       } catch (error) {
         console.error('Error checking profile:', error);
-        // Continue with setup if profile doesn't exist
+        // Continue with setup if profile doesn't exist or there's an error
       }
     };
 
@@ -60,24 +65,29 @@ const CompanySetup = () => {
     setLoading(true);
 
     try {
-      // First, try to update the profile (if it exists)
-      let profile;
-      try {
-        profile = await updateProfile(user.id, {
-          company_name: companyName.trim(),
-          business_type: businessType.trim() || undefined,
-        });
-      } catch (updateError) {
-        // If update fails, try to create the profile
-        console.log('Profile update failed, creating new profile:', updateError);
-        profile = await createProfile(user.id, {
-          company_name: companyName.trim(),
-          business_type: businessType.trim() || undefined,
-        });
-      }
+      console.log('Starting company setup process for user:', user.id);
+      
+      // Use upsert to create or update the profile
+      const profile = await upsertProfile(user.id, {
+        company_name: companyName.trim(),
+        business_type: businessType.trim() || null,
+      });
+
+      console.log('Profile upserted successfully:', profile);
 
       // Create default company settings
-      await createDefaultSettings(user.id, companyName.trim());
+      try {
+        await createDefaultSettings(user.id, companyName.trim());
+        console.log('Default settings created successfully');
+      } catch (settingsError: any) {
+        console.error('Error creating default settings:', settingsError);
+        // Don't fail the whole process if settings creation fails
+        toast({
+          title: "Aviso",
+          description: "Empresa criada, mas algumas configurações padrão podem precisar ser ajustadas.",
+          variant: "default",
+        });
+      }
 
       toast({
         title: "Empresa configurada com sucesso!",

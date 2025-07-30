@@ -67,3 +67,26 @@ export const createProfile = async (userId: string, profileData: Partial<Profile
 
   return data;
 };
+
+export const upsertProfile = async (userId: string, profileData: Partial<Profile>): Promise<Profile> => {
+  console.log('Upserting profile for user:', userId, 'with data:', profileData);
+  
+  const { data, error } = await supabase
+    .from('profiles')
+    .upsert({
+      id: userId,
+      ...profileData,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'id'
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error upserting profile:', error);
+    throw new Error('Erro ao salvar perfil do usuário');
+  }
+
+  return data;
+};

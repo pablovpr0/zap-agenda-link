@@ -21,12 +21,19 @@ export const fetchCompanySettings = async (userId: string) => {
 export const createDefaultSettings = async (userId: string, companyName: string): Promise<void> => {
   console.log('Creating default settings for user:', userId, 'company:', companyName);
   
+  // Check if settings already exist
+  const existingSettings = await fetchCompanySettings(userId);
+  if (existingSettings) {
+    console.log('Company settings already exist, skipping creation');
+    return;
+  }
+
   const slug = await generateUniqueSlug(companyName);
   
   const defaultSettings = {
     company_id: userId,
     slug,
-    working_days: [1, 2, 3, 4, 5],
+    working_days: [1, 2, 3, 4, 5], // Monday to Friday
     working_hours_start: '09:00:00',
     working_hours_end: '18:00:00',
     appointment_interval: 60,
@@ -42,6 +49,8 @@ export const createDefaultSettings = async (userId: string, companyName: string)
     console.error('Error creating company settings:', error);
     throw new Error('Erro ao criar configurações da empresa');
   }
+
+  console.log('Default settings created successfully with slug:', slug);
 };
 
 export const generateUniqueSlug = async (companyName: string): Promise<string> => {
@@ -51,7 +60,13 @@ export const generateUniqueSlug = async (companyName: string): Promise<string> =
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]/g, '-')
     .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/^-|-$/g, '')
+    .substring(0, 50); // Limit length
+
+  // Ensure slug is not empty
+  if (!slug) {
+    slug = 'empresa';
+  }
 
   let counter = 0;
   let finalSlug = slug;
@@ -65,11 +80,16 @@ export const generateUniqueSlug = async (companyName: string): Promise<string> =
 };
 
 export const isSlugTaken = async (slug: string): Promise<boolean> => {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('company_settings')
     .select('slug')
     .eq('slug', slug)
     .maybeSingle();
+
+  if (error) {
+    console.error('Error checking slug availability:', error);
+    return false; // Assume available if error
+  }
 
   return data !== null;
 };
