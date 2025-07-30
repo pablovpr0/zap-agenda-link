@@ -1,11 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Trash2, Plus, Search, Phone, User, Calendar, MessageCircle, Download } from 'lucide-react';
+import { Trash2, Plus, Search, Phone, User, MessageCircle, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -81,19 +81,16 @@ const ClientManagement = () => {
       return;
     }
 
-    // Create CSV content
-    const headers = ['Nome', 'Telefone', 'Email', 'Data de Cadastro'];
+    const headers = ['Nome', 'Telefone', 'Email'];
     const csvContent = [
       headers.join(','),
       ...clients.map(client => [
         `"${client.name}"`,
         `"${client.phone}"`,
-        `"${client.email || ''}"`,
-        `"${new Date(client.created_at).toLocaleDateString('pt-BR')}"`
+        `"${client.email || ''}"`
       ].join(','))
     ].join('\n');
 
-    // Create and download file
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -250,7 +247,7 @@ const ClientManagement = () => {
             <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
           </div>
 
-          {/* Client List */}
+          {/* Client List - Layout simplificado em uma linha */}
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-whatsapp-green mx-auto mb-2"></div>
@@ -264,29 +261,25 @@ const ClientManagement = () => {
               </p>
             </div>
           ) : (
-            <div className="grid gap-3">
+            <div className="space-y-2">
               {filteredClients.map(client => (
-                <Card key={client.id} className="border hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                <Card key={client.id} className="border hover:shadow-sm transition-shadow">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className="bg-whatsapp-green/10 p-2 rounded-full flex-shrink-0">
-                          <User className="w-5 h-5 text-whatsapp-green" />
+                          <User className="w-4 h-4 text-whatsapp-green" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h3 className="font-medium text-gray-800 truncate">{client.name}</h3>
-                          <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
-                            <Phone className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate">{client.phone}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                            <Calendar className="w-3 h-3 flex-shrink-0" />
-                            <span>Cadastrado em {new Date(client.created_at).toLocaleDateString('pt-BR')}</span>
-                          </div>
+                          <h3 className="font-medium text-gray-800 truncate text-sm">{client.name}</h3>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <Phone className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{client.phone}</span>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <Button
                           variant="ghost"
                           size="sm"

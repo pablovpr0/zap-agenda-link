@@ -8,7 +8,7 @@ import { FileText, Download, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const ReportsButton = () => {
@@ -60,7 +60,7 @@ const ReportsButton = () => {
         return total + (apt.services?.price || 0);
       }, 0);
 
-      // Gerar texto do relatório profissional
+      // Gerar texto do relatório profissional sem emojis
       const reportText = `RELATÓRIO DE ATENDIMENTOS
 
 Período: ${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}
@@ -68,7 +68,7 @@ Período: ${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}
 Total de Clientes Atendidos: ${totalClients}
 
 Procedimentos Realizados:
-${Object.entries(serviceStats).map(([service, count]) => `- ${service}: ${count}x`).join('\n')}
+${Object.entries(serviceStats).map(([service, count]) => `${service}: ${count}x`).join('\n')}
 
 Faturamento Total: R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
 
@@ -93,7 +93,7 @@ Total de Atendimentos: ${appointments?.length || 0}`;
     const reportText = await generateReport();
     if (!reportText) return;
 
-    // Criar e baixar arquivo de texto (simulando PDF)
+    // Criar e baixar arquivo de texto
     const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -101,7 +101,7 @@ Total de Atendimentos: ${appointments?.length || 0}`;
     link.click();
 
     toast({
-      title: "Relatório baixado!",
+      title: "Relatório baixado",
       description: "O relatório foi salvo em seu dispositivo.",
     });
   };
@@ -114,7 +114,7 @@ Total de Atendimentos: ${appointments?.length || 0}`;
     window.open(whatsappUrl, '_blank');
 
     toast({
-      title: "WhatsApp aberto!",
+      title: "WhatsApp aberto",
       description: "O relatório foi enviado para o WhatsApp.",
     });
   };
@@ -188,7 +188,7 @@ Total de Atendimentos: ${appointments?.length || 0}`;
                 className="flex items-center gap-2"
               >
                 <Download className="w-4 h-4" />
-                {generating ? 'Gerando...' : 'Baixar PDF'}
+                {generating ? 'Gerando...' : 'Baixar Relatório'}
               </Button>
               
               <Button 

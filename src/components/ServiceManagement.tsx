@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,16 +7,26 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Plus, Edit, DollarSign, Clock, FileText } from 'lucide-react';
+import { Trash2, Plus, Edit, DollarSign, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { getStorageData, setStorageData, MockService, STORAGE_KEYS } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Service {
+  id: string;
+  company_id: string;
+  name: string;
+  description?: string;
+  duration: number;
+  price: number;
+  is_active: boolean;
+}
 
 const ServiceManagement = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [services, setServices] = useState<MockService[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [newServiceName, setNewServiceName] = useState('');
   const [newServiceDescription, setNewServiceDescription] = useState('');
   const [newServiceDuration, setNewServiceDuration] = useState('');
@@ -36,9 +47,24 @@ const ServiceManagement = () => {
   const loadServices = async () => {
     setLoading(true);
     try {
-      const storedServices = getStorageData<MockService[]>(STORAGE_KEYS.SERVICES, []);
-      const userServices = storedServices.filter(service => service.company_id === user?.id && service.is_active);
-      setServices(userServices);
+      const { data: servicesData, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('company_id', user?.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Erro ao carregar serviços:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar os serviços.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setServices(servicesData || []);
     } catch (error) {
       console.error('Erro ao carregar serviços:', error);
       toast({
@@ -62,20 +88,22 @@ const ServiceManagement = () => {
     }
 
     try {
-      const newService: MockService = {
-        id: `service-${Date.now()}`,
-        company_id: user!.id,
-        name: newServiceName,
-        description: newServiceDescription,
-        duration: parseInt(newServiceDuration),
-        price: parseFloat(newServicePrice),
-        is_active: true
-      };
+      const { data, error } = await supabase
+        .from('services')
+        .insert({
+          company_id: user!.id,
+          name: newServiceName,
+          description: newServiceDescription,
+          duration: parseInt(newServiceDuration),
+          price: parseFloat(newServicePrice),
+          is_active: true
+        })
+        .select()
+        .single();
 
-      const updatedServices = [...services, newService];
-      setStorageData(STORAGE_KEYS.SERVICES, updatedServices);
-      setServices(updatedServices.filter(service => service.company_id === user?.id && service.is_active));
+      if (error) throw error;
 
+      setServices([data, ...services]);
       setNewServiceName('');
       setNewServiceDescription('');
       setNewServiceDuration('');
@@ -95,7 +123,7 @@ const ServiceManagement = () => {
     }
   };
 
-  const handleEditService = (service: MockService) => {
+  const handleEditService = (service: Service) => {
     setEditingServiceId(service.id);
     setEditedServiceName(service.name);
     setEditedServiceDescription(service.description || '');
@@ -114,6 +142,18 @@ const ServiceManagement = () => {
     }
 
     try {
+      const { error } = await supabase
+        .from('services')
+        .update({
+          name: editedServiceName,
+          description: editedServiceDescription,
+          duration: parseInt(editedServiceDuration),
+          price: parseFloat(editedServicePrice)
+        })
+        .eq('id', editingServiceId);
+
+      if (error) throw error;
+
       const updatedServices = services.map(service =>
         service.id === editingServiceId
           ? {
@@ -126,8 +166,7 @@ const ServiceManagement = () => {
           : service
       );
 
-      setStorageData(STORAGE_KEYS.SERVICES, updatedServices);
-      setServices(updatedServices.filter(service => service.company_id === user?.id && service.is_active));
+      setServices(updatedServices);
       setEditingServiceId(null);
 
       toast({
@@ -146,12 +185,14 @@ const ServiceManagement = () => {
 
   const handleDeleteService = async (serviceId: string) => {
     try {
-      const updatedServices = services.map(service =>
-        service.id === serviceId ? { ...service, is_active: false } : service
-      );
+      const { error } = await supabase
+        .from('services')
+        .update({ is_active: false })
+        .eq('id', serviceId);
 
-      setStorageData(STORAGE_KEYS.SERVICES, updatedServices);
-      setServices(updatedServices.filter(service => service.company_id === user?.id && service.is_active));
+      if (error) throw error;
+
+      setServices(services.filter(service => service.id !== serviceId));
 
       toast({
         title: "Serviço excluído",
@@ -174,12 +215,8 @@ const ServiceManagement = () => {
   return (
     <div className="p-4">
       <Card>
-        <CardHeader className="flex items-center justify-between">
+        <CardHeader>
           <CardTitle>Gerenciar Serviços</CardTitle>
-          <Button onClick={() => {}}>
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Serviço
-          </Button>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
@@ -207,12 +244,14 @@ const ServiceManagement = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="new-service-price">Preço</Label>
+                <Label htmlFor="new-service-price">Preço (R$)</Label>
                 <Input
                   type="number"
+                  step="0.01"
                   id="new-service-price"
                   value={newServicePrice}
                   onChange={(e) => setNewServicePrice(e.target.value)}
+                  placeholder="0,00"
                 />
               </div>
               <div className="col-span-1 md:col-span-3">
@@ -235,58 +274,69 @@ const ServiceManagement = () => {
             {/* Service List */}
             {services.map((service) => (
               <Card key={service.id}>
-                <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                  <div className="md:col-span-2">
-                    <h4 className="font-semibold">{service.name}</h4>
-                    <p className="text-sm text-gray-500">{service.description}</p>
-                  </div>
-                  <div>
-                    <Badge variant="secondary">
-                      <Clock className="w-3 h-3 mr-1" />
-                      {service.duration} min
-                    </Badge>
-                  </div>
-                  <div>
-                    <Badge variant="outline">
-                      <DollarSign className="w-3 h-3 mr-1" />
-                      {service.price}
-                    </Badge>
-                  </div>
-                  <div className="md:col-span-4 flex justify-end gap-2">
-                    {editingServiceId === service.id ? (
-                      <>
-                        <Input
-                          type="text"
-                          value={editedServiceName}
-                          onChange={(e) => setEditedServiceName(e.target.value)}
-                          placeholder="Nome"
-                        />
-                        <Input
-                          type="text"
-                          value={editedServiceDuration}
-                          onChange={(e) => setEditedServiceDuration(e.target.value)}
-                          placeholder="Duração"
-                        />
-                        <Input
-                          type="text"
-                          value={editedServicePrice}
-                          onChange={(e) => setEditedServicePrice(e.target.value)}
-                          placeholder="Preço"
-                        />
+                <CardContent className="p-4">
+                  {editingServiceId === service.id ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label>Nome</Label>
+                          <Input
+                            type="text"
+                            value={editedServiceName}
+                            onChange={(e) => setEditedServiceName(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label>Duração (min)</Label>
+                          <Input
+                            type="number"
+                            value={editedServiceDuration}
+                            onChange={(e) => setEditedServiceDuration(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label>Preço (R$)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={editedServicePrice}
+                            onChange={(e) => setEditedServicePrice(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Descrição</Label>
                         <Textarea
                           value={editedServiceDescription}
                           onChange={(e) => setEditedServiceDescription(e.target.value)}
-                          placeholder="Descrição"
                         />
-                        <Button size="sm" onClick={handleUpdateService}>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button onClick={handleUpdateService}>
                           Salvar
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setEditingServiceId(null)}>
+                        <Button variant="ghost" onClick={() => setEditingServiceId(null)}>
                           Cancelar
                         </Button>
-                      </>
-                    ) : (
-                      <>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold">{service.name}</h4>
+                        <p className="text-sm text-gray-500">{service.description}</p>
+                        <div className="flex gap-2 mt-2">
+                          <Badge variant="secondary">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {service.duration} min
+                          </Badge>
+                          <Badge variant="outline">
+                            <DollarSign className="w-3 h-3 mr-1" />
+                            R$ {service.price.toFixed(2)}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
                         <Button size="sm" variant="secondary" onClick={() => handleEditService(service)}>
                           <Edit className="w-4 h-4 mr-2" />
                           Editar
@@ -311,9 +361,9 @@ const ServiceManagement = () => {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}

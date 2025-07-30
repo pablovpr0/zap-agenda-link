@@ -1,8 +1,8 @@
 
 import { CompanySettings } from '@/types/publicBooking';
-import { generateAvailableDates, generateTimeSlots } from '@/utils/dateUtils';
+import { generateAvailableDates, generateTimeSlots, isTimeDuringLunch } from '@/utils/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { getBrasiliaDate, formatBrazilianDate } from '@/lib/dateConfig';
+import { format, parseISO } from 'date-fns';
 
 export const useAvailableTimes = (companySettings: CompanySettings | null) => {
   const generateAvailableDatesForCompany = () => {
@@ -16,7 +16,10 @@ export const useAvailableTimes = (companySettings: CompanySettings | null) => {
     const times = generateTimeSlots(
       companySettings.working_hours_start,
       companySettings.working_hours_end,
-      companySettings.appointment_interval
+      companySettings.appointment_interval,
+      companySettings.lunch_break_enabled,
+      companySettings.lunch_start_time,
+      companySettings.lunch_end_time
     );
     
     try {
@@ -34,7 +37,29 @@ export const useAvailableTimes = (companySettings: CompanySettings | null) => {
       }
 
       const bookedTimes = (appointments || []).map(apt => apt.appointment_time);
-      const availableTimes = times.filter(time => !bookedTimes.includes(time));
+      
+      // Filtrar horários ocupados e durante o almoço
+      const availableTimes = times.filter(time => {
+        // Verificar se não está ocupado
+        if (bookedTimes.includes(time)) {
+          return false;
+        }
+        
+        // Verificar se não é horário de almoço
+        if (companySettings.lunch_break_enabled && 
+            companySettings.lunch_start_time && 
+            companySettings.lunch_end_time) {
+          return !isTimeDuringLunch(
+            time, 
+            companySettings.lunch_break_enabled, 
+            companySettings.lunch_start_time, 
+            companySettings.lunch_end_time
+          );
+        }
+        
+        return true;
+      });
+
       return availableTimes;
     } catch (error) {
       console.error('Erro ao verificar horários disponíveis:', error);
