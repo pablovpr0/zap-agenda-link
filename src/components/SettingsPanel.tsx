@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -41,9 +42,7 @@ const SettingsPanel = () => {
     logo: null,
     coverImage: null,
     themeColor: '#25D366',
-    companyName: 'Salão Beleza & Estilo',
-    isDarkMode: false,
-    selectedTheme: 'classic-green'
+    companyName: 'Salão Beleza & Estilo'
   });
 
   const [currentSlug, setCurrentSlug] = useState('salao-beleza-estilo');
