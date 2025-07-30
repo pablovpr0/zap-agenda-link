@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Camera, Upload, Palette } from 'lucide-react';
-import { getStorageData, setStorageData, MockProfile, STORAGE_KEYS } from '@/data/mockData';
+import { fetchProfile, updateProfile } from '@/services/profileService';
 
 interface ProfileCustomizationModalProps {
   isOpen: boolean;
@@ -20,9 +21,8 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
   const { toast } = useToast();
 
   const [companyName, setCompanyName] = useState('');
-  const [companyDescription, setCompanyDescription] = useState('');
-  const [companyLogo, setCompanyLogo] = useState<File | null>(null);
-  const [companyLogoUrl, setCompanyLogoUrl] = useState('');
+  const [businessType, setBusinessType] = useState('');
+  const [profileImageUrl, setProfileImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -33,15 +33,18 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
   }, [isOpen, user]);
 
   const loadProfileData = async () => {
+    if (!user) return;
+    
     setLoading(true);
     try {
-      const profileData = getStorageData<MockProfile>(STORAGE_KEYS.PROFILE, null);
+      const profileData = await fetchProfile(user.id);
       if (profileData) {
-        setCompanyName(profileData.company_name);
-        setCompanyDescription(profileData.company_description || '');
-        setCompanyLogoUrl(profileData.company_logo || '');
+        setCompanyName(profileData.company_name || '');
+        setBusinessType(profileData.business_type || '');
+        setProfileImageUrl(profileData.profile_image_url || '');
       }
     } catch (error: any) {
+      console.error('Error loading profile:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os dados do perfil.",
@@ -52,26 +55,27 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
     }
   };
 
-  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
     setUploading(true);
 
     try {
-      // In a real application, you would upload the image to a storage service
-      // and get the URL from there. For this example, we'll use a placeholder.
-      setCompanyLogoUrl('https://via.placeholder.com/150'); // Placeholder URL
-      setCompanyLogo(file);
+      // For now, we'll use a placeholder URL
+      // In a real implementation, you would upload to Supabase Storage
+      const placeholderUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(companyName || 'Company')}`;
+      setProfileImageUrl(placeholderUrl);
 
       toast({
-        title: "Logo enviado com sucesso!",
-        description: "O logo da empresa foi atualizado.",
+        title: "Imagem atualizada!",
+        description: "A imagem do perfil foi atualizada.",
       });
     } catch (error: any) {
+      console.error('Error uploading image:', error);
       toast({
-        title: "Erro ao enviar logo",
-        description: error.message,
+        title: "Erro ao enviar imagem",
+        description: "Não foi possível fazer upload da imagem.",
         variant: "destructive",
       });
     } finally {
@@ -81,6 +85,8 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!user) return;
 
     if (!companyName) {
       toast({
@@ -94,14 +100,11 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
     setLoading(true);
 
     try {
-      const updatedProfile: MockProfile = {
-        id: user?.id || 'user-1',
+      await updateProfile(user.id, {
         company_name: companyName,
-        company_description: companyDescription,
-        company_logo: companyLogoUrl,
-      };
-
-      setStorageData(STORAGE_KEYS.PROFILE, updatedProfile);
+        business_type: businessType,
+        profile_image_url: profileImageUrl,
+      });
 
       toast({
         title: "Perfil atualizado com sucesso!",
@@ -111,9 +114,10 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
       onSuccess();
       onClose();
     } catch (error: any) {
+      console.error('Error updating profile:', error);
       toast({
         title: "Erro ao salvar perfil",
-        description: error.message,
+        description: error.message || "Não foi possível salvar o perfil.",
         variant: "destructive",
       });
     } finally {
@@ -137,13 +141,13 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Company Logo */}
+            {/* Profile Image */}
             <div className="flex flex-col items-center space-y-4">
               <div className="relative">
-                {companyLogoUrl ? (
+                {profileImageUrl ? (
                   <img
-                    src={companyLogoUrl}
-                    alt="Company Logo"
+                    src={profileImageUrl}
+                    alt="Profile"
                     className="w-24 h-24 rounded-full object-cover border-4 border-green-100"
                   />
                 ) : (
@@ -156,43 +160,45 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={handleLogoUpload}
+                    onChange={handleImageUpload}
                     className="hidden"
                     disabled={uploading}
                   />
                 </label>
               </div>
               <p className="text-sm text-gray-500 text-center">
-                {uploading ? "Enviando..." : "Clique para alterar o logo"}
+                {uploading ? "Enviando..." : "Clique para alterar a imagem"}
               </p>
             </div>
 
             {/* Company Name */}
             <div className="space-y-2">
-              <Label htmlFor="company-name">Nome da Empresa</Label>
+              <Label htmlFor="company-name">Nome da Empresa *</Label>
               <Input
                 id="company-name"
                 type="text"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Digite o nome da sua empresa"
+                required
               />
             </div>
 
-            {/* Company Description */}
+            {/* Business Type */}
             <div className="space-y-2">
-              <Label htmlFor="company-description">Descrição da Empresa</Label>
-              <Textarea
-                id="company-description"
-                value={companyDescription}
-                onChange={(e) => setCompanyDescription(e.target.value)}
-                placeholder="Escreva uma breve descrição da sua empresa"
+              <Label htmlFor="business-type">Tipo de Negócio</Label>
+              <Input
+                id="business-type"
+                type="text"
+                value={businessType}
+                onChange={(e) => setBusinessType(e.target.value)}
+                placeholder="Ex: Salão de Beleza, Clínica, Barbearia"
               />
             </div>
 
-            {/* Botões */}
+            {/* Buttons */}
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
                 Cancelar
               </Button>
               <Button

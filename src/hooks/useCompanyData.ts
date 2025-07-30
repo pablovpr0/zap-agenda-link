@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { CompanySettings, Profile, Service } from '@/types/publicBooking';
 import { Professional } from '@/services/professionalsService';
-import { getStorageData, MockCompanySettings, MockProfile, MockService, MockProfessional, STORAGE_KEYS } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useCompanyData = (companySlug: string) => {
   const { toast } = useToast();
@@ -17,64 +17,112 @@ export const useCompanyData = (companySlug: string) => {
   const loadCompanyData = async () => {
     console.log('🚀 useCompanyData: Iniciando carregamento para slug:', companySlug);
     try {
-      // Buscar configurações da empresa pelo slug
-      const settings = getStorageData<MockCompanySettings>(STORAGE_KEYS.COMPANY_SETTINGS, null);
-      const profileData = getStorageData<MockProfile>(STORAGE_KEYS.PROFILE, null);
-      const servicesData = getStorageData<MockService[]>(STORAGE_KEYS.SERVICES, []);
-      const professionalsData = getStorageData<MockProfessional[]>(STORAGE_KEYS.PROFESSIONALS, []);
+      setLoading(true);
 
-      if (!settings || settings.company_slug !== companySlug) {
+      // Buscar configurações da empresa pelo slug
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('slug', companySlug)
+        .maybeSingle();
+
+      if (settingsError) {
+        console.error('Error fetching company settings:', settingsError);
+        throw new Error('Erro ao buscar configurações da empresa');
+      }
+
+      if (!settingsData) {
         throw new Error('Empresa não encontrada');
       }
-      
-      console.log('✅ useCompanyData: Dados carregados com sucesso:', { settings, profileData, servicesData });
+
+      // Buscar dados do perfil da empresa
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', settingsData.company_id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Error fetching company profile:', profileError);
+      }
+
+      // Buscar serviços ativos
+      const { data: servicesData, error: servicesError } = await supabase
+        .from('services')
+        .select('*')
+        .eq('company_id', settingsData.company_id)
+        .eq('is_active', true);
+
+      if (servicesError) {
+        console.error('Error fetching services:', servicesError);
+      }
+
+      // Buscar profissionais ativos
+      const { data: professionalsData, error: professionalsError } = await supabase
+        .from('professionals')
+        .select('*')
+        .eq('company_id', settingsData.company_id)
+        .eq('is_active', true);
+
+      if (professionalsError) {
+        console.error('Error fetching professionals:', professionalsError);
+      }
+
+      console.log('✅ useCompanyData: Dados carregados com sucesso:', { 
+        settingsData, 
+        profileData, 
+        servicesData, 
+        professionalsData 
+      });
       
       // Converter para os tipos esperados
       const convertedSettings: CompanySettings = {
-        company_id: settings.company_id,
-        company_name: settings.company_name,
-        company_phone: settings.company_phone,
-        slug: settings.company_slug,
-        working_hours_start: settings.working_hours_start,
-        working_hours_end: settings.working_hours_end,
-        lunch_break_enabled: settings.lunch_break_enabled || false,
-        lunch_start_time: settings.lunch_break_start || '',
-        lunch_end_time: settings.lunch_break_end || '',
-        working_days: settings.working_days,
-        appointment_interval: settings.appointment_duration,
-        advance_booking_limit: settings.advance_booking_days
+        company_id: settingsData.company_id,
+        company_name: profileData?.company_name || 'Empresa',
+        company_phone: settingsData.phone,
+        slug: settingsData.slug,
+        logo_url: settingsData.logo_url,
+        welcome_message: settingsData.welcome_message,
+        instagram_url: settingsData.instagram_url,
+        working_hours_start: settingsData.working_hours_start,
+        working_hours_end: settingsData.working_hours_end,
+        lunch_break_enabled: settingsData.lunch_break_enabled || false,
+        lunch_start_time: settingsData.lunch_start_time || '',
+        lunch_end_time: settingsData.lunch_end_time || '',
+        working_days: settingsData.working_days,
+        appointment_interval: settingsData.appointment_interval,
+        advance_booking_limit: settingsData.advance_booking_limit,
+        monthly_appointments_limit: settingsData.monthly_appointments_limit,
+        phone: settingsData.phone
       };
 
       const convertedProfile: Profile = {
-        id: profileData?.id || settings.company_id,
-        company_name: profileData?.company_name || settings.company_name,
-        company_description: profileData?.company_description,
-        company_logo: profileData?.company_logo,
-        company_address: profileData?.company_address,
-        company_website: profileData?.company_website
+        id: profileData?.id || settingsData.company_id,
+        company_name: profileData?.company_name || 'Empresa',
+        company_description: settingsData.description,
+        company_logo: settingsData.logo_url,
+        company_address: settingsData.address,
+        company_website: '',
+        business_type: profileData?.business_type
       };
 
-      const convertedServices: Service[] = servicesData
-        .filter(s => s.company_id === settings.company_id && s.is_active)
-        .map(s => ({
-          id: s.id,
-          name: s.name,
-          duration: s.duration,
-          price: s.price,
-          description: s.description
-        }));
+      const convertedServices: Service[] = (servicesData || []).map(s => ({
+        id: s.id,
+        name: s.name,
+        duration: s.duration,
+        price: s.price,
+        description: s.description
+      }));
 
-      const convertedProfessionals: Professional[] = professionalsData
-        .filter(p => p.company_id === settings.company_id && p.is_active)
-        .map(p => ({
-          id: p.id,
-          company_id: p.company_id,
-          name: p.name,
-          phone: p.phone,
-          whatsapp: p.whatsapp,
-          role: p.role,
-          is_active: p.is_active
-        }));
+      const convertedProfessionals: Professional[] = (professionalsData || []).map(p => ({
+        id: p.id,
+        company_id: p.company_id,
+        name: p.name,
+        phone: p.phone,
+        whatsapp: p.whatsapp,
+        role: p.role,
+        is_active: p.is_active
+      }));
 
       setCompanySettings(convertedSettings);
       setProfile(convertedProfile);
@@ -86,7 +134,7 @@ export const useCompanyData = (companySlug: string) => {
       console.error('❌ useCompanyData: Erro ao carregar dados da empresa:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível carregar os dados da empresa.",
+        description: error.message || "Não foi possível carregar os dados da empresa.",
         variant: "destructive",
       });
     } finally {

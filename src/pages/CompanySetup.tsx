@@ -1,138 +1,96 @@
+
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, Upload } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { getStorageData, setStorageData, MockProfile, STORAGE_KEYS } from '@/data/mockData';
-
-const businessTypes = [
-  'Cabeleireiro(a)',
-  'Manicure/Pedicure',
-  'Barbeiro',
-  'Maquiadora',
-  'Designer de sobrancelhas',
-  'Massagista',
-  'Personal Trainer',
-  'Professor particular',
-  'Fotógrafo(a)',
-  'Tatuador(a)',
-  'Psicólogo(a)',
-  'Fisioterapeuta',
-  'Nutricionista',
-  'Veterinário(a)',
-  'Mecânico(a)',
-  'Eletricista',
-  'Encanador(a)',
-  'Marceneiro(a)',
-  'Técnico(a) de informática/celular',
-  'Consultor(a) de estética'
-];
+import { Store } from 'lucide-react';
+import { fetchProfile, updateProfile, createProfile } from '@/services/profileService';
+import { createDefaultSettings } from '@/services/companySettingsService';
 
 const CompanySetup = () => {
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user, isLoading } = useAuth();
+
   const [companyName, setCompanyName] = useState('');
   const [businessType, setBusinessType] = useState('');
-  const [profileImage, setProfileImage] = useState<File | null>(null);
-  const [profileImageUrl, setProfileImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const { toast } = useToast();
-  const navigate = useNavigate();
 
   useEffect(() => {
-    // Check authentication
-    const checkUser = async () => {
-      if (!user) {
-        navigate('/auth');
-        return;
-      }
+    if (isLoading) return;
 
-      // Check if profile already exists
-      const profileData = getStorageData<MockProfile>(STORAGE_KEYS.PROFILE, null);
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
 
-      if (profileData && profileData.company_name) {
-        // Profile already complete, redirect to dashboard
-        navigate('/');
+    // Check if profile already exists and is complete
+    const checkExistingProfile = async () => {
+      try {
+        const profile = await fetchProfile(user.id);
+        if (profile?.company_name) {
+          // Profile is already complete, redirect to main app
+          navigate('/');
+        }
+      } catch (error) {
+        console.error('Error checking profile:', error);
+        // Continue with setup if profile doesn't exist
       }
     };
 
-    checkUser();
-  }, [navigate, user]);
-
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
-
-    setUploading(true);
-
-    try {
-      // Simulate image upload
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Generate a temporary URL for the image
-      const imageUrl = URL.createObjectURL(file);
-      setProfileImageUrl(imageUrl);
-      setProfileImage(file);
-
-      toast({
-        title: "Imagem enviada com sucesso!",
-        description: "Sua foto de perfil foi carregada.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erro ao enviar imagem",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
+    checkExistingProfile();
+  }, [user, isLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!companyName || !businessType) {
+    if (!user || !companyName.trim()) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        title: "Nome da empresa obrigatório",
+        description: "Por favor, preencha o nome da empresa.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!user) return;
-
     setLoading(true);
 
     try {
-      // Simulate saving profile
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // First, try to update the profile (if it exists)
+      let profile;
+      try {
+        profile = await updateProfile(user.id, {
+          company_name: companyName.trim(),
+          business_type: businessType.trim() || undefined,
+        });
+      } catch (updateError) {
+        // If update fails, try to create the profile
+        console.log('Profile update failed, creating new profile:', updateError);
+        profile = await createProfile(user.id, {
+          company_name: companyName.trim(),
+          business_type: businessType.trim() || undefined,
+        });
+      }
 
-      const profileData: MockProfile = {
-        id: user.id,
-        company_name: companyName,
-        business_type: businessType,
-        profile_image_url: profileImageUrl || undefined,
-      };
-
-      setStorageData(STORAGE_KEYS.PROFILE, profileData);
+      // Create default company settings
+      await createDefaultSettings(user.id, companyName.trim());
 
       toast({
-        title: "Perfil criado com sucesso!",
-        description: "Bem-vindo ao ZapAgenda!",
+        title: "Empresa configurada com sucesso!",
+        description: "Agora você pode começar a usar o ZapAgenda!",
       });
 
+      // Redirect to main app
       navigate('/');
     } catch (error: any) {
+      console.error('Error setting up company:', error);
       toast({
-        title: "Erro ao salvar perfil",
-        description: error.message,
+        title: "Erro ao configurar empresa",
+        description: error.message || "Não foi possível configurar a empresa. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -140,50 +98,30 @@ const CompanySetup = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
   if (!user) {
-    return <div>Carregando...</div>;
+    return null; // Will redirect via useEffect
   }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-green-600">ZapAgenda</CardTitle>
-          <p className="text-gray-600">Configure o perfil da sua empresa</p>
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Store className="w-8 h-8 text-green-600" />
+          </div>
+          <CardTitle className="text-2xl font-bold text-gray-800">Configure sua Empresa</CardTitle>
+          <p className="text-gray-600">Vamos começar configurando as informações básicas da sua empresa</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Profile Image */}
-            <div className="flex flex-col items-center space-y-4">
-              <div className="relative">
-                {profileImageUrl ? (
-                  <img
-                    src={profileImageUrl}
-                    alt="Profile"
-                    className="w-24 h-24 rounded-full object-cover border-4 border-green-100"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-gray-200 border-4 border-green-100 flex items-center justify-center">
-                    <Camera className="w-8 h-8 text-gray-400" />
-                  </div>
-                )}
-                <label className="absolute bottom-0 right-0 bg-green-600 rounded-full p-2 cursor-pointer hover:bg-green-700 transition-colors">
-                  <Upload className="w-4 h-4 text-white" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    disabled={uploading}
-                  />
-                </label>
-              </div>
-              <p className="text-sm text-gray-500 text-center">
-                {uploading ? "Enviando..." : "Clique para adicionar foto da empresa"}
-              </p>
-            </div>
-
-            {/* Company Name */}
             <div className="space-y-2">
               <Label htmlFor="company-name">Nome da Empresa *</Label>
               <Input
@@ -191,35 +129,48 @@ const CompanySetup = () => {
                 type="text"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="Digite o nome da sua empresa"
+                placeholder="Ex: Salão Beleza & Estilo"
                 required
+                disabled={loading}
+                maxLength={100}
               />
+              <p className="text-xs text-gray-500">
+                Este nome aparecerá na sua página de agendamentos
+              </p>
             </div>
 
-            {/* Business Type */}
             <div className="space-y-2">
-              <Label htmlFor="business-type">Ramo de Negócio *</Label>
-              <Select value={businessType} onValueChange={setBusinessType} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione seu ramo de negócio" />
-                </SelectTrigger>
-                <SelectContent>
-                  {businessTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="business-type">Tipo de Negócio</Label>
+              <Input
+                id="business-type"
+                type="text"
+                value={businessType}
+                onChange={(e) => setBusinessType(e.target.value)}
+                placeholder="Ex: Salão de Beleza, Barbearia, Clínica"
+                disabled={loading}
+                maxLength={50}
+              />
+              <p className="text-xs text-gray-500">
+                Opcional - ajuda a personalizar sua experiência
+              </p>
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full bg-green-600 hover:bg-green-700"
-              disabled={loading}
-            >
-              {loading ? "Salvando..." : "Avançar"}
-            </Button>
+            <div className="pt-4">
+              <Button 
+                type="submit" 
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                disabled={loading || !companyName.trim()}
+                size="lg"
+              >
+                {loading ? "Configurando..." : "Continuar"}
+              </Button>
+            </div>
+
+            <div className="text-center">
+              <p className="text-xs text-gray-500">
+                Você poderá alterar essas informações depois nas configurações
+              </p>
+            </div>
           </form>
         </CardContent>
       </Card>

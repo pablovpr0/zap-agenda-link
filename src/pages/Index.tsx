@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -16,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { getStorageData, MockProfile, STORAGE_KEYS } from '@/data/mockData';
+import { fetchProfile } from '@/services/profileService';
 
 type ViewType = 'dashboard' | 'agenda' | 'settings' | 'clients' | 'services';
 
@@ -38,23 +39,35 @@ const Index = () => {
 
     // Check if profile is complete and get company name
     const checkProfile = async () => {
-      const profileData = getStorageData<MockProfile>(STORAGE_KEYS.PROFILE, null);
+      try {
+        console.log('Checking profile for user:', user.id);
+        const profileData = await fetchProfile(user.id);
 
-      if (!profileData || !profileData.company_name) {
+        if (!profileData || !profileData.company_name) {
+          console.log('Profile incomplete, redirecting to company setup');
+          navigate('/company-setup');
+          return;
+        }
+
+        console.log('Profile complete:', profileData);
+        setCompanyName(profileData.company_name);
+        setProfileComplete(true);
+      } catch (error) {
+        console.error('Error checking profile:', error);
         navigate('/company-setup');
-        return;
       }
-
-      setCompanyName(profileData.company_name);
-      setProfileComplete(true);
     };
 
     checkProfile();
   }, [user, isLoading, navigate]);
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/auth');
+    try {
+      await signOut();
+      navigate('/auth');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const handleProfileSuccess = () => {

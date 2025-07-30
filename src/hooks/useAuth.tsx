@@ -1,12 +1,14 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { getStorageData, setStorageData, removeStorageData, MockUser, STORAGE_KEYS, initializeDefaultData } from '@/data/mockData';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
-  user: MockUser | null;
+  user: User | null;
+  session: Session | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ error?: Error }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ error?: Error }>;
   signOut: () => Promise<void>;
 }
 
@@ -25,67 +27,79 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<MockUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const isAuthenticated = getStorageData(STORAGE_KEYS.IS_AUTHENTICATED, false);
-        if (isAuthenticated) {
-          const storedUser = getStorageData<MockUser | null>(STORAGE_KEYS.USER, null);
-          if (storedUser) {
-            setUser(storedUser);
-            initializeDefaultData();
-          }
-        }
-      } catch (error) {
-        console.error('Error checking authentication:', error);
-      } finally {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
+        setSession(session);
+        setUser(session?.user ?? null);
         setIsLoading(false);
       }
-    };
+    );
 
-    checkAuth();
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.id);
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string): Promise<void> => {
+  const signIn = async (email: string, password: string): Promise<{ error?: Error }> => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockUser: MockUser = {
-        id: 'user-1',
+      const { error } = await supabase.auth.signInWithPassword({
         email,
-        name: 'Usuário Demo'
-      };
+        password,
+      });
 
-      setStorageData(STORAGE_KEYS.USER, mockUser);
-      setStorageData(STORAGE_KEYS.IS_AUTHENTICATED, true);
-      setUser(mockUser);
-      initializeDefaultData();
+      if (error) {
+        console.error('SignIn error:', error);
+        return { error: new Error(error.message) };
+      }
+
+      return {};
+    } catch (error: any) {
+      console.error('SignIn catch error:', error);
+      return { error: new Error('Erro inesperado ao fazer login') };
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string, name: string): Promise<void> => {
+  const signUp = async (email: string, password: string, name: string): Promise<{ error?: Error }> => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const redirectUrl = `${window.location.origin}/`;
       
-      const mockUser: MockUser = {
-        id: 'user-1',
+      const { error } = await supabase.auth.signUp({
         email,
-        name
-      };
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            company_name: name,
+          }
+        }
+      });
 
-      setStorageData(STORAGE_KEYS.USER, mockUser);
-      setStorageData(STORAGE_KEYS.IS_AUTHENTICATED, true);
-      setUser(mockUser);
-      initializeDefaultData();
+      if (error) {
+        console.error('SignUp error:', error);
+        return { error: new Error(error.message) };
+      }
+
+      return {};
+    } catch (error: any) {
+      console.error('SignUp catch error:', error);
+      return { error: new Error('Erro inesperado ao criar conta') };
     } finally {
       setIsLoading(false);
     }
@@ -94,17 +108,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      // Clear all storage
-      removeStorageData(STORAGE_KEYS.USER);
-      removeStorageData(STORAGE_KEYS.IS_AUTHENTICATED);
-      removeStorageData(STORAGE_KEYS.COMPANY_SETTINGS);
-      removeStorageData(STORAGE_KEYS.PROFILE);
-      removeStorageData(STORAGE_KEYS.CLIENTS);
-      removeStorageData(STORAGE_KEYS.SERVICES);
-      removeStorageData(STORAGE_KEYS.PROFESSIONALS);
-      removeStorageData(STORAGE_KEYS.APPOINTMENTS);
-      
-      setUser(null);
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('SignOut error:', error);
+        throw new Error(error.message);
+      }
+    } catch (error: any) {
+      console.error('SignOut catch error:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -112,6 +123,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value = {
     user,
+    session,
     isLoading,
     signIn,
     signUp,

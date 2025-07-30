@@ -1,39 +1,50 @@
-import { getStorageData, setStorageData, MockCompanySettings, STORAGE_KEYS } from '@/data/mockData';
 
-export const fetchCompanySettings = async (userId: string): Promise<any> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 100));
+import { supabase } from '@/integrations/supabase/client';
+
+export const fetchCompanySettings = async (userId: string) => {
+  console.log('Fetching company settings for user:', userId);
   
-  const settings = getStorageData<MockCompanySettings | null>(STORAGE_KEYS.COMPANY_SETTINGS, null);
-  
-  if (!settings || settings.company_id !== userId) {
-    return null;
+  const { data, error } = await supabase
+    .from('company_settings')
+    .select('*')
+    .eq('company_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching company settings:', error);
+    throw new Error('Erro ao buscar configurações da empresa');
   }
-  
-  return settings;
+
+  return data;
 };
 
 export const createDefaultSettings = async (userId: string, companyName: string): Promise<void> => {
+  console.log('Creating default settings for user:', userId, 'company:', companyName);
+  
   const slug = await generateUniqueSlug(companyName);
   
-  const defaultSettings: MockCompanySettings = {
+  const defaultSettings = {
     company_id: userId,
-    company_name: companyName,
-    company_slug: slug,
-    working_hours_start: '09:00',
-    working_hours_end: '18:00',
+    slug,
     working_days: [1, 2, 3, 4, 5],
-    appointment_duration: 60,
-    advance_booking_days: 30
+    working_hours_start: '09:00:00',
+    working_hours_end: '18:00:00',
+    appointment_interval: 60,
+    advance_booking_limit: 30,
+    monthly_appointments_limit: 10
   };
 
-  setStorageData(STORAGE_KEYS.COMPANY_SETTINGS, defaultSettings);
+  const { error } = await supabase
+    .from('company_settings')
+    .insert(defaultSettings);
+
+  if (error) {
+    console.error('Error creating company settings:', error);
+    throw new Error('Erro ao criar configurações da empresa');
+  }
 };
 
 export const generateUniqueSlug = async (companyName: string): Promise<string> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 50));
-  
   let slug = companyName
     .toLowerCase()
     .normalize('NFD')
@@ -42,7 +53,6 @@ export const generateUniqueSlug = async (companyName: string): Promise<string> =
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
 
-  // For simplicity in frontend-only mode, just add timestamp if needed
   let counter = 0;
   let finalSlug = slug;
   
@@ -55,11 +65,13 @@ export const generateUniqueSlug = async (companyName: string): Promise<string> =
 };
 
 export const isSlugTaken = async (slug: string): Promise<boolean> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 50));
-  
-  const settings = getStorageData<MockCompanySettings | null>(STORAGE_KEYS.COMPANY_SETTINGS, null);
-  return settings?.company_slug === slug;
+  const { data } = await supabase
+    .from('company_settings')
+    .select('slug')
+    .eq('slug', slug)
+    .maybeSingle();
+
+  return data !== null;
 };
 
 export const updateCompanySlug = async (userId: string, newSlug: string): Promise<boolean> => {
@@ -72,14 +84,17 @@ export const updateCompanySlug = async (userId: string, newSlug: string): Promis
     throw new Error('Este slug já está em uso por outra empresa');
   }
 
-  const settings = getStorageData<MockCompanySettings | null>(STORAGE_KEYS.COMPANY_SETTINGS, null);
-  if (settings && settings.company_id === userId) {
-    const updatedSettings = { ...settings, company_slug: newSlug };
-    setStorageData(STORAGE_KEYS.COMPANY_SETTINGS, updatedSettings);
-    return true;
+  const { error } = await supabase
+    .from('company_settings')
+    .update({ slug: newSlug })
+    .eq('company_id', userId);
+
+  if (error) {
+    console.error('Error updating company slug:', error);
+    throw new Error('Erro ao atualizar slug da empresa');
   }
 
-  return false;
+  return true;
 };
 
 export const validateSlug = (slug: string): { isValid: boolean; error?: string } => {
