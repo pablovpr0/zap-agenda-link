@@ -14,9 +14,9 @@ interface ValidatedAppointmentParams {
   p_duration: number;
 }
 
-// Retry mechanism for schema cache issues
+// Retry mechanism for schema cache issues with proper typing
 const retryRpcCall = async (
-  functionName: string,
+  functionName: 'create_public_client' | 'create_public_appointment',
   params: any,
   maxRetries: number = 3
 ): Promise<any> => {
