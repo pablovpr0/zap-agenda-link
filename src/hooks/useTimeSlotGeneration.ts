@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { format, addMinutes, isBefore, isAfter, isSameDay, parseISO, set } from 'date-fns';
 import { TimeSlot } from '@/types/timeSlot';
 import { isTimeDuringLunch } from '@/utils/timeSlotUtils';
-import { getStorageData, MockCompanySettings, MockAppointment, MockService, STORAGE_KEYS } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useTimeSlotGeneration = () => {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
@@ -18,32 +18,45 @@ export const useTimeSlotGeneration = () => {
     setLoading(true);
     try {
       // Buscar configurações da empresa
-      const settings = getStorageData<MockCompanySettings>(STORAGE_KEYS.COMPANY_SETTINGS, null);
+      const { data: settings, error: settingsError } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('company_id', companyId)
+        .maybeSingle();
 
-      if (!settings) {
-        console.error('Configurações da empresa não encontradas');
+      if (settingsError || !settings) {
+        console.error('Configurações da empresa não encontradas:', settingsError);
+        setTimeSlots([]);
         return;
       }
 
       // Buscar duração do serviço selecionado
       let serviceDuration = 60; // duração padrão
       if (serviceId) {
-        const services = getStorageData<MockService[]>(STORAGE_KEYS.SERVICES, []);
-        const service = services.find(s => s.id === serviceId && s.company_id === companyId);
+        const { data: service, error: serviceError } = await supabase
+          .from('services')
+          .select('duration')
+          .eq('id', serviceId)
+          .eq('company_id', companyId)
+          .maybeSingle();
         
-        if (service) {
+        if (!serviceError && service) {
           serviceDuration = service.duration;
         }
       }
 
       // Buscar agendamentos existentes para a data
-      const allAppointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
-      const existingAppointments = allAppointments.filter(apt => 
-        apt.company_id === companyId &&
-        apt.appointment_date === selectedDate &&
-        apt.status !== 'cancelled' &&
-        (!excludeAppointmentId || apt.id !== excludeAppointmentId)
-      );
+      const { data: existingAppointments, error: appointmentsError } = await supabase
+        .from('appointments')
+        .select('appointment_time, duration')
+        .eq('company_id', companyId)
+        .eq('appointment_date', selectedDate)
+        .neq('status', 'cancelled')
+        .not('id', 'eq', excludeAppointmentId || '');
+
+      if (appointmentsError) {
+        console.error('Erro ao buscar agendamentos existentes:', appointmentsError);
+      }
 
       // Gerar slots de horário baseado nas configurações
       const slots: TimeSlot[] = [];
@@ -78,8 +91,8 @@ export const useTimeSlotGeneration = () => {
         }
 
         // Verificar se está durante o horário de almoço
-        if (available && settings.lunch_break_enabled && settings.lunch_break_start && settings.lunch_break_end &&
-            isTimeDuringLunch(timeString, settings.lunch_break_start, settings.lunch_break_end)) {
+        if (available && settings.lunch_break_enabled && settings.lunch_start_time && settings.lunch_end_time &&
+            isTimeDuringLunch(timeString, settings.lunch_start_time, settings.lunch_end_time)) {
           available = false;
           reason = 'Horário de almoço';
         }
@@ -92,7 +105,7 @@ export const useTimeSlotGeneration = () => {
         }
 
         // Verificar conflitos com agendamentos existentes
-        if (available && existingAppointments.length > 0) {
+        if (available && existingAppointments && existingAppointments.length > 0) {
           const conflict = existingAppointments.some(apt => {
             const aptTime = parseISO(`${selectedDate}T${apt.appointment_time}`);
             const aptEndTime = addMinutes(aptTime, apt.duration);
@@ -117,12 +130,13 @@ export const useTimeSlotGeneration = () => {
           reason
         });
 
-        currentTime = addMinutes(currentTime, settings.appointment_duration);
+        currentTime = addMinutes(currentTime, settings.appointment_interval);
       }
 
       setTimeSlots(slots);
     } catch (error) {
       console.error('Erro ao gerar slots de horário:', error);
+      setTimeSlots([]);
     } finally {
       setLoading(false);
     }

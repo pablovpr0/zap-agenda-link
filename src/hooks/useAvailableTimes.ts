@@ -1,7 +1,7 @@
 
 import { CompanySettings } from '@/types/publicBooking';
 import { generateAvailableDates, generateTimeSlots } from '@/utils/dateUtils';
-import { getStorageData, MockAppointment, STORAGE_KEYS } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useAvailableTimes = (companySettings: CompanySettings | null) => {
   const generateAvailableDatesForCompany = () => {
@@ -20,15 +20,19 @@ export const useAvailableTimes = (companySettings: CompanySettings | null) => {
     
     try {
       // Buscar agendamentos existentes para a data
-      const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
-      const bookedTimes = appointments
-        .filter(apt => 
-          apt.company_id === companySettings.company_id &&
-          apt.appointment_date === selectedDate &&
-          apt.status !== 'cancelled'
-        )
-        .map(apt => apt.appointment_time);
+      const { data: appointments, error } = await supabase
+        .from('appointments')
+        .select('appointment_time')
+        .eq('company_id', companySettings.company_id)
+        .eq('appointment_date', selectedDate)
+        .neq('status', 'cancelled');
 
+      if (error) {
+        console.error('Erro ao verificar horários disponíveis:', error);
+        return times;
+      }
+
+      const bookedTimes = (appointments || []).map(apt => apt.appointment_time);
       const availableTimes = times.filter(time => !bookedTimes.includes(time));
       return availableTimes;
     } catch (error) {

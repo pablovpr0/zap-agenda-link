@@ -1,4 +1,5 @@
-import { getStorageData, setStorageData, MockProfessional, STORAGE_KEYS } from '@/data/mockData';
+
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Professional {
   id: string;
@@ -13,62 +14,73 @@ export const fetchProfessionals = async (companyId: string): Promise<Professiona
   // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 100));
   
-  const professionals = getStorageData<MockProfessional[]>(STORAGE_KEYS.PROFESSIONALS, []);
-  const userProfessionals = professionals.filter(
-    professional => professional.company_id === companyId && professional.is_active
-  );
+  const { data: professionals, error } = await supabase
+    .from('professionals')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('is_active', true);
 
-  console.log('Profissionais encontrados:', userProfessionals.length);
-  return userProfessionals;
+  if (error) {
+    console.error('Erro ao buscar profissionais:', error);
+    return [];
+  }
+
+  console.log('Profissionais encontrados:', professionals?.length || 0);
+  return professionals || [];
 };
 
 export const createProfessional = async (companyId: string, professional: Omit<Professional, 'id' | 'is_active'>) => {
-  const professionals = getStorageData<MockProfessional[]>(STORAGE_KEYS.PROFESSIONALS, []);
-  
-  const newProfessional: MockProfessional = {
-    id: `professional-${Date.now()}`,
-    company_id: companyId,
-    name: professional.name,
-    phone: professional.phone,
-    whatsapp: professional.whatsapp,
-    role: professional.role,
-    is_active: true
-  };
+  const { data: newProfessional, error } = await supabase
+    .from('professionals')
+    .insert({
+      company_id: companyId,
+      name: professional.name,
+      phone: professional.phone,
+      whatsapp: professional.whatsapp,
+      role: professional.role,
+      is_active: true
+    })
+    .select()
+    .single();
 
-  professionals.push(newProfessional);
-  setStorageData(STORAGE_KEYS.PROFESSIONALS, professionals);
+  if (error) {
+    console.error('Erro ao criar profissional:', error);
+    throw new Error('Erro ao criar profissional');
+  }
 
   return newProfessional;
 };
 
 export const updateProfessional = async (professionalId: string, professional: Partial<Professional>) => {
-  const professionals = getStorageData<MockProfessional[]>(STORAGE_KEYS.PROFESSIONALS, []);
-  
-  const updatedProfessionals = professionals.map(p =>
-    p.id === professionalId
-      ? {
-          ...p,
-          name: professional.name || p.name,
-          phone: professional.phone || p.phone,
-          whatsapp: professional.whatsapp || p.whatsapp,
-          role: professional.role || p.role,
-          is_active: professional.is_active !== undefined ? professional.is_active : p.is_active
-        }
-      : p
-  );
+  const { data: updatedProfessional, error } = await supabase
+    .from('professionals')
+    .update({
+      name: professional.name,
+      phone: professional.phone,
+      whatsapp: professional.whatsapp,
+      role: professional.role,
+      is_active: professional.is_active
+    })
+    .eq('id', professionalId)
+    .select()
+    .single();
 
-  setStorageData(STORAGE_KEYS.PROFESSIONALS, updatedProfessionals);
-  
-  const updatedProfessional = updatedProfessionals.find(p => p.id === professionalId);
+  if (error) {
+    console.error('Erro ao atualizar profissional:', error);
+    throw new Error('Erro ao atualizar profissional');
+  }
+
   return updatedProfessional;
 };
 
 export const deleteProfessional = async (professionalId: string) => {
-  const professionals = getStorageData<MockProfessional[]>(STORAGE_KEYS.PROFESSIONALS, []);
-  
-  const updatedProfessionals = professionals.map(p =>
-    p.id === professionalId ? { ...p, is_active: false } : p
-  );
+  const { error } = await supabase
+    .from('professionals')
+    .update({ is_active: false })
+    .eq('id', professionalId);
 
-  setStorageData(STORAGE_KEYS.PROFESSIONALS, updatedProfessionals);
+  if (error) {
+    console.error('Erro ao desativar profissional:', error);
+    throw new Error('Erro ao desativar profissional');
+  }
 };

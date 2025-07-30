@@ -1,12 +1,21 @@
-import { getStorageData, MockClient, STORAGE_KEYS } from '@/data/mockData';
+
+import { supabase } from '@/integrations/supabase/client';
 
 export const fetchTotalClients = async (userId: string): Promise<number> => {
   // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 100));
   
-  const clients = getStorageData<MockClient[]>(STORAGE_KEYS.CLIENTS, []);
-  const userClients = clients.filter(client => client.company_id === userId);
-  
-  console.log('Total de clientes encontrados:', userClients.length);
-  return userClients.length;
+  const { data: clients, error } = await supabase
+    .from('clients')
+    .select('id')
+    .eq('company_id', userId);
+
+  if (error) {
+    console.error('Erro ao buscar total de clientes:', error);
+    return 0;
+  }
+
+  const totalClients = clients?.length || 0;
+  console.log('Total de clientes encontrados:', totalClients);
+  return totalClients;
 };

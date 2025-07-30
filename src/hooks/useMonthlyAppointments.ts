@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
-import { getStorageData, MockAppointment, MockClient, MockService, STORAGE_KEYS } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Appointment {
   id: string;
@@ -38,40 +38,39 @@ export const useMonthlyAppointments = (currentDate: Date) => {
       
       console.log('Carregando agendamentos para o período:', startDate, 'até', endDate);
       
-      const appointmentData = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
-      const clients = getStorageData<MockClient[]>(STORAGE_KEYS.CLIENTS, []);
-      const services = getStorageData<MockService[]>(STORAGE_KEYS.SERVICES, []);
+      const { data: appointmentData, error } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          appointment_date,
+          appointment_time,
+          status,
+          clients!inner(name, phone),
+          services!inner(name)
+        `)
+        .eq('company_id', user.id)
+        .gte('appointment_date', startDate)
+        .lte('appointment_date', endDate)
+        .order('appointment_date')
+        .order('appointment_time');
 
-      // Filtrar agendamentos do mês e da empresa
-      const monthlyAppointments = appointmentData.filter(apt => 
-        apt.company_id === user.id &&
-        apt.appointment_date >= startDate &&
-        apt.appointment_date <= endDate
-      );
+      if (error) {
+        console.error('Erro ao carregar agendamentos:', error);
+        setAppointments([]);
+        return;
+      }
 
-      console.log('Agendamentos encontrados:', monthlyAppointments.length);
+      console.log('Agendamentos encontrados:', appointmentData?.length || 0);
 
-      const processedAppointments: Appointment[] = monthlyAppointments.map(apt => {
-        const client = clients.find(c => c.id === apt.client_id);
-        const service = services.find(s => s.id === apt.service_id);
-
-        return {
-          id: apt.id,
-          appointment_date: apt.appointment_date,
-          appointment_time: apt.appointment_time,
-          client_name: client?.name || 'Cliente não encontrado',
-          client_phone: client?.phone || '',
-          service_name: service?.name || 'Serviço não encontrado',
-          status: apt.status
-        };
-      });
-
-      // Ordenar por data e hora
-      processedAppointments.sort((a, b) => {
-        const dateA = new Date(`${a.appointment_date}T${a.appointment_time}`);
-        const dateB = new Date(`${b.appointment_date}T${b.appointment_time}`);
-        return dateA.getTime() - dateB.getTime();
-      });
+      const processedAppointments: Appointment[] = (appointmentData || []).map(apt => ({
+        id: apt.id,
+        appointment_date: apt.appointment_date,
+        appointment_time: apt.appointment_time,
+        client_name: apt.clients?.name || 'Cliente não encontrado',
+        client_phone: apt.clients?.phone || '',
+        service_name: apt.services?.name || 'Serviço não encontrado',
+        status: apt.status
+      }));
 
       setAppointments(processedAppointments);
       console.log('Total de agendamentos processados:', processedAppointments.length);

@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { getStorageData, setStorageData, MockAppointment, STORAGE_KEYS } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useAppointmentActions = () => {
   const { toast } = useToast();
@@ -12,9 +12,15 @@ export const useAppointmentActions = () => {
   const deleteAppointment = async (appointmentId: string, clientPhone: string, clientName: string, onSuccess?: () => void) => {
     setIsDeleting(true);
     try {
-      const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
-      const updatedAppointments = appointments.filter(apt => apt.id !== appointmentId);
-      setStorageData(STORAGE_KEYS.APPOINTMENTS, updatedAppointments);
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', appointmentId);
+
+      if (error) {
+        console.error('Erro ao excluir agendamento:', error);
+        throw new Error('Erro ao excluir agendamento');
+      }
 
       toast({
         title: "Agendamento excluído",
@@ -26,7 +32,7 @@ export const useAppointmentActions = () => {
       console.error('Erro ao excluir agendamento:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível excluir o agendamento.",
+        description: error.message || "Não foi possível excluir o agendamento.",
         variant: "destructive",
       });
     } finally {
@@ -37,13 +43,15 @@ export const useAppointmentActions = () => {
   const cancelAppointment = async (appointmentId: string, clientPhone: string, clientName: string, onSuccess?: () => void) => {
     setIsCancelling(true);
     try {
-      const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
-      const updatedAppointments = appointments.map(apt => 
-        apt.id === appointmentId 
-          ? { ...apt, status: 'cancelled' as const }
-          : apt
-      );
-      setStorageData(STORAGE_KEYS.APPOINTMENTS, updatedAppointments);
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: 'cancelled' })
+        .eq('id', appointmentId);
+
+      if (error) {
+        console.error('Erro ao cancelar agendamento:', error);
+        throw new Error('Erro ao cancelar agendamento');
+      }
 
       toast({
         title: "Agendamento cancelado",
@@ -55,7 +63,7 @@ export const useAppointmentActions = () => {
       console.error('Erro ao cancelar agendamento:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível cancelar o agendamento.",
+        description: error.message || "Não foi possível cancelar o agendamento.",
         variant: "destructive",
       });
     } finally {
@@ -78,13 +86,18 @@ export const useAppointmentActions = () => {
         ? newDate.split('/').reverse().join('-') 
         : newDate;
 
-      const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
-      const updatedAppointments = appointments.map(apt => 
-        apt.id === appointmentId 
-          ? { ...apt, appointment_date: formattedDate, appointment_time: newTime }
-          : apt
-      );
-      setStorageData(STORAGE_KEYS.APPOINTMENTS, updatedAppointments);
+      const { error } = await supabase
+        .from('appointments')
+        .update({ 
+          appointment_date: formattedDate, 
+          appointment_time: newTime 
+        })
+        .eq('id', appointmentId);
+
+      if (error) {
+        console.error('Erro ao atualizar agendamento:', error);
+        throw new Error('Erro ao atualizar agendamento');
+      }
 
       toast({
         title: "Agendamento atualizado",
@@ -96,7 +109,7 @@ export const useAppointmentActions = () => {
       console.error('Erro ao atualizar agendamento:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar o agendamento.",
+        description: error.message || "Não foi possível atualizar o agendamento.",
         variant: "destructive",
       });
     } finally {

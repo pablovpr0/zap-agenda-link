@@ -2,13 +2,7 @@
 import { BookingFormData, CompanySettings, Service } from '@/types/publicBooking';
 import { Professional } from '@/services/professionalsService';
 import { formatAppointmentDate } from '@/utils/dateUtils';
-import { 
-  getStorageData, 
-  setStorageData, 
-  MockClient, 
-  MockAppointment, 
-  STORAGE_KEYS 
-} from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 export const createAppointment = async (
   formData: BookingFormData,
@@ -24,85 +18,99 @@ export const createAppointment = async (
     throw new Error('Configurações da empresa não encontradas');
   }
 
-  // Validar formato UUID do company_id
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(companySettings.company_id)) {
-    console.error('🚫 Erro: company_id não está em formato UUID válido:', companySettings.company_id);
-    throw new Error('ID da empresa inválido');
-  }
-
   console.log('✅ company_id validado:', companySettings.company_id);
 
-  // Check if time slot is still available
-  const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
-  const conflictCheck = appointments.filter(
-    appointment => 
-      appointment.company_id === companySettings.company_id &&
-      appointment.appointment_date === selectedDate &&
-      appointment.appointment_time === selectedTime &&
-      appointment.status !== 'cancelled'
-  );
+  // Verificar se o horário ainda está disponível
+  const { data: existingAppointments, error: checkError } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('company_id', companySettings.company_id)
+    .eq('appointment_date', selectedDate)
+    .eq('appointment_time', selectedTime)
+    .neq('status', 'cancelled');
 
-  if (conflictCheck.length > 0) {
+  if (checkError) {
+    console.error('Erro ao verificar disponibilidade:', checkError);
+    throw new Error('Erro ao verificar disponibilidade do horário');
+  }
+
+  if (existingAppointments && existingAppointments.length > 0) {
     throw new Error('Este horário já foi ocupado. Por favor, escolha outro horário.');
   }
 
-  // Create or find client
+  // Criar ou encontrar cliente
   let clientId;
-  const clients = getStorageData<MockClient[]>(STORAGE_KEYS.CLIENTS, []);
-  const existingClient = clients.find(
-    client => 
-      client.company_id === companySettings.company_id &&
-      client.phone === clientPhone
-  );
+  const { data: existingClient, error: clientCheckError } = await supabase
+    .from('clients')
+    .select('*')
+    .eq('company_id', companySettings.company_id)
+    .eq('phone', clientPhone)
+    .maybeSingle();
+
+  if (clientCheckError) {
+    console.error('Erro ao verificar cliente existente:', clientCheckError);
+    throw new Error('Erro ao verificar dados do cliente');
+  }
 
   if (existingClient) {
     clientId = existingClient.id;
     
-    // Update existing client
-    const updatedClients = clients.map(client =>
-      client.id === clientId
-        ? { ...client, name: clientName }
-        : client
-    );
-    setStorageData(STORAGE_KEYS.CLIENTS, updatedClients);
-  } else {
-    // Create new client
-    const newClientId = `client-${Date.now()}`;
-    const newClient: MockClient = {
-      id: newClientId,
-      company_id: companySettings.company_id,
-      name: clientName,
-      phone: clientPhone,
-      created_at: new Date().toISOString()
-    };
+    // Atualizar nome do cliente se necessário
+    if (existingClient.name !== clientName) {
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update({ name: clientName })
+        .eq('id', clientId);
 
-    console.log('✅ Cliente criado com sucesso:', newClientId);
-    clients.push(newClient);
-    setStorageData(STORAGE_KEYS.CLIENTS, clients);
-    clientId = newClientId;
+      if (updateError) {
+        console.error('Erro ao atualizar cliente:', updateError);
+        // Não falha se não conseguir atualizar o nome
+      }
+    }
+  } else {
+    // Criar novo cliente
+    const { data: newClient, error: createClientError } = await supabase
+      .from('clients')
+      .insert({
+        company_id: companySettings.company_id,
+        name: clientName,
+        phone: clientPhone
+      })
+      .select()
+      .single();
+
+    if (createClientError) {
+      console.error('Erro ao criar cliente:', createClientError);
+      throw new Error('Erro ao criar cadastro do cliente');
+    }
+
+    console.log('✅ Cliente criado com sucesso:', newClient.id);
+    clientId = newClient.id;
   }
 
-  // Find service duration
+  // Encontrar duração do serviço
   const service = services.find(s => s.id === selectedService);
 
-  // Create appointment
-  const appointmentId = `appointment-${Date.now()}`;
-  const newAppointment: MockAppointment = {
-    id: appointmentId,
-    company_id: companySettings.company_id,
-    client_id: clientId,
-    service_id: selectedService,
-    professional_id: selectedProfessional || undefined,
-    appointment_date: selectedDate,
-    appointment_time: selectedTime,
-    duration: service?.duration || 60,
-    status: 'confirmed',
-    created_at: new Date().toISOString()
-  };
+  // Criar agendamento
+  const { data: newAppointment, error: appointmentError } = await supabase
+    .from('appointments')
+    .insert({
+      company_id: companySettings.company_id,
+      client_id: clientId,
+      service_id: selectedService,
+      professional_id: selectedProfessional || null,
+      appointment_date: selectedDate,
+      appointment_time: selectedTime,
+      duration: service?.duration || 60,
+      status: 'confirmed'
+    })
+    .select()
+    .single();
 
-  appointments.push(newAppointment);
-  setStorageData(STORAGE_KEYS.APPOINTMENTS, appointments);
+  if (appointmentError) {
+    console.error('Erro ao criar agendamento:', appointmentError);
+    throw new Error('Erro ao criar agendamento');
+  }
 
   return {
     appointment: newAppointment,
