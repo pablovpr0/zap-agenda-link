@@ -2,7 +2,7 @@
 import { CompanySettings } from '@/types/publicBooking';
 import { generateAvailableDates, generateTimeSlots, isTimeDuringLunch } from '@/utils/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isSameDay, isBefore, parse } from 'date-fns';
 
 export const useAvailableTimes = (companySettings: CompanySettings | null) => {
   const generateAvailableDatesForCompany = () => {
@@ -41,7 +41,7 @@ export const useAvailableTimes = (companySettings: CompanySettings | null) => {
         .select('appointment_time, duration, status')
         .eq('company_id', companySettings.company_id)
         .eq('appointment_date', selectedDate)
-        .in('status', ['confirmed', 'pending']); // Incluir agendamentos confirmados e pendentes
+        .in('status', ['confirmed', 'pending']);
 
       if (error) {
         console.error('Erro ao verificar horários disponíveis:', error);
@@ -59,15 +59,20 @@ export const useAvailableTimes = (companySettings: CompanySettings | null) => {
       
       console.log('🚫 Horários ocupados:', bookedTimes);
       
-      // Filtrar horários ocupados e durante o almoço
+      // Data atual para verificar se é hoje
+      const now = new Date();
+      const selectedDateObj = parseISO(selectedDate + 'T00:00:00');
+      const isToday = isSameDay(selectedDateObj, now);
+      
+      // Filtrar apenas horários realmente disponíveis
       const availableTimes = times.filter(time => {
-        // Verificar se não está ocupado
+        // 1. Verificar se não está ocupado
         if (bookedTimes.includes(time)) {
           console.log(`❌ Horário ${time} está ocupado`);
           return false;
         }
         
-        // Verificar se não é horário de almoço
+        // 2. Verificar se não é horário de almoço
         if (companySettings.lunch_break_enabled && 
             companySettings.lunch_start_time && 
             companySettings.lunch_end_time) {
@@ -84,6 +89,15 @@ export const useAvailableTimes = (companySettings: CompanySettings | null) => {
           }
         }
         
+        // 3. Verificar se não é um horário que já passou (apenas para hoje)
+        if (isToday) {
+          const timeToCheck = parse(`${selectedDate} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+          if (isBefore(timeToCheck, now)) {
+            console.log(`⏰ Horário ${time} já passou`);
+            return false;
+          }
+        }
+        
         console.log(`✅ Horário ${time} está disponível`);
         return true;
       });
@@ -92,7 +106,7 @@ export const useAvailableTimes = (companySettings: CompanySettings | null) => {
       return availableTimes;
     } catch (error) {
       console.error('Erro ao verificar horários disponíveis:', error);
-      return times;
+      return [];
     }
   };
 
