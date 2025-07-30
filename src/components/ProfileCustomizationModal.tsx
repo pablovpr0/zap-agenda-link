@@ -4,10 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Camera, Upload, Palette } from 'lucide-react';
+import { Camera, Upload, Palette, AlertCircle } from 'lucide-react';
 import { fetchProfile, updateProfile } from '@/services/profileService';
 
 interface ProfileCustomizationModalProps {
@@ -25,6 +24,7 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -36,6 +36,8 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
     if (!user) return;
     
     setLoading(true);
+    setError(null);
+    
     try {
       const profileData = await fetchProfile(user.id);
       if (profileData) {
@@ -45,11 +47,7 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
       }
     } catch (error: any) {
       console.error('Error loading profile:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os dados do perfil.",
-        variant: "destructive",
-      });
+      setError(error.message || 'Erro ao carregar dados do perfil');
     } finally {
       setLoading(false);
     }
@@ -86,24 +84,24 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user) return;
+    if (!user) {
+      setError('Usuário não encontrado');
+      return;
+    }
 
-    if (!companyName) {
-      toast({
-        title: "Nome da empresa obrigatório",
-        description: "Por favor, preencha o nome da empresa.",
-        variant: "destructive",
-      });
+    if (!companyName.trim()) {
+      setError('Nome da empresa é obrigatório');
       return;
     }
 
     setLoading(true);
+    setError(null);
 
     try {
       await updateProfile(user.id, {
-        company_name: companyName,
-        business_type: businessType,
-        profile_image_url: profileImageUrl,
+        company_name: companyName.trim(),
+        business_type: businessType.trim() || null,
+        profile_image_url: profileImageUrl || null,
       });
 
       toast({
@@ -115,6 +113,8 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
       onClose();
     } catch (error: any) {
       console.error('Error updating profile:', error);
+      setError(error.message || 'Erro ao salvar perfil');
+      
       toast({
         title: "Erro ao salvar perfil",
         description: error.message || "Não foi possível salvar o perfil.",
@@ -135,81 +135,99 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
           </DialogTitle>
         </DialogHeader>
 
-        {loading ? (
+        {loading && !error ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-whatsapp-green"></div>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-whatsapp-green mx-auto mb-2"></div>
+              <p className="text-gray-600">Carregando dados do perfil...</p>
+            </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Profile Image */}
-            <div className="flex flex-col items-center space-y-4">
-              <div className="relative">
-                {profileImageUrl ? (
-                  <img
-                    src={profileImageUrl}
-                    alt="Profile"
-                    className="w-24 h-24 rounded-full object-cover border-4 border-green-100"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-gray-200 border-4 border-green-100 flex items-center justify-center">
-                    <Camera className="w-8 h-8 text-gray-400" />
-                  </div>
-                )}
-                <label className="absolute bottom-0 right-0 bg-green-600 rounded-full p-2 cursor-pointer hover:bg-green-700 transition-colors">
-                  <Upload className="w-4 h-4 text-white" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    disabled={uploading}
-                  />
-                </label>
+          <>
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-red-800 font-medium">Erro</p>
+                  <p className="text-red-700 text-sm mt-1">{error}</p>
+                </div>
               </div>
-              <p className="text-sm text-gray-500 text-center">
-                {uploading ? "Enviando..." : "Clique para alterar a imagem"}
-              </p>
-            </div>
+            )}
 
-            {/* Company Name */}
-            <div className="space-y-2">
-              <Label htmlFor="company-name">Nome da Empresa *</Label>
-              <Input
-                id="company-name"
-                type="text"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="Digite o nome da sua empresa"
-                required
-              />
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Profile Image */}
+              <div className="flex flex-col items-center space-y-4">
+                <div className="relative">
+                  {profileImageUrl ? (
+                    <img
+                      src={profileImageUrl}
+                      alt="Profile"
+                      className="w-24 h-24 rounded-full object-cover border-4 border-green-100"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gray-200 border-4 border-green-100 flex items-center justify-center">
+                      <Camera className="w-8 h-8 text-gray-400" />
+                    </div>
+                  )}
+                  <label className="absolute bottom-0 right-0 bg-green-600 rounded-full p-2 cursor-pointer hover:bg-green-700 transition-colors">
+                    <Upload className="w-4 h-4 text-white" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      disabled={uploading || loading}
+                    />
+                  </label>
+                </div>
+                <p className="text-sm text-gray-500 text-center">
+                  {uploading ? "Enviando..." : "Clique para alterar a imagem"}
+                </p>
+              </div>
 
-            {/* Business Type */}
-            <div className="space-y-2">
-              <Label htmlFor="business-type">Tipo de Negócio</Label>
-              <Input
-                id="business-type"
-                type="text"
-                value={businessType}
-                onChange={(e) => setBusinessType(e.target.value)}
-                placeholder="Ex: Salão de Beleza, Clínica, Barbearia"
-              />
-            </div>
+              {/* Company Name */}
+              <div className="space-y-2">
+                <Label htmlFor="company-name">Nome da Empresa *</Label>
+                <Input
+                  id="company-name"
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="Digite o nome da sua empresa"
+                  required
+                  disabled={loading}
+                  className={error ? 'border-red-300' : ''}
+                />
+              </div>
 
-            {/* Buttons */}
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-whatsapp-green hover:bg-green-600"
-              >
-                {loading ? "Salvando..." : "Salvar Alterações"}
-              </Button>
-            </div>
-          </form>
+              {/* Business Type */}
+              <div className="space-y-2">
+                <Label htmlFor="business-type">Tipo de Negócio</Label>
+                <Input
+                  id="business-type"
+                  type="text"
+                  value={businessType}
+                  onChange={(e) => setBusinessType(e.target.value)}
+                  placeholder="Ex: Salão de Beleza, Clínica, Barbearia"
+                  disabled={loading}
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading || !companyName.trim()}
+                  className="bg-whatsapp-green hover:bg-green-600"
+                >
+                  {loading ? "Salvando..." : "Salvar Alterações"}
+                </Button>
+              </div>
+            </form>
+          </>
         )}
       </DialogContent>
     </Dialog>

@@ -22,13 +22,14 @@ export const fetchProfile = async (userId: string): Promise<Profile | null> => {
 
     if (error) {
       console.error('Error fetching profile:', error);
-      throw new Error('Erro ao buscar perfil do usuário');
+      throw new Error(`Erro ao buscar perfil: ${error.message}`);
     }
 
+    console.log('Profile fetched successfully:', data);
     return data;
   } catch (error: any) {
     console.error('Service error in fetchProfile:', error);
-    throw new Error(error.message || 'Erro ao buscar perfil do usuário');
+    throw error;
   }
 };
 
@@ -36,6 +37,15 @@ export const updateProfile = async (userId: string, updates: Partial<Profile>): 
   console.log('Updating profile for user:', userId, 'with updates:', updates);
   
   try {
+    // Primeiro verifica se o perfil existe
+    const existingProfile = await fetchProfile(userId);
+    
+    if (!existingProfile) {
+      console.log('Profile does not exist, creating new one');
+      return await createProfile(userId, updates);
+    }
+
+    // Atualiza o perfil existente
     const { data, error } = await supabase
       .from('profiles')
       .update({
@@ -48,13 +58,14 @@ export const updateProfile = async (userId: string, updates: Partial<Profile>): 
 
     if (error) {
       console.error('Error updating profile:', error);
-      throw new Error('Erro ao atualizar perfil do usuário');
+      throw new Error(`Erro ao atualizar perfil: ${error.message}`);
     }
 
+    console.log('Profile updated successfully:', data);
     return data;
   } catch (error: any) {
     console.error('Service error in updateProfile:', error);
-    throw new Error(error.message || 'Erro ao atualizar perfil do usuário');
+    throw error;
   }
 };
 
@@ -67,19 +78,22 @@ export const createProfile = async (userId: string, profileData: Partial<Profile
       .insert({
         id: userId,
         ...profileData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
       .select()
       .single();
 
     if (error) {
       console.error('Error creating profile:', error);
-      throw new Error('Erro ao criar perfil do usuário');
+      throw new Error(`Erro ao criar perfil: ${error.message}`);
     }
 
+    console.log('Profile created successfully:', data);
     return data;
   } catch (error: any) {
     console.error('Service error in createProfile:', error);
-    throw new Error(error.message || 'Erro ao criar perfil do usuário');
+    throw error;
   }
 };
 
@@ -87,51 +101,28 @@ export const upsertProfile = async (userId: string, profileData: Partial<Profile
   console.log('Upserting profile for user:', userId, 'with data:', profileData);
   
   try {
-    // First try to update existing profile
-    const { data: updateData, error: updateError } = await supabase
+    // Usa upsert nativo do Supabase para evitar condições de corrida
+    const { data, error } = await supabase
       .from('profiles')
-      .update({
-        ...profileData,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId)
-      .select()
-      .maybeSingle();
-
-    if (updateError && updateError.code !== 'PGRST116') {
-      console.error('Error updating profile:', updateError);
-      throw new Error('Erro ao atualizar perfil do usuário');
-    }
-
-    // If update succeeded and returned data, return it
-    if (updateData) {
-      console.log('Profile updated successfully:', updateData);
-      return updateData;
-    }
-
-    // If no rows were updated, try to insert
-    console.log('No existing profile found, creating new one');
-    const { data: insertData, error: insertError } = await supabase
-      .from('profiles')
-      .insert({
+      .upsert({
         id: userId,
         ...profileData,
-        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'id'
       })
       .select()
       .single();
 
-    if (insertError) {
-      console.error('Error creating profile:', insertError);
-      throw new Error('Erro ao criar perfil do usuário');
+    if (error) {
+      console.error('Error upserting profile:', error);
+      throw new Error(`Erro ao salvar perfil: ${error.message}`);
     }
 
-    console.log('Profile created successfully:', insertData);
-    return insertData;
-
+    console.log('Profile upserted successfully:', data);
+    return data;
   } catch (error: any) {
     console.error('Error in upsertProfile:', error);
-    throw new Error(error.message || 'Erro ao salvar perfil do usuário');
+    throw error;
   }
 };

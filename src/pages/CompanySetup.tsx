@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Store } from 'lucide-react';
+import { Store, AlertCircle } from 'lucide-react';
 import { fetchProfile, upsertProfile } from '@/services/profileService';
 import { createDefaultSettings } from '@/services/companySettingsService';
 
@@ -20,6 +20,7 @@ const CompanySetup = () => {
   const [businessType, setBusinessType] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isLoading) return;
@@ -30,43 +31,54 @@ const CompanySetup = () => {
       return;
     }
 
-    // Check if profile already exists and is complete
-    const checkExistingProfile = async () => {
-      try {
-        console.log('Checking existing profile for user:', user.id);
-        setCheckingProfile(true);
-        
-        const profile = await fetchProfile(user.id);
-        console.log('Profile found:', profile);
-        
-        if (profile?.company_name && profile.company_name.trim()) {
-          // Profile is already complete, redirect to main app
-          console.log('Profile is complete, redirecting to main app');
-          navigate('/');
-          return;
-        }
-        
-        // Profile exists but incomplete, pre-fill form if possible
-        if (profile) {
-          if (profile.company_name) setCompanyName(profile.company_name);
-          if (profile.business_type) setBusinessType(profile.business_type);
-        }
-        
-      } catch (error) {
-        console.error('Error checking profile:', error);
-        // Continue with setup if profile doesn't exist or there's an error
-      } finally {
-        setCheckingProfile(false);
-      }
-    };
-
     checkExistingProfile();
   }, [user, isLoading, navigate]);
+
+  const checkExistingProfile = async () => {
+    if (!user) return;
+
+    try {
+      console.log('Checking existing profile for user:', user.id);
+      setCheckingProfile(true);
+      setError(null);
+      
+      const profile = await fetchProfile(user.id);
+      console.log('Profile found:', profile);
+      
+      if (profile?.company_name && profile.company_name.trim()) {
+        console.log('Profile is complete, redirecting to main app');
+        navigate('/', { replace: true });
+        return;
+      }
+      
+      // Profile exists but incomplete, pre-fill form
+      if (profile) {
+        if (profile.company_name) setCompanyName(profile.company_name);
+        if (profile.business_type) setBusinessType(profile.business_type);
+      }
+      
+    } catch (error: any) {
+      console.error('Error checking profile:', error);
+      setError('Erro ao verificar perfil existente');
+    } finally {
+      setCheckingProfile(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !companyName.trim()) {
+    if (!user) {
+      toast({
+        title: "Erro de autenticação",
+        description: "Usuário não encontrado. Faça login novamente.",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+
+    if (!companyName.trim()) {
       toast({
         title: "Nome da empresa obrigatório",
         description: "Por favor, preencha o nome da empresa.",
@@ -75,16 +87,14 @@ const CompanySetup = () => {
       return;
     }
 
-    if (loading) return; // Prevent double submission
+    if (loading) return;
 
     setLoading(true);
+    setError(null);
 
     try {
       console.log('Starting company setup process for user:', user.id);
-      console.log('Company name:', companyName.trim());
-      console.log('Business type:', businessType.trim());
       
-      // Step 1: Create or update the profile
       const profileData = {
         company_name: companyName.trim(),
         business_type: businessType.trim() || null,
@@ -94,40 +104,36 @@ const CompanySetup = () => {
       const profile = await upsertProfile(user.id, profileData);
       console.log('Profile saved successfully:', profile);
 
-      // Step 2: Create default company settings (non-blocking)
+      // Create default company settings (non-blocking)
       try {
         console.log('Creating default company settings...');
         await createDefaultSettings(user.id, companyName.trim());
         console.log('Default settings created successfully');
       } catch (settingsError: any) {
         console.error('Error creating default settings (non-blocking):', settingsError);
-        // Don't fail the whole process if settings creation fails
         toast({
           title: "Parcialmente configurado",
-          description: "Empresa criada, mas algumas configurações padrão serão definidas depois.",
+          description: "Empresa criada, mas algumas configurações serão definidas depois.",
           variant: "default",
         });
       }
 
       toast({
         title: "Empresa configurada com sucesso!",
-        description: "Agora você pode começar a usar o ZapAgenda!",
+        description: "Redirecionando para o painel principal...",
       });
 
-      // Small delay to ensure data is persisted before navigation
+      // Redirect after success
       setTimeout(() => {
         navigate('/', { replace: true });
-      }, 800);
+      }, 1500);
 
     } catch (error: any) {
       console.error('Error in company setup:', error);
       
-      let errorMessage = "Não foi possível configurar a empresa. Tente novamente.";
+      const errorMessage = error?.message || "Erro inesperado ao configurar empresa";
+      setError(errorMessage);
       
-      if (error.message && typeof error.message === 'string') {
-        errorMessage = error.message;
-      }
-
       toast({
         title: "Erro ao configurar empresa",
         description: errorMessage,
@@ -141,7 +147,10 @@ const CompanySetup = () => {
   if (isLoading || checkingProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando dados do usuário...</p>
+        </div>
       </div>
     );
   }
@@ -160,7 +169,18 @@ const CompanySetup = () => {
           <CardTitle className="text-2xl font-bold text-gray-800">Configure sua Empresa</CardTitle>
           <p className="text-gray-600">Vamos começar configurando as informações básicas da sua empresa</p>
         </CardHeader>
+        
         <CardContent>
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-red-800 font-medium">Erro na configuração</p>
+                <p className="text-red-700 text-sm mt-1">{error}</p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="company-name">Nome da Empresa *</Label>
@@ -173,6 +193,7 @@ const CompanySetup = () => {
                 required
                 disabled={loading}
                 maxLength={100}
+                className={error ? 'border-red-300' : ''}
               />
               <p className="text-xs text-gray-500">
                 Este nome aparecerá na sua página de agendamentos
