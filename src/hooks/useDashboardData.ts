@@ -40,8 +40,9 @@ export const useDashboardData = (companyName?: string) => {
       const settings = await fetchCompanySettings(user.id);
       setCompanySettings(settings);
       
+      let publicUrl = '';
       if (settings?.slug) {
-        const publicUrl = generatePublicBookingUrl(settings.slug);
+        publicUrl = generatePublicBookingUrl(settings.slug);
         setBookingLink(publicUrl);
         setDashboardData(prev => ({ ...prev, bookingLink: publicUrl }));
       }
