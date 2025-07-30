@@ -1,6 +1,6 @@
 
 // Configuration for domain handling
-const CUSTOM_DOMAIN = 'https://ZapAgenda.site';
+const CUSTOM_DOMAIN = 'https://zapagenda.site';
 const DEV_DOMAIN = 'http://localhost:5173';
 
 export const getDomainConfig = () => {
