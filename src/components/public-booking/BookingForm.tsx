@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { MessageCircle, Calendar, Clock } from 'lucide-react';
+import { MessageCircle, Calendar, Clock, RefreshCw } from 'lucide-react';
 import PublicCalendar from '@/components/PublicCalendar';
 import ServiceSelection from '@/components/public-booking/ServiceSelection';
 import TimeSelection from '@/components/public-booking/TimeSelection';
@@ -37,23 +37,65 @@ const BookingForm = ({
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [loadingTimes, setLoadingTimes] = useState(false);
 
   // Load available times when date changes
   useEffect(() => {
     const loadAvailableTimes = async () => {
       if (selectedDate) {
-        const times = await generateAvailableTimes(selectedDate);
-        setAvailableTimes(times);
+        console.log('🔄 Carregando horários para:', selectedDate);
+        setLoadingTimes(true);
+        setSelectedTime(''); // Clear selected time when date changes
+        
+        try {
+          const times = await generateAvailableTimes(selectedDate);
+          setAvailableTimes(times);
+          console.log('✅ Horários carregados:', times.length);
+        } catch (error) {
+          console.error('❌ Erro ao carregar horários:', error);
+          setAvailableTimes([]);
+        } finally {
+          setLoadingTimes(false);
+        }
       } else {
         setAvailableTimes([]);
+        setSelectedTime('');
       }
     };
 
     loadAvailableTimes();
   }, [selectedDate, generateAvailableTimes]);
 
+  // Refresh available times manually
+  const refreshAvailableTimes = async () => {
+    if (selectedDate) {
+      console.log('🔄 Atualizando horários manualmente...');
+      setLoadingTimes(true);
+      setSelectedTime(''); // Clear selected time
+      
+      try {
+        const times = await generateAvailableTimes(selectedDate);
+        setAvailableTimes(times);
+        console.log('✅ Horários atualizados:', times.length);
+      } catch (error) {
+        console.error('❌ Erro ao atualizar horários:', error);
+      } finally {
+        setLoadingTimes(false);
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('📤 Enviando formulário de agendamento...');
+    console.log('📋 Dados:', {
+      selectedService,
+      selectedDate,
+      selectedTime,
+      clientName,
+      clientPhone: clientPhone ? `${clientPhone.substring(0, 4)}****` : ''
+    });
     
     const success = await onSubmit({
       selectedService,
@@ -64,6 +106,7 @@ const BookingForm = ({
     });
 
     if (success) {
+      console.log('✅ Agendamento realizado com sucesso');
       // Limpar formulário
       setSelectedService('');
       setSelectedDate('');
@@ -106,11 +149,39 @@ const BookingForm = ({
 
           {/* Horário */}
           {selectedDate && (
-            <TimeSelection
-              availableTimes={availableTimes}
-              selectedTime={selectedTime}
-              onTimeSelect={setSelectedTime}
-            />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-gray-700 font-semibold flex items-center gap-2 text-lg">
+                  <Clock className="w-5 h-5 text-green-500" />
+                  Escolha o horário
+                </Label>
+                {!loadingTimes && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={refreshAvailableTimes}
+                    className="text-xs"
+                  >
+                    <RefreshCw className="w-3 h-3 mr-1" />
+                    Atualizar
+                  </Button>
+                )}
+              </div>
+              
+              {loadingTimes ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
+                  <span className="ml-2 text-gray-500">Carregando horários...</span>
+                </div>
+              ) : (
+                <TimeSelection
+                  availableTimes={availableTimes}
+                  selectedTime={selectedTime}
+                  onTimeSelect={setSelectedTime}
+                />
+              )}
+            </div>
           )}
 
           {/* Dados do cliente */}
@@ -124,7 +195,7 @@ const BookingForm = ({
           <Button 
             type="submit" 
             className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white py-6 text-lg font-bold rounded-2xl shadow-lg transform hover:scale-105 transition-all duration-200"
-            disabled={submitting}
+            disabled={submitting || !selectedService || !selectedDate || !selectedTime || !clientName || !clientPhone}
           >
             {submitting ? (
               <div className="flex items-center gap-3">
