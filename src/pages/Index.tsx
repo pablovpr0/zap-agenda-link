@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import MerchantDashboard from '../components/MerchantDashboard';
 import MonthlyAgenda from '../components/MonthlyAgenda';
 import SettingsPanel from '../components/SettingsPanel';
@@ -18,11 +17,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { fetchProfile } from '@/services/profileService';
 
 type ViewType = 'dashboard' | 'agenda' | 'settings' | 'clients' | 'services';
 
 const Index = () => {
-  const { user, loading, signOut } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [profileComplete, setProfileComplete] = useState(false);
@@ -30,7 +30,7 @@ const Index = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
-    if (loading) return;
+    if (isLoading) return;
 
     if (!user) {
       navigate('/auth');
@@ -39,27 +39,35 @@ const Index = () => {
 
     // Check if profile is complete and get company name
     const checkProfile = async () => {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      try {
+        console.log('Checking profile for user:', user.id);
+        const profileData = await fetchProfile(user.id);
 
-      if (!profile || !profile.company_name) {
+        if (!profileData || !profileData.company_name) {
+          console.log('Profile incomplete, redirecting to company setup');
+          navigate('/company-setup');
+          return;
+        }
+
+        console.log('Profile complete:', profileData);
+        setCompanyName(profileData.company_name);
+        setProfileComplete(true);
+      } catch (error) {
+        console.error('Error checking profile:', error);
         navigate('/company-setup');
-        return;
       }
-
-      setCompanyName(profile.company_name);
-      setProfileComplete(true);
     };
 
     checkProfile();
-  }, [user, loading, navigate]);
+  }, [user, isLoading, navigate]);
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/auth');
+    try {
+      await signOut();
+      navigate('/auth');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const handleProfileSuccess = () => {
@@ -67,7 +75,7 @@ const Index = () => {
     window.location.reload();
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-whatsapp-bg flex items-center justify-center">
         <div className="text-center">

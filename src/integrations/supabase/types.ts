@@ -347,7 +347,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_public_appointment: {
+        Args: {
+          p_company_id: string
+          p_client_id: string
+          p_service_id: string
+          p_professional_id: string
+          p_appointment_date: string
+          p_appointment_time: string
+          p_duration: number
+        }
+        Returns: string
+      }
+      create_public_client: {
+        Args: {
+          p_company_id: string
+          p_name: string
+          p_phone: string
+          p_email?: string
+        }
+        Returns: string
+      }
       get_companies_with_slug: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          company_id: string
+        }[]
+      }
+      get_public_company_ids: {
         Args: Record<PropertyKey, never>
         Returns: {
           company_id: string

@@ -1,57 +1,79 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { getBrasiliaDate, formatBrazilianDate } from '@/lib/dateConfig';
-import { TodayAppointment, RecentAppointment } from '@/types/dashboard';
+import { format } from 'date-fns';
+
+interface TodayAppointment {
+  id: string;
+  client_name: string;
+  client_phone: string;
+  service_name: string;
+  appointment_time: string;
+  duration: number;
+  status: string;
+}
+
+interface RecentAppointment {
+  id: string;
+  client_name: string;
+  service_name: string;
+  appointment_date: string;
+  appointment_time: string;
+  status: string;
+}
 
 export const fetchTodayAppointments = async (userId: string): Promise<TodayAppointment[]> => {
-  const todayBrasilia = getBrasiliaDate();
-  const todayStr = formatBrazilianDate(todayBrasilia).split('/').reverse().join('-');
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  const today = format(new Date(), 'yyyy-MM-dd');
   
-  console.log('Data de hoje (Brasília):', todayBrasilia);
-  console.log('Data formatada para busca:', todayStr);
-  
-  const { data: todayAppts, error } = await supabase
+  const { data: appointments, error } = await supabase
     .from('appointments')
     .select(`
       id,
       appointment_time,
+      duration,
       status,
-      clients(name, phone),
-      services(name)
+      clients!inner(name, phone),
+      services!inner(name)
     `)
     .eq('company_id', userId)
-    .eq('appointment_date', todayStr)
+    .eq('appointment_date', today)
     .neq('status', 'cancelled')
     .order('appointment_time');
 
   if (error) {
     console.error('Erro ao buscar agendamentos de hoje:', error);
-    throw error;
+    return [];
   }
 
-  console.log('Agendamentos de hoje encontrados:', todayAppts?.length || 0);
-  console.log('Agendamentos de hoje detalhes:', todayAppts);
+  const todayAppointments = (appointments || []).map(appointment => ({
+    id: appointment.id,
+    client_name: appointment.clients?.name || 'Cliente não encontrado',
+    client_phone: appointment.clients?.phone || '',
+    service_name: appointment.services?.name || 'Serviço não encontrado',
+    appointment_time: appointment.appointment_time,
+    duration: appointment.duration,
+    status: appointment.status
+  }));
 
-  return todayAppts?.map(apt => ({
-    id: apt.id,
-    appointment_time: apt.appointment_time,
-    status: apt.status,
-    client_name: apt.clients?.name || 'Cliente não encontrado',
-    client_phone: apt.clients?.phone || '',
-    service_name: apt.services?.name || 'Serviço não encontrado'
-  })) || [];
+  console.log('Agendamentos de hoje encontrados:', todayAppointments.length);
+  return todayAppointments;
 };
 
 export const fetchRecentAppointments = async (userId: string): Promise<RecentAppointment[]> => {
-  const { data: recentAppts, error } = await supabase
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  const { data: appointments, error } = await supabase
     .from('appointments')
     .select(`
       id,
       appointment_date,
       appointment_time,
       status,
-      clients(name, phone),
-      services(name)
+      clients!inner(name),
+      services!inner(name)
     `)
     .eq('company_id', userId)
     .order('appointment_date', { ascending: false })
@@ -60,18 +82,18 @@ export const fetchRecentAppointments = async (userId: string): Promise<RecentApp
 
   if (error) {
     console.error('Erro ao buscar agendamentos recentes:', error);
-    throw error;
+    return [];
   }
 
-  console.log('Agendamentos recentes encontrados:', recentAppts?.length || 0);
+  const recentAppointments = (appointments || []).map(appointment => ({
+    id: appointment.id,
+    client_name: appointment.clients?.name || 'Cliente não encontrado',
+    service_name: appointment.services?.name || 'Serviço não encontrado',
+    appointment_date: appointment.appointment_date,
+    appointment_time: appointment.appointment_time,
+    status: appointment.status
+  }));
 
-  return recentAppts?.map(apt => ({
-    id: apt.id,
-    appointment_date: apt.appointment_date,
-    appointment_time: apt.appointment_time,
-    status: apt.status,
-    client_name: apt.clients?.name || 'Cliente não encontrado',
-    client_phone: apt.clients?.phone || '',
-    service_name: apt.services?.name || 'Serviço não encontrado'
-  })) || [];
+  console.log('Agendamentos recentes encontrados:', recentAppointments.length);
+  return recentAppointments;
 };

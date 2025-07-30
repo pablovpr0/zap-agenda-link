@@ -11,7 +11,7 @@ interface MerchantDashboardProps {
 }
 
 const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps) => {
-  const { data, loading, refreshData } = useDashboardData(companyName);
+  const { data, loading, refreshData } = useDashboardData();
   const { linkCopied, handleCopyLink, handleViewPublicPage, handleShareWhatsApp } = useDashboardActions(data.bookingLink);
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
 
@@ -20,13 +20,13 @@ const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps
     refreshData(); // Recarregar dados após criar agendamento
   };
 
-  // Refresh automático a cada 30 segundos para garantir sincronização
+  // Aumentar refresh automático para 60 segundos
   useEffect(() => {
     const interval = setInterval(() => {
       if (!loading) {
         refreshData();
       }
-    }, 30000);
+    }, 60000); // Mudado de 30000ms para 60000ms (60 segundos)
 
     return () => clearInterval(interval);
   }, [refreshData, loading]);

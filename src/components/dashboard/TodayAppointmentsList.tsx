@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Phone, User, CheckCircle, MessageSquare } from 'lucide-react';
@@ -7,6 +6,7 @@ import { ptBR } from 'date-fns/locale';
 import { useAppointmentActions } from '@/hooks/useAppointmentActions';
 import { useToast } from '@/hooks/use-toast';
 import { getBrasiliaDate, formatBrazilianDate, formatBrazilianTime } from '@/lib/dateConfig';
+import { getStorageData, setStorageData, MockAppointment, STORAGE_KEYS } from '@/data/mockData';
 
 interface TodayAppointment {
   id: string;
@@ -48,12 +48,14 @@ const TodayAppointmentsList = ({ appointments, loading, onRefresh }: TodayAppoin
         }
       );
       
-      // Atualizar status para concluído no banco
-      const { supabase } = await import('@/integrations/supabase/client');
-      await supabase
-        .from('appointments')
-        .update({ status: 'completed' })
-        .eq('id', appointmentId);
+      // Atualizar status para concluído no localStorage
+      const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
+      const updatedAppointments = appointments.map(apt => 
+        apt.id === appointmentId 
+          ? { ...apt, status: 'completed' as const }
+          : apt
+      );
+      setStorageData(STORAGE_KEYS.APPOINTMENTS, updatedAppointments);
         
     } catch (error) {
       console.error('Erro ao marcar como concluído:', error);

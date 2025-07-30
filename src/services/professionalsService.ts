@@ -11,23 +11,26 @@ export interface Professional {
 }
 
 export const fetchProfessionals = async (companyId: string): Promise<Professional[]> => {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
   const { data: professionals, error } = await supabase
     .from('professionals')
     .select('*')
     .eq('company_id', companyId)
-    .eq('is_active', true)
-    .order('name');
+    .eq('is_active', true);
 
   if (error) {
     console.error('Erro ao buscar profissionais:', error);
-    throw error;
+    return [];
   }
 
+  console.log('Profissionais encontrados:', professionals?.length || 0);
   return professionals || [];
 };
 
 export const createProfessional = async (companyId: string, professional: Omit<Professional, 'id' | 'is_active'>) => {
-  const { data, error } = await supabase
+  const { data: newProfessional, error } = await supabase
     .from('professionals')
     .insert({
       company_id: companyId,
@@ -42,22 +45,21 @@ export const createProfessional = async (companyId: string, professional: Omit<P
 
   if (error) {
     console.error('Erro ao criar profissional:', error);
-    throw error;
+    throw new Error('Erro ao criar profissional');
   }
 
-  return data;
+  return newProfessional;
 };
 
 export const updateProfessional = async (professionalId: string, professional: Partial<Professional>) => {
-  const { data, error } = await supabase
+  const { data: updatedProfessional, error } = await supabase
     .from('professionals')
     .update({
       name: professional.name,
       phone: professional.phone,
       whatsapp: professional.whatsapp,
       role: professional.role,
-      is_active: professional.is_active,
-      updated_at: new Date().toISOString()
+      is_active: professional.is_active
     })
     .eq('id', professionalId)
     .select()
@@ -65,10 +67,10 @@ export const updateProfessional = async (professionalId: string, professional: P
 
   if (error) {
     console.error('Erro ao atualizar profissional:', error);
-    throw error;
+    throw new Error('Erro ao atualizar profissional');
   }
 
-  return data;
+  return updatedProfessional;
 };
 
 export const deleteProfessional = async (professionalId: string) => {
@@ -79,6 +81,6 @@ export const deleteProfessional = async (professionalId: string) => {
 
   if (error) {
     console.error('Erro ao desativar profissional:', error);
-    throw error;
+    throw new Error('Erro ao desativar profissional');
   }
 };

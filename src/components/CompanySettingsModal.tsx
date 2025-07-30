@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Settings } from 'lucide-react';
 import CompanyPhoneSettings from './settings/modal/CompanyPhoneSettings';
@@ -14,6 +13,7 @@ import WorkingHoursSettings from './settings/modal/WorkingHoursSettings';
 import LunchBreakSettings from './settings/modal/LunchBreakSettings';
 import AppointmentSettings from './settings/modal/AppointmentSettings';
 import SettingsHelpSection from './settings/modal/SettingsHelpSection';
+import { getStorageData, setStorageData, MockCompanySettings, STORAGE_KEYS } from '@/data/mockData';
 
 interface CompanySettingsModalProps {
   isOpen: boolean;
@@ -56,28 +56,22 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
     
     setLoading(true);
     try {
-      const { data: settings, error } = await supabase
-        .from('company_settings')
-        .select('*')
-        .eq('company_id', user.id)
-        .single();
-
-      if (error) throw error;
+      const settings = getStorageData<MockCompanySettings>(STORAGE_KEYS.COMPANY_SETTINGS, null);
 
       if (settings) {
         setWorkingDays(settings.working_days);
         setWorkingHoursStart(settings.working_hours_start);
         setWorkingHoursEnd(settings.working_hours_end);
-        setAppointmentInterval(settings.appointment_interval);
-        setMaxSimultaneousAppointments(settings.max_simultaneous_appointments);
-        setAdvanceBookingLimit(settings.advance_booking_limit);
+        setAppointmentInterval(settings.appointment_duration);
+        setMaxSimultaneousAppointments(1); // não existe no mock
+        setAdvanceBookingLimit(settings.advance_booking_days);
         setMonthlyAppointmentsLimit(settings.monthly_appointments_limit || 4);
-        setPhone(settings.phone || '');
-        setSlug(settings.slug || '');
-        setOriginalSlug(settings.slug || '');
+        setPhone(settings.company_phone || '');
+        setSlug(settings.company_slug || '');
+        setOriginalSlug(settings.company_slug || '');
         setLunchBreakEnabled(settings.lunch_break_enabled || false);
-        setLunchStartTime(settings.lunch_start_time || '12:00');
-        setLunchEndTime(settings.lunch_end_time || '13:00');
+        setLunchStartTime(settings.lunch_break_start || '12:00');
+        setLunchEndTime(settings.lunch_break_end || '13:00');
       }
 
     } catch (error: any) {
@@ -125,26 +119,24 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
     setSubmitting(true);
 
     try {
-      const { error } = await supabase
-        .from('company_settings')
-        .update({
-          working_days: workingDays,
-          working_hours_start: workingHoursStart,
-          working_hours_end: workingHoursEnd,
-          appointment_interval: appointmentInterval,
-          max_simultaneous_appointments: maxSimultaneousAppointments,
-          advance_booking_limit: advanceBookingLimit,
-          monthly_appointments_limit: monthlyAppointmentsLimit,
-          phone: phone || null,
-          slug: slug,
-          lunch_break_enabled: lunchBreakEnabled,
-          lunch_start_time: lunchBreakEnabled ? lunchStartTime : null,
-          lunch_end_time: lunchBreakEnabled ? lunchEndTime : null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('company_id', user!.id);
+      const currentSettings = getStorageData<MockCompanySettings>(STORAGE_KEYS.COMPANY_SETTINGS, null);
+      
+      const updatedSettings: MockCompanySettings = {
+        ...currentSettings!,
+        working_days: workingDays,
+        working_hours_start: workingHoursStart,
+        working_hours_end: workingHoursEnd,
+        appointment_duration: appointmentInterval,
+        advance_booking_days: advanceBookingLimit,
+        monthly_appointments_limit: monthlyAppointmentsLimit,
+        company_phone: phone || undefined,
+        company_slug: slug,
+        lunch_break_enabled: lunchBreakEnabled,
+        lunch_break_start: lunchBreakEnabled ? lunchStartTime : undefined,
+        lunch_break_end: lunchBreakEnabled ? lunchEndTime : undefined,
+      };
 
-      if (error) throw error;
+      setStorageData(STORAGE_KEYS.COMPANY_SETTINGS, updatedSettings);
 
       toast({
         title: "Configurações salvas!",

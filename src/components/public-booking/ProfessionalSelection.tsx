@@ -21,8 +21,15 @@ const ProfessionalSelection = ({
   onNext, 
   onBack 
 }: ProfessionalSelectionProps) => {
-  if (professionals.length === 0) {
-    // Se não há profissionais cadastrados, pular esta etapa
+  // Pular esta etapa automaticamente se não há profissionais ou se há apenas um
+  if (professionals.length === 0 || professionals.length === 1) {
+    // Se há um profissional, selecionar automaticamente
+    if (professionals.length === 1) {
+      onProfessionalSelect(professionals[0].id);
+    } else {
+      // Se não há profissionais, continuar sem seleção
+      onProfessionalSelect('');
+    }
     onNext();
     return null;
   }
@@ -94,20 +101,6 @@ const ProfessionalSelection = ({
           className="flex-1 bg-whatsapp-green hover:bg-green-600"
         >
           Continuar
-        </Button>
-      </div>
-
-      {/* Opção para não escolher profissional específico */}
-      <div className="text-center">
-        <Button 
-          variant="ghost" 
-          onClick={() => {
-            onProfessionalSelect('');
-            onNext();
-          }}
-          className="text-gray-500 hover:text-gray-700"
-        >
-          Sem preferência de profissional
         </Button>
       </div>
     </div>

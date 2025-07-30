@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useAppointmentActions = () => {
   const { toast } = useToast();
@@ -17,7 +17,10 @@ export const useAppointmentActions = () => {
         .delete()
         .eq('id', appointmentId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao excluir agendamento:', error);
+        throw new Error('Erro ao excluir agendamento');
+      }
 
       toast({
         title: "Agendamento excluído",
@@ -29,7 +32,7 @@ export const useAppointmentActions = () => {
       console.error('Erro ao excluir agendamento:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível excluir o agendamento.",
+        description: error.message || "Não foi possível excluir o agendamento.",
         variant: "destructive",
       });
     } finally {
@@ -45,7 +48,10 @@ export const useAppointmentActions = () => {
         .update({ status: 'cancelled' })
         .eq('id', appointmentId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao cancelar agendamento:', error);
+        throw new Error('Erro ao cancelar agendamento');
+      }
 
       toast({
         title: "Agendamento cancelado",
@@ -57,7 +63,7 @@ export const useAppointmentActions = () => {
       console.error('Erro ao cancelar agendamento:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível cancelar o agendamento.",
+        description: error.message || "Não foi possível cancelar o agendamento.",
         variant: "destructive",
       });
     } finally {
@@ -83,13 +89,15 @@ export const useAppointmentActions = () => {
       const { error } = await supabase
         .from('appointments')
         .update({ 
-          appointment_date: formattedDate,
-          appointment_time: newTime,
-          updated_at: new Date().toISOString()
+          appointment_date: formattedDate, 
+          appointment_time: newTime 
         })
         .eq('id', appointmentId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao atualizar agendamento:', error);
+        throw new Error('Erro ao atualizar agendamento');
+      }
 
       toast({
         title: "Agendamento atualizado",
@@ -101,7 +109,7 @@ export const useAppointmentActions = () => {
       console.error('Erro ao atualizar agendamento:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar o agendamento.",
+        description: error.message || "Não foi possível atualizar o agendamento.",
         variant: "destructive",
       });
     } finally {
