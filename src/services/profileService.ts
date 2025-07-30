@@ -13,59 +13,74 @@ export interface Profile {
 export const fetchProfile = async (userId: string): Promise<Profile | null> => {
   console.log('Fetching profile for user:', userId);
   
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
 
-  if (error) {
-    console.error('Error fetching profile:', error);
-    throw new Error('Erro ao buscar perfil do usuário');
+    if (error) {
+      console.error('Error fetching profile:', error);
+      throw new Error('Erro ao buscar perfil do usuário');
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Service error in fetchProfile:', error);
+    throw new Error(error.message || 'Erro ao buscar perfil do usuário');
   }
-
-  return data;
 };
 
 export const updateProfile = async (userId: string, updates: Partial<Profile>): Promise<Profile> => {
   console.log('Updating profile for user:', userId, 'with updates:', updates);
   
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', userId)
-    .select()
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId)
+      .select()
+      .single();
 
-  if (error) {
-    console.error('Error updating profile:', error);
-    throw new Error('Erro ao atualizar perfil do usuário');
+    if (error) {
+      console.error('Error updating profile:', error);
+      throw new Error('Erro ao atualizar perfil do usuário');
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Service error in updateProfile:', error);
+    throw new Error(error.message || 'Erro ao atualizar perfil do usuário');
   }
-
-  return data;
 };
 
 export const createProfile = async (userId: string, profileData: Partial<Profile>): Promise<Profile> => {
   console.log('Creating profile for user:', userId, 'with data:', profileData);
   
-  const { data, error } = await supabase
-    .from('profiles')
-    .insert({
-      id: userId,
-      ...profileData,
-    })
-    .select()
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({
+        id: userId,
+        ...profileData,
+      })
+      .select()
+      .single();
 
-  if (error) {
-    console.error('Error creating profile:', error);
-    throw new Error('Erro ao criar perfil do usuário');
+    if (error) {
+      console.error('Error creating profile:', error);
+      throw new Error('Erro ao criar perfil do usuário');
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Service error in createProfile:', error);
+    throw new Error(error.message || 'Erro ao criar perfil do usuário');
   }
-
-  return data;
 };
 
 export const upsertProfile = async (userId: string, profileData: Partial<Profile>): Promise<Profile> => {

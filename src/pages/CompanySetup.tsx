@@ -19,6 +19,7 @@ const CompanySetup = () => {
   const [companyName, setCompanyName] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingProfile, setCheckingProfile] = useState(true);
 
   useEffect(() => {
     if (isLoading) return;
@@ -33,17 +34,29 @@ const CompanySetup = () => {
     const checkExistingProfile = async () => {
       try {
         console.log('Checking existing profile for user:', user.id);
+        setCheckingProfile(true);
+        
         const profile = await fetchProfile(user.id);
         console.log('Profile found:', profile);
         
-        if (profile?.company_name) {
+        if (profile?.company_name && profile.company_name.trim()) {
           // Profile is already complete, redirect to main app
           console.log('Profile is complete, redirecting to main app');
           navigate('/');
+          return;
         }
+        
+        // Profile exists but incomplete, pre-fill form if possible
+        if (profile) {
+          if (profile.company_name) setCompanyName(profile.company_name);
+          if (profile.business_type) setBusinessType(profile.business_type);
+        }
+        
       } catch (error) {
         console.error('Error checking profile:', error);
         // Continue with setup if profile doesn't exist or there's an error
+      } finally {
+        setCheckingProfile(false);
       }
     };
 
@@ -61,6 +74,8 @@ const CompanySetup = () => {
       });
       return;
     }
+
+    if (loading) return; // Prevent double submission
 
     setLoading(true);
 
@@ -99,17 +114,17 @@ const CompanySetup = () => {
         description: "Agora você pode começar a usar o ZapAgenda!",
       });
 
-      // Small delay to ensure data is persisted
+      // Small delay to ensure data is persisted before navigation
       setTimeout(() => {
-        navigate('/');
-      }, 500);
+        navigate('/', { replace: true });
+      }, 800);
 
     } catch (error: any) {
       console.error('Error in company setup:', error);
       
       let errorMessage = "Não foi possível configurar a empresa. Tente novamente.";
       
-      if (error.message) {
+      if (error.message && typeof error.message === 'string') {
         errorMessage = error.message;
       }
 
@@ -123,7 +138,7 @@ const CompanySetup = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || checkingProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
