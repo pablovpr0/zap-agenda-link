@@ -1,4 +1,3 @@
-
 export interface CompanySettings {
   company_id: string;
   company_name: string;
@@ -17,6 +16,8 @@ export interface CompanySettings {
   advance_booking_limit: number;
   monthly_appointments_limit?: number;
   phone?: string;
+  theme_color?: string;
+  selected_theme_id?: string;
 }
 
 export interface Profile {
