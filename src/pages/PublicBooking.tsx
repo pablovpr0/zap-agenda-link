@@ -38,7 +38,11 @@ const PublicBooking = () => {
   }
 
   if (error || !companyData || !companySettings || !profile) {
-    console.error('Empresa não encontrada para slug:', companySlug);
+    console.error('❌ PublicBooking: Empresa não encontrada para slug:', companySlug);
+    console.error('❌ PublicBooking: error:', error);
+    console.error('❌ PublicBooking: companyData:', companyData);
+    console.error('❌ PublicBooking: companySettings:', companySettings);
+    console.error('❌ PublicBooking: profile:', profile);
     return <ErrorState companySlug={companySlug} />;
   }
 
