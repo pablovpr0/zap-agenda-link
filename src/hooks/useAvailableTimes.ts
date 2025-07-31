@@ -13,6 +13,11 @@ export const useAvailableTimes = (companySettings: CompanySettings | null) => {
     if (!companySettings || !selectedDate) return [];
     
     console.log('🕐 Gerando horários disponíveis para:', { selectedDate, serviceDuration });
+    console.log('🍽️ Configurações de almoço:', {
+      lunch_break_enabled: companySettings.lunch_break_enabled,
+      lunch_start_time: companySettings.lunch_start_time,
+      lunch_end_time: companySettings.lunch_end_time
+    });
     
     // Gerar todos os horários possíveis (já exclui almoço)
     const allPossibleTimes = generateTimeSlots(
@@ -25,6 +30,7 @@ export const useAvailableTimes = (companySettings: CompanySettings | null) => {
     );
     
     console.log('⏰ Horários possíveis gerados:', allPossibleTimes.length);
+    console.log('⏰ Lista de horários:', allPossibleTimes);
     
     try {
       // Buscar horários já ocupados (incluindo duração dos serviços)

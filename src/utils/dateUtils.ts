@@ -26,6 +26,15 @@ export const generateTimeSlots = (
   lunchStartTime?: string,
   lunchEndTime?: string
 ) => {
+  console.log('🔧 generateTimeSlots chamada com:', {
+    workingHoursStart,
+    workingHoursEnd,
+    appointmentInterval,
+    lunchBreakEnabled,
+    lunchStartTime,
+    lunchEndTime
+  });
+
   const times = [];
   const [startHour, startMinute] = workingHoursStart.split(':').map(Number);
   const [endHour, endMinute] = workingHoursEnd.split(':').map(Number);
@@ -37,13 +46,18 @@ export const generateTimeSlots = (
     const timeString = format(currentTime, 'HH:mm');
     
     // Verificar se o horário não é durante o almoço
-    if (!isTimeDuringLunch(timeString, lunchBreakEnabled, lunchStartTime, lunchEndTime)) {
+    const isDuringLunch = isTimeDuringLunch(timeString, lunchBreakEnabled, lunchStartTime, lunchEndTime);
+    
+    if (!isDuringLunch) {
       times.push(timeString);
+    } else {
+      console.log(`🍽️ Horário ${timeString} bloqueado por estar no almoço`);
     }
     
     currentTime = new Date(currentTime.getTime() + appointmentInterval * 60000);
   }
   
+  console.log('✅ generateTimeSlots resultado:', times);
   return times;
 };
 
@@ -53,7 +67,15 @@ export const isTimeDuringLunch = (
   lunchStartTime?: string,
   lunchEndTime?: string
 ) => {
+  console.log('🔍 isTimeDuringLunch verificando:', {
+    time,
+    lunchBreakEnabled,
+    lunchStartTime,
+    lunchEndTime
+  });
+
   if (!lunchBreakEnabled || !lunchStartTime || !lunchEndTime) {
+    console.log('❌ Almoço não habilitado ou horários não definidos');
     return false;
   }
   
@@ -61,7 +83,16 @@ export const isTimeDuringLunch = (
   const lunchStartMinutes = parseInt(lunchStartTime.split(':')[0]) * 60 + parseInt(lunchStartTime.split(':')[1]);
   const lunchEndMinutes = parseInt(lunchEndTime.split(':')[0]) * 60 + parseInt(lunchEndTime.split(':')[1]);
   
-  return timeMinutes >= lunchStartMinutes && timeMinutes < lunchEndMinutes;
+  const isDuringLunch = timeMinutes >= lunchStartMinutes && timeMinutes < lunchEndMinutes;
+  
+  console.log('🔍 Cálculo:', {
+    timeMinutes,
+    lunchStartMinutes,
+    lunchEndMinutes,
+    isDuringLunch
+  });
+  
+  return isDuringLunch;
 };
 
 export const formatAppointmentDate = (date: string) => {

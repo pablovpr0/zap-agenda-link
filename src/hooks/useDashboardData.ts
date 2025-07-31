@@ -166,6 +166,22 @@ export const useDashboardData = (companyName?: string) => {
     }
   }, [user?.id]);
 
+  // Escutar atualizações de configurações para recarregar dados
+  useEffect(() => {
+    const handleSettingsUpdated = () => {
+      console.log('Configurações atualizadas detectadas, recarregando dashboard...');
+      if (user?.id) {
+        loadData();
+      }
+    };
+
+    window.addEventListener('settingsUpdated', handleSettingsUpdated);
+    
+    return () => {
+      window.removeEventListener('settingsUpdated', handleSettingsUpdated);
+    };
+  }, [user?.id]);
+
   const handleCopyLink = async () => {
     if (!bookingLink) return;
     

@@ -183,3 +183,132 @@ export const validateSlug = (slug: string): { isValid: boolean; error?: string }
 
   return { isValid: true };
 };
+
+// Interfaces para tipagem
+export interface CompanySettingsUpdate {
+  working_days?: number[];
+  working_hours_start?: string;
+  working_hours_end?: string;
+  appointment_interval?: number;
+  advance_booking_limit?: number;
+  monthly_appointments_limit?: number;
+  lunch_break_enabled?: boolean;
+  lunch_start_time?: string;
+  lunch_end_time?: string;
+  phone?: string;
+  address?: string;
+  instagram_url?: string;
+  welcome_message?: string;
+  theme_color?: string;
+  selected_theme_id?: string;
+}
+
+export interface ProfileUpdate {
+  company_name?: string;
+  business_type?: string;
+  profile_image_url?: string;
+}
+
+// Função para atualizar configurações da empresa
+export const updateCompanySettings = async (
+  userId: string, 
+  settings: CompanySettingsUpdate
+): Promise<void> => {
+  console.log('🔄 updateCompanySettings: Atualizando configurações para usuário:', userId);
+  console.log('📝 updateCompanySettings: Dados:', settings);
+  
+  try {
+    const { error } = await supabase
+      .from('company_settings')
+      .update({
+        ...settings,
+        updated_at: new Date().toISOString()
+      })
+      .eq('company_id', userId);
+
+    if (error) {
+      console.error('❌ updateCompanySettings: Erro ao atualizar:', error);
+      throw new Error(`Erro ao atualizar configurações: ${error.message}`);
+    }
+
+    console.log('✅ updateCompanySettings: Configurações atualizadas com sucesso');
+  } catch (error: any) {
+    console.error('❌ updateCompanySettings: Erro no serviço:', error);
+    throw error;
+  }
+};
+
+// Função para atualizar perfil da empresa
+export const updateCompanyProfile = async (
+  userId: string, 
+  profile: ProfileUpdate
+): Promise<void> => {
+  console.log('🔄 updateCompanyProfile: Atualizando perfil para usuário:', userId);
+  console.log('📝 updateCompanyProfile: Dados:', profile);
+  
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        ...profile,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('❌ updateCompanyProfile: Erro ao atualizar:', error);
+      throw new Error(`Erro ao atualizar perfil: ${error.message}`);
+    }
+
+    console.log('✅ updateCompanyProfile: Perfil atualizado com sucesso');
+  } catch (error: any) {
+    console.error('❌ updateCompanyProfile: Erro no serviço:', error);
+    throw error;
+  }
+};
+
+// Função para buscar perfil da empresa
+export const fetchCompanyProfile = async (userId: string) => {
+  console.log('🔍 fetchCompanyProfile: Buscando perfil para usuário:', userId);
+  
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('❌ fetchCompanyProfile: Erro:', error);
+      throw new Error(`Erro ao buscar perfil: ${error.message}`);
+    }
+
+    console.log('✅ fetchCompanyProfile: Perfil encontrado:', data);
+    return data;
+  } catch (error: any) {
+    console.error('❌ fetchCompanyProfile: Erro no serviço:', error);
+    throw error;
+  }
+};
+
+// Função para salvar todas as configurações de uma vez
+export const saveAllSettings = async (
+  userId: string,
+  settings: CompanySettingsUpdate,
+  profile: ProfileUpdate
+): Promise<void> => {
+  console.log('💾 saveAllSettings: Salvando todas as configurações para usuário:', userId);
+  
+  try {
+    // Atualizar configurações e perfil em paralelo
+    await Promise.all([
+      updateCompanySettings(userId, settings),
+      updateCompanyProfile(userId, profile)
+    ]);
+
+    console.log('✅ saveAllSettings: Todas as configurações salvas com sucesso');
+  } catch (error: any) {
+    console.error('❌ saveAllSettings: Erro ao salvar:', error);
+    throw error;
+  }
+};

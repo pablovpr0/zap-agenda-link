@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Save } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { Settings, Save, Loader2 } from 'lucide-react';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 import GeneralSettings from './settings/GeneralSettings';
 import CompanyDataSettings from './settings/CompanyDataSettings';
 import ScheduleSettings from './settings/ScheduleSettings';
@@ -12,30 +12,19 @@ import ManagementSection from './settings/ManagementSection';
 import SupportSection from './settings/SupportSection';
 
 const SettingsPanel = () => {
-  const [generalSettings, setGeneralSettings] = useState({
-    maxSimultaneousBookings: 3,
-    agendaTimeLimit: 30,
-    timeInterval: 30
-  });
-
-  const [companyBasicData, setCompanyBasicData] = useState({
-    name: 'Salão Beleza & Estilo',
-    address: 'Rua das Flores, 123 - Centro',
-    phone: '(11) 99999-9999',
-    email: 'contato@belezaestilo.com',
-    instagramUrl: '@belezaestilo',
-    customUrl: 'beleza-estilo'
-  });
-
-  const [workingDays, setWorkingDays] = useState({
-    monday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-    tuesday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-    wednesday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-    thursday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-    friday: { active: true, start: '09:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-    saturday: { active: true, start: '09:00', end: '16:00', lunchStart: '', lunchEnd: '' },
-    sunday: { active: false, start: '09:00', end: '18:00', lunchStart: '', lunchEnd: '' }
-  });
+  const {
+    loading,
+    saving,
+    generalSettings,
+    companyBasicData,
+    workingDays,
+    currentSlug,
+    setGeneralSettings,
+    setCompanyBasicData,
+    setWorkingDays,
+    setCurrentSlug,
+    saveSettings
+  } = useCompanySettings();
 
   const [clientAreaCustomization, setClientAreaCustomization] = useState({
     logo: null,
@@ -46,19 +35,23 @@ const SettingsPanel = () => {
     selectedTheme: 'classic-green'
   });
 
-  const [currentSlug, setCurrentSlug] = useState('salao-beleza-estilo');
-
-  const handleSave = () => {
-    toast({
-      title: "Configurações salvas!",
-      description: "Todas as alterações foram salvas com sucesso.",
-    });
-  };
-
   const handleSlugUpdate = (newSlug: string) => {
     setCurrentSlug(newSlug);
     setCompanyBasicData(prev => ({ ...prev, customUrl: newSlug }));
   };
+
+  if (loading) {
+    return (
+      <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-whatsapp-green mx-auto mb-4" />
+            <p className="text-gray-600">Carregando configurações...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in">
@@ -129,9 +122,23 @@ const SettingsPanel = () => {
 
       {/* Save Button */}
       <div className="text-center pt-4">
-        <Button onClick={handleSave} size="lg" className="bg-whatsapp-green hover:bg-green-600 text-white">
-          <Save className="w-4 md:w-5 h-4 md:h-5 mr-2" />
-          Salvar Configurações
+        <Button 
+          onClick={saveSettings} 
+          size="lg" 
+          disabled={saving}
+          className="bg-whatsapp-green hover:bg-green-600 text-white disabled:opacity-50"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="w-4 md:w-5 h-4 md:h-5 mr-2 animate-spin" />
+              Salvando...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 md:w-5 h-4 md:h-5 mr-2" />
+              Salvar Configurações
+            </>
+          )}
         </Button>
       </div>
     </div>
