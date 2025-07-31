@@ -16,7 +16,7 @@ const SlugSettingsSection = ({
   slug,
   originalSlug,
   onSlugChange
-}: SlugSettingsSectionProps) => {
+}: SlugSettingsSectionProps): JSX.Element => {
   const [slugValidation, setSlugValidation] = useState<{
     isValid: boolean;
     error?: string;
