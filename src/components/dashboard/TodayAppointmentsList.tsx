@@ -6,7 +6,6 @@ import { ptBR } from 'date-fns/locale';
 import { useAppointmentActions } from '@/hooks/useAppointmentActions';
 import { useToast } from '@/hooks/use-toast';
 import { getBrasiliaDate, formatBrazilianDate, formatBrazilianTime } from '@/lib/dateConfig';
-import { getStorageData, setStorageData, MockAppointment, STORAGE_KEYS } from '@/data/mockData';
 
 interface TodayAppointment {
   id: string;
@@ -24,39 +23,23 @@ interface TodayAppointmentsListProps {
 }
 
 const TodayAppointmentsList = ({ appointments, loading, onRefresh }: TodayAppointmentsListProps) => {
-  const { updateAppointment, isUpdating } = useAppointmentActions();
+  const { completeAppointment, isUpdating } = useAppointmentActions();
   const { toast } = useToast();
 
   const handleCompleteAppointment = async (appointmentId: string, clientName: string) => {
     try {
-      const currentDate = getBrasiliaDate();
-      const currentDateStr = formatBrazilianDate(currentDate).split('/').reverse().join('-'); // converter para YYYY-MM-DD
-      const currentTimeStr = formatBrazilianTime(currentDate);
-      
-      await updateAppointment(
+      await completeAppointment(
         appointmentId,
-        currentDateStr,
-        currentTimeStr,
-        '', // não precisa do telefone para esta atualização
         clientName,
         () => {
-          toast({
-            title: "Procedimento concluído",
-            description: `Agendamento de ${clientName} marcado como concluído.`,
-          });
-          if (onRefresh) onRefresh();
+          // Forçar atualização imediata dos dados
+          if (onRefresh) {
+            onRefresh();
+          }
+          // Também disparar evento customizado para atualizar receita
+          window.dispatchEvent(new CustomEvent('appointmentCompleted'));
         }
       );
-      
-      // Atualizar status para concluído no localStorage
-      const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
-      const updatedAppointments = appointments.map(apt => 
-        apt.id === appointmentId 
-          ? { ...apt, status: 'completed' as const }
-          : apt
-      );
-      setStorageData(STORAGE_KEYS.APPOINTMENTS, updatedAppointments);
-        
     } catch (error) {
       console.error('Erro ao marcar como concluído:', error);
     }

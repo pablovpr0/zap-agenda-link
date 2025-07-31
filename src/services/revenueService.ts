@@ -59,7 +59,8 @@ export const calculateDailyRevenue = async (
         appointmentTime: appointment.appointment_time
       });
 
-      if (appointment.status === 'confirmed' || appointment.status === 'completed') {
+      // Apenas agendamentos concluídos geram receita real
+      if (appointment.status === 'completed') {
         totalRevenue += Number(servicePrice);
         appointmentsCount++;
       } else if (appointment.status === 'cancelled') {
@@ -150,7 +151,8 @@ export const calculateMonthlyRevenue = async (
         appointmentTime: appointment.appointment_time
       });
 
-      if (appointment.status === 'confirmed' || appointment.status === 'completed') {
+      // Apenas agendamentos concluídos geram receita real
+      if (appointment.status === 'completed') {
         dailyData[date].totalRevenue += Number(servicePrice);
         dailyData[date].appointmentsCount++;
         totalRevenue += Number(servicePrice);

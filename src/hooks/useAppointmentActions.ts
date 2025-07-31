@@ -117,10 +117,45 @@ export const useAppointmentActions = () => {
     }
   };
 
+  const completeAppointment = async (appointmentId: string, clientName: string, onSuccess?: () => void) => {
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ 
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', appointmentId);
+
+      if (error) {
+        console.error('Erro ao marcar agendamento como concluído:', error);
+        throw new Error('Erro ao marcar agendamento como concluído');
+      }
+
+      toast({
+        title: "Procedimento concluído",
+        description: `Agendamento de ${clientName} marcado como concluído.`,
+      });
+
+      if (onSuccess) onSuccess();
+    } catch (error: any) {
+      console.error('Erro ao marcar como concluído:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível marcar o agendamento como concluído.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return {
     deleteAppointment,
     cancelAppointment,
     updateAppointment,
+    completeAppointment,
     isDeleting,
     isCancelling,
     isUpdating

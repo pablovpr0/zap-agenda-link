@@ -17,6 +17,7 @@ interface DashboardContentProps {
   onShowServices: () => void;
   onShowSettings: () => void;
   onShowMonthlyAgenda: () => void;
+  onRefreshData: () => void;
 }
 
 const DashboardContent = ({ 
@@ -25,7 +26,8 @@ const DashboardContent = ({
   onShowClients, 
   onShowServices, 
   onShowSettings,  
-  onShowMonthlyAgenda
+  onShowMonthlyAgenda,
+  onRefreshData
 }: DashboardContentProps) => {
   const { data, loading } = useDashboardData();
   const { linkCopied, handleCopyLink, handleViewPublicPage, handleShareWhatsApp } = useDashboardActions(data.bookingLink);
@@ -71,6 +73,7 @@ const DashboardContent = ({
           <TodayAppointmentsList 
             appointments={data.todayAppointmentsList}
             loading={loading}
+            onRefresh={onRefreshData}
           />
         </div>
       </div>

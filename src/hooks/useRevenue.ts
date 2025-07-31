@@ -62,6 +62,26 @@ export const useRevenue = () => {
     }
   }, [user]);
 
+  // Escutar eventos de agendamento concluído para atualizar receita automaticamente
+  useEffect(() => {
+    const handleAppointmentCompleted = () => {
+      console.log('Agendamento concluído detectado, atualizando receita...');
+      if (user) {
+        loadDailyRevenue();
+        // Também recarregar receita mensal se já foi carregada
+        if (monthlyRevenue) {
+          loadMonthlyRevenue();
+        }
+      }
+    };
+
+    window.addEventListener('appointmentCompleted', handleAppointmentCompleted);
+    
+    return () => {
+      window.removeEventListener('appointmentCompleted', handleAppointmentCompleted);
+    };
+  }, [user, monthlyRevenue]);
+
   return {
     loading,
     dailyRevenue,

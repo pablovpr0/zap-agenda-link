@@ -52,12 +52,19 @@ export const useDashboardData = (companyName?: string) => {
       const todayBrasilia = getBrasiliaDate();
       const today = formatBrazilianDate(todayBrasilia).split('/').reverse().join('-'); // Convert DD/MM/YYYY to YYYY-MM-DD
       
-      // Today's appointments
+      // Today's appointments with client and service data
       const { data: todayAppointments, error: todayError } = await supabase
         .from('appointments')
-        .select('*')
+        .select(`
+          id,
+          appointment_time,
+          status,
+          clients!inner(name, phone),
+          services!inner(name)
+        `)
         .eq('company_id', user.id)
-        .eq('appointment_date', today);
+        .eq('appointment_date', today)
+        .order('appointment_time');
 
       if (todayError) {
         console.error('Error fetching today appointments:', todayError);
@@ -119,9 +126,9 @@ export const useDashboardData = (companyName?: string) => {
         id: apt.id,
         appointment_time: apt.appointment_time,
         status: apt.status,
-        client_name: apt.client_name || 'Cliente',
-        client_phone: apt.client_phone || '',
-        service_name: apt.service_name || 'Serviço'
+        client_name: apt.clients?.name || 'Cliente',
+        client_phone: apt.clients?.phone || '',
+        service_name: apt.services?.name || 'Serviço'
       }));
 
       const formattedRecentList = (recentAppointments || []).map((apt: any) => ({
