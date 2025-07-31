@@ -61,11 +61,12 @@ const PublicBooking = () => {
   };
 
   return (
-    <div className="public-page min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
+    <div className="public-page min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
       <div className="container mx-auto px-4 py-6 max-w-md">
         {/* Header da empresa */}
         <EnhancedCompanyHeader 
-          companyData={companyData}
+          companySettings={companySettings}
+          profile={profile}
         />
 
         {/* Seção informativa sobre agendamento */}

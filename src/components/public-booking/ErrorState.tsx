@@ -7,7 +7,7 @@ interface ErrorStateProps {
 
 const ErrorState = ({ companySlug }: ErrorStateProps) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50 flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FAFAFA' }}>
       <div className="text-center bg-white p-8 rounded-2xl shadow-lg">
         <div className="text-xl font-bold text-red-600 mb-2">Empresa não encontrada</div>
         <div className="text-gray-600 mb-4">
