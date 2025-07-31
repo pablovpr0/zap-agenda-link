@@ -72,12 +72,13 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
 
       if (settings) {
         setLogoUrl(settings.logo_url || '');
-        setThemeColor(settings.theme_color || '#22c55e');
-        setSelectedThemeId(settings.selected_theme_id || '');
+        // Safely access potentially missing fields
+        setThemeColor((settings as any).theme_color || '#22c55e');
+        setSelectedThemeId((settings as any).selected_theme_id || '');
         setWelcomeMessage(settings.welcome_message || '');
         setInstagramUrl(settings.instagram_url || '');
-        setAddress(settings.address || '');
-        setPhone(settings.phone || '');
+        setAddress((settings as any).address || '');
+        setPhone((settings as any).phone || '');
         setMonthlyLimit(settings.monthly_appointments_limit || 4);
       }
 
