@@ -119,6 +119,7 @@ export const validateBookingForm = (formData: {
   selectedDate: string;
   selectedTime: string;
   selectedService: string;
+  selectedProfessional?: string;
 }): { isValid: boolean; errors: string[]; sanitizedData?: any } => {
   const errors: string[] = [];
   const sanitizedData: any = {};

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { BookingFormData, CompanySettings, Service } from '@/types/publicBooking';
