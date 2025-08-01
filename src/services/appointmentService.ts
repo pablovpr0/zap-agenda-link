@@ -46,22 +46,60 @@ const validateEmail = (email: string | undefined): string | null => {
   return email;
 };
 
-// Rate limiting check
+// Rate limiting check - using direct SQL call since function may not be in types yet
 const checkRateLimit = async (identifier: string, actionType: string) => {
   try {
-    const { data, error } = await supabase.rpc('check_rate_limit', {
-      p_identifier: identifier,
-      p_action_type: actionType,
-      p_max_attempts: 5,
-      p_window_minutes: 15
-    });
+    // Use direct SQL query instead of RPC to avoid type issues
+    const { data, error } = await supabase
+      .from('rate_limits')
+      .select('attempts, window_start')
+      .eq('identifier', identifier)
+      .eq('action_type', actionType)
+      .gte('window_start', new Date(Date.now() - 15 * 60 * 1000).toISOString())
+      .order('window_start', { ascending: false })
+      .limit(1)
+      .maybeSingle();
     
     if (error) {
       console.warn('Rate limit check failed:', error);
       return true; // Allow if rate limit check fails
     }
     
-    return data;
+    if (!data) {
+      // First attempt - insert new record
+      const { error: insertError } = await supabase
+        .from('rate_limits')
+        .insert({
+          identifier,
+          action_type: actionType,
+          attempts: 1,
+          window_start: new Date().toISOString()
+        });
+      
+      if (insertError) {
+        console.warn('Rate limit insert failed:', insertError);
+      }
+      return true;
+    }
+    
+    if (data.attempts >= 5) {
+      return false; // Rate limit exceeded
+    }
+    
+    // Increment attempts
+    const { error: updateError } = await supabase
+      .from('rate_limits')
+      .update({ attempts: data.attempts + 1 })
+      .eq('identifier', identifier)
+      .eq('action_type', actionType)
+      .eq('window_start', data.window_start);
+    
+    if (updateError) {
+      console.warn('Rate limit update failed:', updateError);
+    }
+    
+    return true;
+    
   } catch (error) {
     console.warn('Rate limit check error:', error);
     return true; // Allow if rate limit check fails
