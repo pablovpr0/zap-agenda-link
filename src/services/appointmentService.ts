@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { BookingFormData, CompanySettings, Service } from '@/types/publicBooking';
 import { Professional } from '@/services/professionalsService';
@@ -46,58 +47,38 @@ const validateEmail = (email: string | undefined): string | null => {
   return email;
 };
 
-// Rate limiting check - using direct SQL call since function may not be in types yet
+// Simple in-memory rate limiting
+const rateLimitMap = new Map<string, { attempts: number; windowStart: number }>();
+
 const checkRateLimit = async (identifier: string, actionType: string) => {
   try {
-    // Use direct SQL query instead of RPC to avoid type issues
-    const { data, error } = await supabase
-      .from('rate_limits')
-      .select('attempts, window_start')
-      .eq('identifier', identifier)
-      .eq('action_type', actionType)
-      .gte('window_start', new Date(Date.now() - 15 * 60 * 1000).toISOString())
-      .order('window_start', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const now = Date.now();
+    const windowMs = 15 * 60 * 1000; // 15 minutes
+    const maxAttempts = 5;
     
-    if (error) {
-      console.warn('Rate limit check failed:', error);
-      return true; // Allow if rate limit check fails
-    }
+    const key = `${identifier}:${actionType}`;
+    const existing = rateLimitMap.get(key);
     
-    if (!data) {
-      // First attempt - insert new record
-      const { error: insertError } = await supabase
-        .from('rate_limits')
-        .insert({
-          identifier,
-          action_type: actionType,
-          attempts: 1,
-          window_start: new Date().toISOString()
-        });
-      
-      if (insertError) {
-        console.warn('Rate limit insert failed:', insertError);
-      }
+    if (!existing) {
+      // First attempt
+      rateLimitMap.set(key, { attempts: 1, windowStart: now });
       return true;
     }
     
-    if (data.attempts >= 5) {
-      return false; // Rate limit exceeded
+    // Check if window has expired
+    if (now - existing.windowStart > windowMs) {
+      // Reset window
+      rateLimitMap.set(key, { attempts: 1, windowStart: now });
+      return true;
+    }
+    
+    // Check if limit exceeded
+    if (existing.attempts >= maxAttempts) {
+      return false;
     }
     
     // Increment attempts
-    const { error: updateError } = await supabase
-      .from('rate_limits')
-      .update({ attempts: data.attempts + 1 })
-      .eq('identifier', identifier)
-      .eq('action_type', actionType)
-      .eq('window_start', data.window_start);
-    
-    if (updateError) {
-      console.warn('Rate limit update failed:', updateError);
-    }
-    
+    existing.attempts++;
     return true;
     
   } catch (error) {
