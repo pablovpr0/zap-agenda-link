@@ -20,11 +20,11 @@ const TimeSelection = ({
 }: TimeSelectionProps) => {
   if (isLoading) {
     return (
-      <div className="space-y-2">
-        <Label className="text-gray-700 font-medium">Escolha o horário</Label>
+      <div className="space-y-3">
+        <Label className="text-black font-medium">Horários Disponíveis</Label>
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
-          <span className="ml-2 text-gray-500">Carregando horários...</span>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#19c662]"></div>
+          <span className="ml-2 text-gray-600">Carregando horários...</span>
         </div>
       </div>
     );
@@ -32,16 +32,16 @@ const TimeSelection = ({
 
   if (availableTimes.length === 0) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label className="text-gray-700 font-medium">Escolha o horário</Label>
+          <Label className="text-black font-medium">Horários Disponíveis</Label>
           {onRefresh && (
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={onRefresh}
-              className="text-xs"
+              className="text-xs border-gray-300 hover:border-[#19c662] hover:text-[#19c662]"
             >
               <RefreshCw className="w-3 h-3 mr-1" />
               Atualizar
@@ -57,41 +57,46 @@ const TimeSelection = ({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Label className="text-gray-700 font-medium">Escolha o horário</Label>
+        <Label className="text-black font-medium">Horários Disponíveis</Label>
         {onRefresh && (
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onRefresh}
-            className="text-xs"
+            className="text-xs border-gray-300 hover:border-[#19c662] hover:text-[#19c662]"
           >
             <RefreshCw className="w-3 h-3 mr-1" />
             Atualizar
           </Button>
         )}
       </div>
-      <div className="grid grid-cols-3 gap-2">
-        {availableTimes.map((time) => (
-          <button
-            key={time}
-            type="button"
-            onClick={() => onTimeSelect(time)}
-            className={`
-              p-3 text-sm rounded-lg border transition-all duration-200
-              ${selectedTime === time 
-                ? 'public-bg-primary text-white public-border-primary shadow-md' 
-                : 'public-border-primary border-opacity-30 public-primary hover:bg-opacity-10 hover:public-bg-primary'
-              }
-            `}
-          >
-            {time}
-          </button>
-        ))}
+      
+      {/* Layout carrossel horizontal */}
+      <div className="overflow-x-auto pb-2">
+        <div className="flex gap-3 min-w-max">
+          {availableTimes.map((time) => (
+            <button
+              key={time}
+              type="button"
+              onClick={() => onTimeSelect(time)}
+              className={`
+                px-4 py-3 text-sm font-medium rounded-lg border-2 whitespace-nowrap min-w-[80px] transition-all duration-200
+                ${selectedTime === time 
+                  ? 'bg-[#19c662] text-white border-[#19c662] shadow-md' 
+                  : 'bg-white text-black border-gray-300 hover:border-[#19c662] hover:bg-gray-50'
+                }
+              `}
+            >
+              {time}
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="text-xs text-green-600 text-center mt-2">
+      
+      <div className="text-xs text-[#19c662] text-center mt-2">
         ✅ Apenas horários disponíveis são exibidos
       </div>
     </div>

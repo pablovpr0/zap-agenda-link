@@ -26,7 +26,7 @@ const StandardCalendar = ({
   
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
-  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 }); // Começar no domingo
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 });
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
   
   const calendarDays = eachDayOfInterval({
@@ -35,7 +35,7 @@ const StandardCalendar = ({
   });
 
   const isDateAvailable = (date: Date) => {
-    if (availableDates.length === 0) return true; // Se não há restrições, todas as datas são disponíveis
+    if (availableDates.length === 0) return true;
     return availableDates.some(availableDate => 
       isSameDay(availableDate, date)
     );
@@ -62,7 +62,7 @@ const StandardCalendar = ({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-green-200 p-4">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
       {/* Header do calendário */}
       {showNavigation && (
         <div className="flex items-center justify-between mb-4">
@@ -70,13 +70,13 @@ const StandardCalendar = ({
             variant="ghost"
             size="sm"
             onClick={() => navigateMonth('prev')}
-            className="p-2 hover:bg-green-50"
+            className="p-2 hover:bg-gray-100 rounded-lg"
             disabled={disabled}
           >
-            <ChevronLeft className="w-4 h-4 text-green-600" />
+            <ChevronLeft className="w-4 h-4 text-gray-600" />
           </Button>
           
-          <h3 className="text-lg font-semibold text-green-800 capitalize">
+          <h3 className="text-lg font-semibold text-black capitalize">
             {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
           </h3>
           
@@ -84,10 +84,10 @@ const StandardCalendar = ({
             variant="ghost"
             size="sm"
             onClick={() => navigateMonth('next')}
-            className="p-2 hover:bg-green-50"
+            className="p-2 hover:bg-gray-100 rounded-lg"
             disabled={disabled}
           >
-            <ChevronRight className="w-4 h-4 text-green-600" />
+            <ChevronRight className="w-4 h-4 text-gray-600" />
           </Button>
         </div>
       )}
@@ -115,20 +115,20 @@ const StandardCalendar = ({
               onClick={() => handleDateClick(date)}
               disabled={disabled || !isAvailable}
               className={`
-                aspect-square p-2 text-sm rounded-lg transition-all duration-200 relative
+                aspect-square p-2 text-sm rounded-lg transition-all duration-200 relative font-medium
                 ${!isCurrentMonth ? 'text-gray-300' : ''}
                 ${isAvailable && isCurrentMonth
-                  ? 'hover:bg-green-100 cursor-pointer text-green-800 font-medium border border-green-200' 
-                  : 'text-gray-400 cursor-not-allowed'
+                  ? 'hover:bg-gray-100 cursor-pointer text-black border border-gray-200' 
+                  : 'text-gray-300 cursor-not-allowed border border-transparent'
                 }
-                ${isSelected ? 'bg-green-500 text-white hover:bg-green-600 border-green-500' : ''}
-                ${isTodayDate && !isSelected ? 'bg-green-50 border-green-300 font-bold' : ''}
+                ${isSelected ? 'bg-[#19c662] text-white hover:bg-[#005c39] border-[#19c662] shadow-md' : ''}
+                ${isTodayDate && !isSelected ? 'bg-gray-100 border-gray-300 font-bold' : ''}
                 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
               `}
             >
               {format(date, 'd')}
               {isTodayDate && !isSelected && (
-                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-green-500 rounded-full"></div>
+                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-[#19c662] rounded-full"></div>
               )}
             </button>
           );
