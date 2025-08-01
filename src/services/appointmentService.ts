@@ -1,8 +1,72 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { BookingFormData, CompanySettings, Service } from '@/types/publicBooking';
 import { Professional } from '@/services/professionalsService';
 import { formatAppointmentDate } from '@/utils/dateUtils';
+
+// Input validation utilities
+const validatePhoneNumber = (phone: string): string => {
+  if (!phone) throw new Error('Número de telefone é obrigatório');
+  
+  // Remove all non-digit characters except + and ()
+  const cleanPhone = phone.replace(/[^0-9+()-]/g, '');
+  
+  // Check length
+  if (cleanPhone.length < 10 || cleanPhone.length > 20) {
+    throw new Error('Número de telefone deve ter entre 10 e 20 dígitos');
+  }
+  
+  return cleanPhone;
+};
+
+const validateName = (name: string): string => {
+  if (!name) throw new Error('Nome é obrigatório');
+  
+  const trimmedName = name.trim();
+  
+  if (trimmedName.length < 2 || trimmedName.length > 100) {
+    throw new Error('Nome deve ter entre 2 e 100 caracteres');
+  }
+  
+  // Basic XSS protection
+  if (/<[^>]*>/.test(trimmedName)) {
+    throw new Error('Nome contém caracteres não permitidos');
+  }
+  
+  return trimmedName;
+};
+
+const validateEmail = (email: string | undefined): string | null => {
+  if (!email) return null;
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new Error('Formato de email inválido');
+  }
+  
+  return email;
+};
+
+// Rate limiting check
+const checkRateLimit = async (identifier: string, actionType: string) => {
+  try {
+    const { data, error } = await supabase.rpc('check_rate_limit', {
+      p_identifier: identifier,
+      p_action_type: actionType,
+      p_max_attempts: 5,
+      p_window_minutes: 15
+    });
+    
+    if (error) {
+      console.warn('Rate limit check failed:', error);
+      return true; // Allow if rate limit check fails
+    }
+    
+    return data;
+  } catch (error) {
+    console.warn('Rate limit check error:', error);
+    return true; // Allow if rate limit check fails
+  }
+};
 
 export const createAppointment = async (
   formData: BookingFormData,
@@ -10,158 +74,101 @@ export const createAppointment = async (
   services: Service[],
   professionals: Professional[]
 ) => {
-  const { selectedService, selectedProfessional, selectedDate, selectedTime, clientName, clientPhone } = formData;
+  const { selectedService, selectedProfessional, selectedDate, selectedTime, clientName, clientPhone, clientEmail } = formData;
 
-  // Validação explícita do company_id
-  if (!companySettings?.company_id) {
-    console.error('🚫 Erro: company_id não encontrado em companySettings');
-    throw new Error('Configurações da empresa não encontradas');
-  }
-
-  // Validar formato UUID do company_id
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(companySettings.company_id)) {
-    console.error('🚫 Erro: company_id não está em formato UUID válido:', companySettings.company_id);
-    throw new Error('ID da empresa inválido');
-  }
-
-  console.log('✅ company_id validado:', companySettings.company_id);
-
-  // Verificar limite mensal do cliente antes de prosseguir
-  const { data: monthlyAppointments, error: monthlyError } = await supabase
-    .from('appointments')
-    .select(`
-      id,
-      clients!inner(phone)
-    `)
-    .eq('company_id', companySettings.company_id)
-    .eq('clients.phone', clientPhone)
-    .gte('appointment_date', new Date().toISOString().slice(0, 7) + '-01')
-    .lt('appointment_date', new Date().toISOString().slice(0, 7) + '-32')
-    .neq('status', 'cancelled');
-
-  if (!monthlyError && monthlyAppointments) {
-    // Buscar limite mensal da empresa
-    const { data: settings } = await supabase
-      .from('company_settings')
-      .select('monthly_appointments_limit')
-      .eq('company_id', companySettings.company_id)
-      .single();
-
-    const monthlyLimit = settings?.monthly_appointments_limit || 4;
+  console.log('🔒 Starting secure appointment creation process...');
+  
+  // Input validation
+  try {
+    const validatedName = validateName(clientName);
+    const validatedPhone = validatePhoneNumber(clientPhone);
+    const validatedEmail = validateEmail(clientEmail);
     
-    if (monthlyAppointments.length >= monthlyLimit) {
-      throw new Error(`Este cliente já atingiu o limite de ${monthlyLimit} agendamentos por mês.`);
+    console.log('✅ Input validation passed');
+    
+    // Rate limiting check
+    const rateLimitOk = await checkRateLimit(validatedPhone, 'booking');
+    if (!rateLimitOk) {
+      throw new Error('Muitas tentativas de agendamento. Tente novamente em 15 minutos.');
     }
-  }
-
-  // Validação robusta de conflitos usando a nova função
-  const service = services.find(s => s.id === selectedService);
-  const serviceDuration = service?.duration || 60;
-  
-  // Importar a função de validação
-  const { validateAppointmentSlot } = await import('@/utils/appointmentValidation');
-  
-  const conflictValidation = await validateAppointmentSlot(
-    companySettings.company_id,
-    selectedDate,
-    selectedTime,
-    serviceDuration
-  );
-
-  if (conflictValidation.hasConflict) {
-    const conflictMsg = conflictValidation.conflictDetails 
-      ? `Este horário conflita com o agendamento de ${conflictValidation.conflictDetails.existingClientName} (${conflictValidation.conflictDetails.existingServiceName}) às ${conflictValidation.conflictDetails.existingAppointmentTime}. Por favor, escolha outro horário.`
-      : 'Este horário não está mais disponível. Por favor, escolha outro horário.';
     
-    throw new Error(conflictMsg);
-  }
+    // Validate company settings
+    if (!companySettings?.company_id) {
+      console.error('🚫 Company settings invalid');
+      throw new Error('Configurações da empresa não encontradas');
+    }
 
-  // Criar ou buscar cliente - sempre salvar/atualizar informações
-  let clientId;
-  const { data: existingClient } = await supabase
-    .from('clients')
-    .select('id, name, email')
-    .eq('company_id', companySettings.company_id)
-    .eq('phone', clientPhone)
-    .maybeSingle();
+    // UUID validation
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(companySettings.company_id)) {
+      console.error('🚫 Invalid company UUID');
+      throw new Error('ID da empresa inválido');
+    }
 
-  if (existingClient) {
-    clientId = existingClient.id;
-    
-    // Sempre atualizar o nome do cliente caso tenha mudado
-    await supabase
-      .from('clients')
-      .update({
-        name: clientName,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', clientId);
-      
-    console.log('✅ Cliente existente atualizado:', clientId);
-  } else {
-    // Criar novo cliente automaticamente quando faz agendamento público
-    console.log('🔧 Inserindo novo cliente automaticamente (agendamento público):', {
-      company_id: companySettings.company_id,
-      name: clientName,
-      phone: clientPhone,
+    console.log('✅ Company validation passed');
+
+    // Find service details
+    const service = services.find(s => s.id === selectedService);
+    if (!service) {
+      throw new Error('Serviço não encontrado');
+    }
+
+    // Create client using secure function
+    console.log('👤 Creating/updating client...');
+    const { data: clientId, error: clientError } = await supabase.rpc('create_public_client', {
+      p_company_id: companySettings.company_id,
+      p_name: validatedName,
+      p_phone: validatedPhone,
+      p_email: validatedEmail
     });
 
-    const { data: newClient, error: clientError } = await supabase
-      .from('clients')
-      .insert({
-        company_id: companySettings.company_id,
-        name: clientName,
-        phone: clientPhone,
-        notes: 'Cliente cadastrado automaticamente via agendamento público'
-      })
-      .select('id')
-      .single();
-
     if (clientError) {
-      console.error('🚫 Erro ao criar cliente:', clientError);
-      throw new Error(`Erro ao criar cliente: ${clientError.message}`);
+      console.error('❌ Client creation error:', clientError);
+      throw new Error(`Erro ao processar cliente: ${clientError.message}`);
     }
 
-    if (!newClient?.id) {
-      throw new Error('Cliente criado mas ID não retornado');
+    if (!clientId) {
+      throw new Error('Erro ao criar cliente');
     }
 
-    console.log('✅ Novo cliente criado automaticamente:', newClient.id);
-    clientId = newClient.id;
+    console.log('✅ Client processed:', clientId);
+
+    // Create appointment using secure function
+    console.log('📅 Creating appointment...');
+    const { data: appointmentId, error: appointmentError } = await supabase.rpc('create_public_appointment', {
+      p_company_id: companySettings.company_id,
+      p_client_id: clientId,
+      p_service_id: selectedService,
+      p_professional_id: selectedProfessional || null,
+      p_appointment_date: selectedDate,
+      p_appointment_time: selectedTime,
+      p_duration: service.duration || 60
+    });
+
+    if (appointmentError) {
+      console.error('❌ Appointment creation error:', appointmentError);
+      throw new Error(`Erro ao criar agendamento: ${appointmentError.message}`);
+    }
+
+    if (!appointmentId) {
+      throw new Error('Erro ao criar agendamento');
+    }
+
+    console.log('✅ Appointment created:', appointmentId);
+
+    return {
+      appointment: { id: appointmentId },
+      service,
+      formattedDate: formatAppointmentDate(selectedDate),
+      professionalName: selectedProfessional 
+        ? professionals.find(p => p.id === selectedProfessional)?.name || 'Profissional'
+        : 'Qualquer profissional'
+    };
+
+  } catch (error: any) {
+    console.error('❌ Secure appointment creation failed:', error);
+    throw error;
   }
-
-  // Criar agendamento (usando a variável service já definida anteriormente)
-  const appointmentData = {
-    company_id: companySettings.company_id,
-    client_id: clientId,
-    service_id: selectedService,
-    professional_id: selectedProfessional || null,
-    appointment_date: selectedDate,
-    appointment_time: selectedTime,
-    duration: service?.duration || 60,
-    status: 'confirmed',
-  };
-
-  const { data: appointmentResult, error: appointmentError } = await supabase
-    .from('appointments')
-    .insert(appointmentData)
-    .select('*')
-    .single();
-
-  if (appointmentError) {
-    console.error('Erro ao criar agendamento:', appointmentError);
-    throw appointmentError;
-  }
-
-  return {
-    appointment: appointmentResult,
-    service,
-    formattedDate: formatAppointmentDate(selectedDate),
-    professionalName: selectedProfessional 
-      ? professionals.find(p => p.id === selectedProfessional)?.name || 'Profissional'
-      : 'Qualquer profissional'
-  };
 };
 
 export const generateWhatsAppMessage = (

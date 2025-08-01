@@ -5,6 +5,7 @@ import { BookingFormData, CompanySettings, Service } from '@/types/publicBooking
 import { Professional } from '@/services/professionalsService';
 import { checkMonthlyLimit } from '@/utils/monthlyLimitUtils';
 import { createAppointment, generateWhatsAppMessage } from '@/services/appointmentService';
+import { validateBookingForm } from '@/utils/inputValidation';
 
 export const useBookingSubmission = (
   companySettings: CompanySettings | null,
@@ -15,83 +16,92 @@ export const useBookingSubmission = (
   const [submitting, setSubmitting] = useState(false);
 
   const submitBooking = async (formData: BookingFormData) => {
-    const { selectedService, selectedDate, selectedTime, clientName, clientPhone } = formData;
+    console.log('🔒 Starting secure booking submission...');
     
-    console.log('🚀 Iniciando processo de agendamento...');
-    console.log('📋 Dados do formulário:', {
-      selectedService,
-      selectedDate,
-      selectedTime,
-      clientName,
-      clientPhone: clientPhone ? `${clientPhone.substring(0, 4)}****` : 'não informado'
-    });
-    
-    if (!selectedService || !selectedDate || !selectedTime || !clientName || !clientPhone) {
-      console.error('❌ Campos obrigatórios não preenchidos');
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!companySettings) {
-      console.error('❌ Configurações da empresa não encontradas');
-      toast({
-        title: "Erro",
-        description: "Configurações da empresa não encontradas.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    console.log('🏢 Configurações da empresa validadas:', {
-      company_id: companySettings.company_id,
-      company_name: companySettings.company_name
-    });
-
-    // Verificar limite mensal
-    console.log('📊 Verificando limite mensal...');
-    const canBook = await checkMonthlyLimit(
-      companySettings.company_id,
-      clientPhone,
-      companySettings.monthly_appointments_limit
-    );
-    
-    if (!canBook) {
-      console.log('❌ Limite mensal atingido');
-      toast({
-        title: "Limite de agendamentos atingido",
-        description: `Este cliente já atingiu o limite de ${companySettings.monthly_appointments_limit} agendamentos por mês.`,
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    console.log('✅ Limite mensal verificado - OK');
     setSubmitting(true);
-
+    
     try {
-      console.log('🔧 Chamando createAppointment...');
-      const result = await createAppointment(formData, companySettings, services, professionals);
+      // Input validation and sanitization
+      const validation = validateBookingForm({
+        clientName: formData.clientName,
+        clientPhone: formData.clientPhone,
+        clientEmail: formData.clientEmail,
+        selectedDate: formData.selectedDate,
+        selectedTime: formData.selectedTime,
+        selectedService: formData.selectedService,
+        selectedProfessional: formData.selectedProfessional
+      });
       
-      console.log('✅ Agendamento criado com sucesso:', result.appointment?.id);
+      if (!validation.isValid) {
+        console.error('❌ Validation failed:', validation.errors);
+        toast({
+          title: "Dados inválidos",
+          description: validation.errors.join(', '),
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      console.log('✅ Input validation passed');
+      
+      // Use sanitized data
+      const sanitizedFormData = {
+        ...formData,
+        ...validation.sanitizedData
+      };
+      
+      if (!companySettings) {
+        console.error('❌ Company settings not found');
+        toast({
+          title: "Erro",
+          description: "Configurações da empresa não encontradas.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      console.log('🏢 Company settings validated');
+
+      // Check monthly limit with sanitized phone
+      console.log('📊 Checking monthly limit...');
+      const canBook = await checkMonthlyLimit(
+        companySettings.company_id,
+        sanitizedFormData.clientPhone,
+        companySettings.monthly_appointments_limit
+      );
+      
+      if (!canBook) {
+        console.log('❌ Monthly limit reached');
+        toast({
+          title: "Limite de agendamentos atingido",
+          description: `Este cliente já atingiu o limite de ${companySettings.monthly_appointments_limit} agendamentos por mês.`,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      console.log('✅ Monthly limit check passed');
+      
+      // Create appointment with sanitized data
+      console.log('🔧 Creating secure appointment...');
+      const result = await createAppointment(sanitizedFormData, companySettings, services, professionals);
+      
+      console.log('✅ Appointment created successfully:', result.appointment?.id);
       
       toast({
-        title: "Agendamento realizado!",
-        description: `Agendamento confirmado para ${result.formattedDate} às ${selectedTime}.`,
+        title: "Agendamento realizado com sucesso!",
+        description: `Agendamento confirmado para ${result.formattedDate} às ${sanitizedFormData.selectedTime}.`,
       });
 
-      // Enviar mensagem para o profissional via WhatsApp
+      // Send WhatsApp message with sanitized data
       if (companySettings.phone) {
-        console.log('📱 Preparando mensagem WhatsApp...');
+        console.log('📱 Preparing WhatsApp message...');
         
         const message = generateWhatsAppMessage(
-          clientName,
-          clientPhone,
+          sanitizedFormData.clientName,
+          sanitizedFormData.clientPhone,
           result.formattedDate,
-          selectedTime,
+          sanitizedFormData.selectedTime,
           result.service?.name || 'Não especificado',
           result.professionalName
         );
@@ -100,36 +110,45 @@ export const useBookingSubmission = (
         const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
         
         setTimeout(() => {
-          console.log('📲 Abrindo WhatsApp...');
+          console.log('📲 Opening WhatsApp...');
           window.open(whatsappUrl, '_blank');
         }, 1000);
       }
 
       return true;
+      
     } catch (error: any) {
-      console.error('❌ Erro detalhado no agendamento:', {
-        error: error,
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
+      console.error('❌ Secure booking submission failed:', error);
       
       let errorMessage = "Não foi possível realizar o agendamento. Tente novamente.";
       
-      // Personalizar mensagem baseada no tipo de erro
-      if (error.message?.includes('row-level security')) {
-        errorMessage = "Erro de segurança ao criar o agendamento. Tente novamente.";
-      } else if (error.message?.includes('client')) {
-        errorMessage = "Erro ao processar dados do cliente. Verifique as informações.";
-      } else if (error.message?.includes('appointment')) {
-        errorMessage = "Erro ao criar o agendamento. Tente novamente.";
+      // Handle specific error messages from database functions
+      if (error.message?.includes('Required parameters cannot be null')) {
+        errorMessage = "Todos os campos obrigatórios devem ser preenchidos.";
+      } else if (error.message?.includes('Company not found or not active')) {
+        errorMessage = "Esta empresa não está mais aceitando agendamentos.";
+      } else if (error.message?.includes('Service not found or inactive')) {
+        errorMessage = "O serviço selecionado não está mais disponível.";
+      } else if (error.message?.includes('Time slot already booked')) {
+        errorMessage = "Este horário não está mais disponível. Por favor, escolha outro horário.";
+      } else if (error.message?.includes('Cannot book appointments in the past')) {
+        errorMessage = "Não é possível agendar para datas passadas.";
+      } else if (error.message?.includes('Name must be between')) {
+        errorMessage = "Nome deve ter entre 2 e 100 caracteres.";
+      } else if (error.message?.includes('Invalid phone number format')) {
+        errorMessage = "Formato de telefone inválido.";
+      } else if (error.message?.includes('Muitas tentativas')) {
+        errorMessage = error.message;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
       toast({
         title: "Erro no agendamento",
-        description: error.message || errorMessage,
+        description: errorMessage,
         variant: "destructive",
       });
+      
       return false;
     } finally {
       setSubmitting(false);

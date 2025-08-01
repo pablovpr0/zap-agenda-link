@@ -147,6 +147,7 @@ export type Database = {
           max_simultaneous_appointments: number
           monthly_appointments_limit: number | null
           phone: string | null
+          selected_theme_id: string | null
           slug: string
           status_aberto: boolean | null
           tempo_entrega: number | null
@@ -176,6 +177,7 @@ export type Database = {
           max_simultaneous_appointments?: number
           monthly_appointments_limit?: number | null
           phone?: string | null
+          selected_theme_id?: string | null
           slug: string
           status_aberto?: boolean | null
           tempo_entrega?: number | null
@@ -205,6 +207,7 @@ export type Database = {
           max_simultaneous_appointments?: number
           monthly_appointments_limit?: number | null
           phone?: string | null
+          selected_theme_id?: string | null
           slug?: string
           status_aberto?: boolean | null
           tempo_entrega?: number | null
@@ -298,6 +301,30 @@ export type Database = {
         }
         Relationships: []
       }
+      security_config_reminders: {
+        Row: {
+          config_name: string
+          created_at: string | null
+          description: string
+          id: number
+          status: string | null
+        }
+        Insert: {
+          config_name: string
+          created_at?: string | null
+          description: string
+          id?: number
+          status?: string | null
+        }
+        Update: {
+          config_name?: string
+          created_at?: string | null
+          description?: string
+          id?: number
+          status?: string | null
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           company_id: string
@@ -344,7 +371,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      company_stats_summary: {
+        Row: {
+          appointments_last_30_days: number | null
+          company_id: string | null
+          company_name: string | null
+          last_appointment_date: string | null
+          slug: string | null
+          total_clients: number | null
+          total_professionals: number | null
+          total_services: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       create_public_appointment: {
@@ -368,6 +415,41 @@ export type Database = {
         }
         Returns: string
       }
+      generate_company_slug: {
+        Args: { company_name: string }
+        Returns: string
+      }
+      get_appointment_stats: {
+        Args: {
+          p_company_id: string
+          p_start_date?: string
+          p_end_date?: string
+        }
+        Returns: {
+          total_appointments: number
+          confirmed_appointments: number
+          completed_appointments: number
+          cancelled_appointments: number
+          total_revenue: number
+          most_popular_service: string
+          busiest_day: string
+        }[]
+      }
+      get_available_times: {
+        Args: {
+          p_company_id: string
+          p_date: string
+          p_working_hours_start: string
+          p_working_hours_end: string
+          p_appointment_interval?: number
+          p_lunch_break_enabled?: boolean
+          p_lunch_start_time?: string
+          p_lunch_end_time?: string
+        }
+        Returns: {
+          available_time: string
+        }[]
+      }
       get_companies_with_slug: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -379,6 +461,10 @@ export type Database = {
         Returns: {
           company_id: string
         }[]
+      }
+      refresh_company_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
