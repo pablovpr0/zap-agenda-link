@@ -1,162 +1,201 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useClientAuth } from '@/hooks/useClientAuth';
-import { useCompanyData } from '@/hooks/useCompanyData';
-import LoadingState from '@/components/public-booking/LoadingState';
-import ErrorState from '@/components/public-booking/ErrorState';
+import { supabase } from '@/integrations/supabase/client';
 
-const ClientLogin = () => {
-  const { companySlug } = useParams<{ companySlug: string }>();
-  const navigate = useNavigate();
+interface ClientLoginProps {
+  companyData: any;
+  onLoginSuccess: () => void;
+}
+
+const ClientLogin = ({ companyData, onLoginSuccess }: ClientLoginProps) => {
   const { toast } = useToast();
-  const { loginWithPhone, loading: authLoading } = useClientAuth();
-  const { companyData, loading: companyLoading, error } = useCompanyData(companySlug || '');
-  
+  const { loginWithPhone, completeRegistration, loading } = useClientAuth();
   const [phone, setPhone] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showNameForm, setShowNameForm] = useState(false);
+  const [clientName, setClientName] = useState('');
 
-  const formatPhone = (value: string) => {
-    // Remove tudo que não é número
-    const numbers = value.replace(/\D/g, '');
-    
-    // Formata no padrão (XX) XXXXX-XXXX
-    if (numbers.length <= 11) {
-      const formatted = numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-      return formatted;
-    }
-    
-    return value;
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhone(e.target.value);
-    setPhone(formatted);
-  };
-
-  const validatePhone = (phone: string) => {
-    const numbers = phone.replace(/\D/g, '');
-    return numbers.length === 11;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validatePhone(phone)) {
+  const handleLogin = async () => {
+    if (!phone.trim()) {
       toast({
-        title: "Telefone inválido",
-        description: "Digite um número de telefone válido com 11 dígitos.",
+        title: "Telefone obrigatório",
+        description: "Por favor, informe seu número de telefone.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!companyData?.id) {
-      toast({
-        title: "Erro",
-        description: "Empresa não encontrada.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
     try {
-      const cleanPhone = phone.replace(/\D/g, '');
-      const result = await loginWithPhone(cleanPhone, companyData.id);
+      const result = await loginWithPhone(phone.trim(), companyData.id);
       
       if (result.isFirstTime) {
-        // Primeiro acesso - ir para agendamento
-        navigate(`/${companySlug}/booking`);
+        // Primeiro acesso - mostrar formulário de nome
+        setShowNameForm(true);
       } else {
-        // Cliente existente - ir para agendamento com dados carregados
-        navigate(`/${companySlug}/booking`);
+        // Cliente existente - login direto
         toast({
-          title: "Bem-vindo de volta!",
-          description: `Olá, ${result.client?.name}!`,
+          title: "Bem-vindo(a) de volta!",
+          description: `Olá, ${result.client?.name}`,
         });
+        onLoginSuccess();
       }
     } catch (error) {
-      console.error('Erro no login:', error);
       toast({
         title: "Erro no login",
-        description: "Não foi possível fazer login. Tente novamente.",
+        description: "Não foi possível realizar o login. Tente novamente.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
-  if (companyLoading || authLoading) {
-    return <LoadingState />;
-  }
+  const handleCompleteRegistration = async () => {
+    if (!clientName.trim()) {
+      toast({
+        title: "Nome obrigatório",
+        description: "Por favor, informe seu nome.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  if (error || !companyData) {
-    return <ErrorState companySlug={companySlug} />;
+    try {
+      // Criar cliente no banco
+      const { data: newClient, error } = await supabase
+        .from('clients')
+        .insert({
+          name: clientName.trim(),
+          phone: phone.trim(),
+          company_id: companyData.id
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Completar registro local
+      const clientData = {
+        id: newClient.id,
+        name: newClient.name,
+        phone: newClient.phone,
+        email: newClient.email
+      };
+
+      completeRegistration(clientData);
+      
+      toast({
+        title: "Cadastro realizado!",
+        description: `Bem-vindo(a), ${clientName}!`,
+      });
+      
+      onLoginSuccess();
+    } catch (error) {
+      toast({
+        title: "Erro no cadastro",
+        description: "Não foi possível completar o cadastro. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (showNameForm) {
+    return (
+      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-[#19c662]">
+              Primeiro Acesso
+            </CardTitle>
+            <p className="text-gray-600 mt-2">
+              Para continuar, informe seu nome
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Seu nome completo</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Digite seu nome"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                className="border-gray-300 focus:border-[#19c662] focus:ring-[#19c662]"
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => setShowNameForm(false)}
+                className="flex-1"
+              >
+                Voltar
+              </Button>
+              <Button 
+                onClick={handleCompleteRegistration}
+                disabled={loading}
+                className="flex-1 bg-[#19c662] hover:bg-[#005c39] text-white"
+              >
+                {loading ? 'Cadastrando...' : 'Confirmar'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo/Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-[#19c662] mb-2">ZapAgenda</h1>
-          <p className="text-gray-600">Digite seu telefone para acessar seus agendamentos</p>
-        </div>
-
-        {/* Company Info */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-          <div className="text-center">
-            {companyData.logo_url && (
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-[#19c662] rounded-full flex items-center justify-center">
+            {companyData.logo_url ? (
               <img 
                 src={companyData.logo_url} 
                 alt={companyData.company_name}
-                className="w-16 h-16 rounded-full mx-auto mb-3 object-cover"
+                className="w-12 h-12 rounded-full object-cover"
               />
-            )}
-            <h2 className="text-xl font-semibold text-gray-800">{companyData.company_name}</h2>
-            {companyData.address && (
-              <p className="text-sm text-gray-600 mt-1">{companyData.address}</p>
+            ) : (
+              <span className="text-white font-bold text-xl">
+                {companyData.company_name?.charAt(0) || 'Z'}
+              </span>
             )}
           </div>
-        </div>
-
-        {/* Login Form */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                Número de telefone
-              </label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="(11) 99999-9999"
-                value={phone}
-                onChange={handlePhoneChange}
-                maxLength={15}
-                className="w-full"
-              />
-            </div>
-            
-            <Button
-              type="submit"
-              disabled={isSubmitting || !validatePhone(phone)}
-              className="w-full bg-[#19c662] hover:bg-[#005c39] text-white py-3 text-lg font-medium"
-            >
-              {isSubmitting ? 'Entrando...' : 'Entrar'}
-            </Button>
-          </form>
-        </div>
-
-        {/* Footer */}
-        <div className="text-center mt-6 text-sm text-gray-500">
-          <p>Primeira vez? Seu cadastro será criado automaticamente no primeiro agendamento.</p>
-        </div>
-      </div>
+          <CardTitle className="text-2xl font-bold text-[#19c662]">
+            {companyData.company_name || 'ZapAgenda'}
+          </CardTitle>
+          <p className="text-gray-600 mt-2">
+            Digite seu telefone para acessar seus agendamentos
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="phone">Número de telefone</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="(11) 99999-9999"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="border-gray-300 focus:border-[#19c662] focus:ring-[#19c662]"
+            />
+          </div>
+          
+          <Button 
+            onClick={handleLogin}
+            disabled={loading}
+            className="w-full bg-[#19c662] hover:bg-[#005c39] text-white"
+          >
+            {loading ? 'Entrando...' : 'Entrar'}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };

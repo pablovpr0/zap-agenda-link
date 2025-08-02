@@ -77,6 +77,11 @@ export const useClientAuth = () => {
     localStorage.removeItem('zapagenda_temp_phone');
   };
 
+  const updateClientData = (clientData: ClientData) => {
+    setCurrentClient(clientData);
+    localStorage.setItem('zapagenda_client', JSON.stringify(clientData));
+  };
+
   const logout = () => {
     setCurrentClient(null);
     setIsAuthenticated(false);
@@ -94,6 +99,7 @@ export const useClientAuth = () => {
     loading,
     loginWithPhone,
     completeRegistration,
+    updateClientData,
     logout,
     getTempPhone
   };
