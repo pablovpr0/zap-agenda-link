@@ -75,7 +75,7 @@ const TimeSelection = ({
       </div>
       
       {/* Layout carrossel horizontal */}
-      <div className="overflow-x-auto pb-2">
+      <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-[#19c662]">
         <div className="flex gap-3 min-w-max">
           {availableTimes.map((time) => (
             <button

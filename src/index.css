@@ -3,6 +3,31 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Estilo personalizado para scrollbar */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  .scrollbar-thumb-gray-400::-webkit-scrollbar-thumb {
+    background-color: #9ca3af;
+    border-radius: 3px;
+  }
+  
+  .scrollbar-track-gray-100::-webkit-scrollbar-track {
+    background-color: #f3f4f6;
+    border-radius: 3px;
+  }
+  
+  .hover\:scrollbar-thumb-\[\#19c662\]:hover::-webkit-scrollbar-thumb {
+    background-color: #19c662;
+  }
+}
+
 /* Variáveis CSS para temas dinâmicos */
 :root {
   --theme-primary: #25d366;

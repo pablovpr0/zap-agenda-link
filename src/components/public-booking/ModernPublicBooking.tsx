@@ -43,32 +43,34 @@ const ModernPublicBooking = () => {
 
   // Funções do menu
   const handleHistoryClick = () => {
-    console.log('Histórico de agendamentos clicked');
+    // TODO: Implementar navegação para página de histórico
     toast({
-      title: "Em desenvolvimento",
-      description: "Funcionalidade de histórico em desenvolvimento.",
+      title: "Histórico de Agendamentos",
+      description: "Funcionalidade em desenvolvimento - será implementada na próxima fase.",
     });
   };
 
   const handleNextAppointmentClick = () => {
-    console.log('Próximo agendamento clicked');
+    // TODO: Implementar busca do próximo agendamento
     toast({
-      title: "Em desenvolvimento", 
-      description: "Funcionalidade de próximo agendamento em desenvolvimento.",
+      title: "Próximo Agendamento", 
+      description: "Funcionalidade em desenvolvimento - será implementada na próxima fase.",
     });
   };
 
   const handleLogoutClick = () => {
-    console.log('Logout clicked');
-    // Limpar dados do formulário
+    // Limpar todos os dados do formulário
     setSelectedService('');
     setSelectedDate('');
     setSelectedTime('');
     setClientName('');
     setClientPhone('');
+    setAvailableTimes([]);
+    
+    // TODO: Implementar redirecionamento para tela de login
     toast({
       title: "Sessão encerrada",
-      description: "Você foi deslogado com sucesso.",
+      description: "Dados limpos. Redirecionamento para login será implementado na próxima fase.",
     });
   };
 
@@ -99,7 +101,7 @@ const ModernPublicBooking = () => {
     };
 
     loadTimes();
-  }, [selectedDate, selectedService, generateAvailableTimes, services]);
+  }, [selectedDate, selectedService, services]);
 
   // Reset time when date changes
   useEffect(() => {
