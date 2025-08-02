@@ -37,7 +37,7 @@ const BookingDataCard = ({
   const selectedServiceData = services.find(s => s.id === selectedService);
 
   return (
-    <div className="mx-4 mb-6 bg-white rounded-xl shadow-md overflow-hidden">
+    <div className="mx-4 mb-6 bg-white rounded-xl shadow-md overflow-visible relative">
       {/* Header do card */}
       <div className="bg-[#19c662] px-6 py-4">
         <h3 className="text-white font-bold text-lg">Dados do Agendamento</h3>
@@ -45,7 +45,7 @@ const BookingDataCard = ({
 
       <div className="p-6 space-y-6">
         {/* Seleção de Serviço */}
-        <div>
+        <div className="relative">
           <label className="block text-black font-medium mb-2">
             Escolha o serviço
           </label>
@@ -68,8 +68,9 @@ const BookingDataCard = ({
               <ChevronDown className={`w-5 h-5 text-gray-600 transition-transform ${isServiceOpen ? 'rotate-180' : ''}`} />
             </button>
 
+            {/* Dropdown com z-index alto e posicionamento absoluto correto */}
             {isServiceOpen && (
-              <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                 {services.map((service) => (
                   <button
                     key={service.id}

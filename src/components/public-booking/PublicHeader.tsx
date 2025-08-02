@@ -17,7 +17,7 @@ interface PublicHeaderProps {
 
 const PublicHeader = ({ onHistoryClick, onNextAppointmentClick, onLogoutClick }: PublicHeaderProps) => {
   return (
-    <header className="w-full bg-[#FAFAFA] px-4 py-3 flex justify-between items-center">
+    <header className="w-full bg-[#FAFAFA] px-4 py-3 flex justify-between items-center relative z-10">
       <div className="flex-1" />
       
       <DropdownMenu>
@@ -27,16 +27,25 @@ const PublicHeader = ({ onHistoryClick, onNextAppointmentClick, onLogoutClick }:
             <span className="sr-only">Menu</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56 bg-white border border-gray-200 shadow-lg">
-          <DropdownMenuItem onClick={onHistoryClick} className="cursor-pointer hover:bg-gray-50">
+        <DropdownMenuContent align="end" className="w-56 bg-white border border-gray-200 shadow-lg z-50">
+          <DropdownMenuItem 
+            onClick={onHistoryClick} 
+            className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50"
+          >
             <History className="mr-2 h-4 w-4 text-gray-600" />
             <span>Histórico de agendamentos</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={onNextAppointmentClick} className="cursor-pointer hover:bg-gray-50">
+          <DropdownMenuItem 
+            onClick={onNextAppointmentClick} 
+            className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50"
+          >
             <Clock className="mr-2 h-4 w-4 text-gray-600" />
             <span>Próximo agendamento</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={onLogoutClick} className="cursor-pointer hover:bg-gray-50">
+          <DropdownMenuItem 
+            onClick={onLogoutClick} 
+            className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50"
+          >
             <LogOut className="mr-2 h-4 w-4 text-gray-600" />
             <span>Sair</span>
           </DropdownMenuItem>

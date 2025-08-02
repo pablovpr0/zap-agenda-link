@@ -41,6 +41,37 @@ const ModernPublicBooking = () => {
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
 
+  // Funções do menu
+  const handleHistoryClick = () => {
+    console.log('Histórico de agendamentos clicked');
+    toast({
+      title: "Em desenvolvimento",
+      description: "Funcionalidade de histórico em desenvolvimento.",
+    });
+  };
+
+  const handleNextAppointmentClick = () => {
+    console.log('Próximo agendamento clicked');
+    toast({
+      title: "Em desenvolvimento", 
+      description: "Funcionalidade de próximo agendamento em desenvolvimento.",
+    });
+  };
+
+  const handleLogoutClick = () => {
+    console.log('Logout clicked');
+    // Limpar dados do formulário
+    setSelectedService('');
+    setSelectedDate('');
+    setSelectedTime('');
+    setClientName('');
+    setClientPhone('');
+    toast({
+      title: "Sessão encerrada",
+      description: "Você foi deslogado com sucesso.",
+    });
+  };
+
   // Gerar datas disponíveis
   const availableDates = generateAvailableDates();
 
@@ -142,9 +173,13 @@ const ModernPublicBooking = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
+    <div className="min-h-screen bg-[#FAFAFA] overflow-x-hidden">
       {/* Header */}
-      <PublicHeader />
+      <PublicHeader 
+        onHistoryClick={handleHistoryClick}
+        onNextAppointmentClick={handleNextAppointmentClick}
+        onLogoutClick={handleLogoutClick}
+      />
 
       {/* Company Profile Section */}
       <CompanyProfileSection
@@ -157,32 +192,35 @@ const ModernPublicBooking = () => {
       {/* Schedule Hero Card */}
       <ScheduleHeroCard />
 
-      {/* Booking Data Card */}
-      <BookingDataCard
-        services={services}
-        selectedService={selectedService}
-        onServiceChange={setSelectedService}
-        availableDates={availableDates}
-        selectedDate={selectedDate}
-        onDateSelect={setSelectedDate}
-        availableTimes={availableTimes}
-        selectedTime={selectedTime}
-        onTimeSelect={setSelectedTime}
-        isLoadingTimes={isLoadingTimes}
-        onRefreshTimes={refreshTimes}
-      />
-
-      {/* Client Data Card */}
-      {selectedService && selectedDate && selectedTime && (
-        <ClientDataCard
-          clientName={clientName}
-          onClientNameChange={setClientName}
-          clientPhone={clientPhone}
-          onClientPhoneChange={setClientPhone}
-          onSubmit={handleSubmit}
-          isSubmitting={submitting}
+      {/* Container with proper overflow handling */}
+      <div className="relative">
+        {/* Booking Data Card */}
+        <BookingDataCard
+          services={services}
+          selectedService={selectedService}
+          onServiceChange={setSelectedService}
+          availableDates={availableDates}
+          selectedDate={selectedDate}
+          onDateSelect={setSelectedDate}
+          availableTimes={availableTimes}
+          selectedTime={selectedTime}
+          onTimeSelect={setSelectedTime}
+          isLoadingTimes={isLoadingTimes}
+          onRefreshTimes={refreshTimes}
         />
-      )}
+
+        {/* Client Data Card */}
+        {selectedService && selectedDate && selectedTime && (
+          <ClientDataCard
+            clientName={clientName}
+            onClientNameChange={setClientName}
+            clientPhone={clientPhone}
+            onClientPhoneChange={setClientPhone}
+            onSubmit={handleSubmit}
+            isSubmitting={submitting}
+          />
+        )}
+      </div>
 
       {/* Espaçamento inferior */}
       <div className="h-8" />
