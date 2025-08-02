@@ -50,7 +50,10 @@ const ModernPublicBooking = () => {
       if (selectedDate && selectedService) {
         setIsLoadingTimes(true);
         try {
-          const times = await generateAvailableTimes(selectedDate, selectedService);
+          // Get the selected service to pass its duration
+          const selectedServiceData = services.find(s => s.id === selectedService);
+          const serviceDuration = selectedServiceData?.duration || 30;
+          const times = await generateAvailableTimes(selectedDate, serviceDuration);
           setAvailableTimes(times);
         } catch (error) {
           console.error('Erro ao carregar horários:', error);
@@ -65,7 +68,7 @@ const ModernPublicBooking = () => {
     };
 
     loadTimes();
-  }, [selectedDate, selectedService, generateAvailableTimes]);
+  }, [selectedDate, selectedService, generateAvailableTimes, services]);
 
   // Reset time when date changes
   useEffect(() => {
@@ -83,7 +86,7 @@ const ModernPublicBooking = () => {
     }
 
     try {
-      const result = await submitBooking({
+      const success = await submitBooking({
         selectedService,
         selectedDate,
         selectedTime,
@@ -93,7 +96,7 @@ const ModernPublicBooking = () => {
         notes: ''
       });
 
-      if (result.success) {
+      if (success) {
         toast({
           title: "Agendamento confirmado!",
           description: "Seu agendamento foi realizado com sucesso.",
@@ -116,7 +119,9 @@ const ModernPublicBooking = () => {
       const loadTimes = async () => {
         setIsLoadingTimes(true);
         try {
-          const times = await generateAvailableTimes(selectedDate, selectedService);
+          const selectedServiceData = services.find(s => s.id === selectedService);
+          const serviceDuration = selectedServiceData?.duration || 30;
+          const times = await generateAvailableTimes(selectedDate, serviceDuration);
           setAvailableTimes(times);
         } catch (error) {
           console.error('Erro ao atualizar horários:', error);
