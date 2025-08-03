@@ -119,7 +119,7 @@ export const checkAvailableTimes = async (
   lunchStartTime?: string,
   lunchEndTime?: string
 ) => {
-  console.log('🔍 Checking available times with secure policies:', { 
+  console.log('🔍 Checking available times with lunch break logic:', { 
     companyId, 
     selectedDate,
     lunchBreakEnabled,
@@ -145,14 +145,31 @@ export const checkAvailableTimes = async (
       return [];
     }
 
-    // Convert time objects to string format and filter out past times for today
-    const timeStrings = (availableTimes || []).map(t => {
+    // Convert time objects to string format
+    let timeStrings = (availableTimes || []).map(t => {
       if (t.available_time) {
-        // Format time to HH:MM
         return t.available_time.toString().substring(0, 5);
       }
       return '';
     }).filter(Boolean);
+
+    // Aplicar filtro adicional de almoço no frontend para garantir consistência
+    if (lunchBreakEnabled && lunchStartTime && lunchEndTime) {
+      const lunchStartMinutes = parseInt(lunchStartTime.split(':')[0]) * 60 + parseInt(lunchStartTime.split(':')[1]);
+      const lunchEndMinutes = parseInt(lunchEndTime.split(':')[0]) * 60 + parseInt(lunchEndTime.split(':')[1]);
+      
+      timeStrings = timeStrings.filter(time => {
+        const timeMinutes = parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1]);
+        // Filtrar todo o período do almoço (inclusive início, exclusive fim)
+        const isDuringLunch = timeMinutes >= lunchStartMinutes && timeMinutes < lunchEndMinutes;
+        
+        if (isDuringLunch) {
+          console.log(`🍽️ Horário ${time} filtrado (período de almoço: ${lunchStartTime} - ${lunchEndTime})`);
+        }
+        
+        return !isDuringLunch;
+      });
+    }
 
     // If it's today, filter out past times
     const today = new Date().toISOString().split('T')[0];
@@ -161,11 +178,11 @@ export const checkAvailableTimes = async (
       const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       
       const filteredTimes = timeStrings.filter(time => time > currentTime);
-      console.log('⏰ Available times (filtered for today):', filteredTimes.length);
+      console.log('⏰ Available times (filtered for today and lunch):', filteredTimes.length);
       return filteredTimes;
     }
 
-    console.log('⏰ Available times found:', timeStrings.length);
+    console.log('⏰ Available times found (lunch filtered):', timeStrings.length);
     return timeStrings;
     
   } catch (error: any) {

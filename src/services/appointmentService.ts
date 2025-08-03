@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { BookingFormData, CompanySettings, Service } from '@/types/publicBooking';
 import { Professional } from '@/services/professionalsService';
@@ -198,12 +197,19 @@ export const generateWhatsAppMessage = (
   serviceName: string,
   professionalName: string
 ) => {
-  return `🗓️ *NOVO AGENDAMENTO*\n\n` +
+  let message = `🗓️ *NOVO AGENDAMENTO*\n\n` +
     `👤 *Cliente:* ${clientName}\n` +
     `📞 *Telefone:* ${clientPhone}\n` +
     `📅 *Data:* ${formattedDate}\n` +
     `⏰ *Horário:* ${selectedTime}\n` +
-    `💼 *Serviço:* ${serviceName}\n` +
-    `👨‍💼 *Profissional:* ${professionalName}\n` +
-    `\n✅ Agendamento confirmado automaticamente!`;
+    `💼 *Serviço:* ${serviceName}`;
+  
+  // Só incluir profissional se não for "Qualquer profissional"
+  if (professionalName && professionalName !== 'Qualquer profissional') {
+    message += `\n👨‍💼 *Profissional:* ${professionalName}`;
+  }
+  
+  message += `\n\n✅ Agendamento confirmado automaticamente!`;
+  
+  return message;
 };

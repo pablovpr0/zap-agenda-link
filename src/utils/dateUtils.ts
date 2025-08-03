@@ -45,7 +45,7 @@ export const generateTimeSlots = (
   while (currentTime < endTime) {
     const timeString = format(currentTime, 'HH:mm');
     
-    // Verificar se o horário não é durante o almoço
+    // Verificar se o horário não é durante o almoço (período completo)
     const isDuringLunch = isTimeDuringLunch(timeString, lunchBreakEnabled, lunchStartTime, lunchEndTime);
     
     if (!isDuringLunch) {
@@ -83,9 +83,11 @@ export const isTimeDuringLunch = (
   const lunchStartMinutes = parseInt(lunchStartTime.split(':')[0]) * 60 + parseInt(lunchStartTime.split(':')[1]);
   const lunchEndMinutes = parseInt(lunchEndTime.split(':')[0]) * 60 + parseInt(lunchEndTime.split(':')[1]);
   
+  // Corrigir a lógica: o período do almoço é INCLUSIVE no início e EXCLUSIVE no fim
+  // Se alguém sai às 12:00 e volta às 15:00, não pode agendar das 12:00 até 14:59
   const isDuringLunch = timeMinutes >= lunchStartMinutes && timeMinutes < lunchEndMinutes;
   
-  console.log('🔍 Cálculo:', {
+  console.log('🔍 Cálculo do almoço:', {
     timeMinutes,
     lunchStartMinutes,
     lunchEndMinutes,
