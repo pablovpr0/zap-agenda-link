@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePublicBooking } from '@/hooks/usePublicBooking';
@@ -118,15 +117,25 @@ const ModernPublicBooking = () => {
     const loadTimes = async () => {
       if (selectedDate && selectedService) {
         setIsLoadingTimes(true);
+        setSelectedTime(''); // Reset time when loading new times
         try {
-          // Get the selected service to pass its duration
           const selectedServiceData = services.find(s => s.id === selectedService);
           const serviceDuration = selectedServiceData?.duration || 30;
+          
+          console.log('🔄 Carregando horários para:', { selectedDate, selectedService, serviceDuration });
+          
           const times = await generateAvailableTimes(selectedDate, serviceDuration);
           setAvailableTimes(times);
+          
+          console.log('✅ Horários carregados:', times);
         } catch (error) {
-          console.error('Erro ao carregar horários:', error);
+          console.error('❌ Erro ao carregar horários:', error);
           setAvailableTimes([]);
+          toast({
+            title: "Erro ao carregar horários",
+            description: "Não foi possível carregar os horários disponíveis. Tente novamente.",
+            variant: "destructive",
+          });
         } finally {
           setIsLoadingTimes(false);
         }
@@ -138,11 +147,6 @@ const ModernPublicBooking = () => {
 
     loadTimes();
   }, [selectedDate, selectedService, services]);
-
-  // Reset time when date changes
-  useEffect(() => {
-    setSelectedTime('');
-  }, [selectedDate]);
 
   const handleSubmit = async () => {
     if (!selectedService || !selectedDate || !selectedTime || !clientName.trim() || !clientPhone.trim()) {
@@ -166,39 +170,45 @@ const ModernPublicBooking = () => {
       });
 
       if (success) {
-        toast({
-          title: "Agendamento confirmado!",
-          description: "Seu agendamento foi realizado com sucesso.",
-        });
-
         // Reset form
         setSelectedService('');
         setSelectedDate('');
         setSelectedTime('');
-        setClientName('');
-        setClientPhone('');
+        setAvailableTimes([]);
       }
     } catch (error) {
       console.error('Erro no agendamento:', error);
     }
   };
 
-  const refreshTimes = () => {
+  const refreshTimes = async () => {
     if (selectedDate && selectedService) {
-      const loadTimes = async () => {
-        setIsLoadingTimes(true);
-        try {
-          const selectedServiceData = services.find(s => s.id === selectedService);
-          const serviceDuration = selectedServiceData?.duration || 30;
-          const times = await generateAvailableTimes(selectedDate, serviceDuration);
-          setAvailableTimes(times);
-        } catch (error) {
-          console.error('Erro ao atualizar horários:', error);
-        } finally {
-          setIsLoadingTimes(false);
+      setIsLoadingTimes(true);
+      try {
+        const selectedServiceData = services.find(s => s.id === selectedService);
+        const serviceDuration = selectedServiceData?.duration || 30;
+        const times = await generateAvailableTimes(selectedDate, serviceDuration);
+        setAvailableTimes(times);
+        
+        // Se o horário selecionado não está mais disponível, limpar seleção
+        if (selectedTime && !times.includes(selectedTime)) {
+          setSelectedTime('');
+          toast({
+            title: "Horário atualizado",
+            description: "O horário selecionado não está mais disponível. Selecione outro horário.",
+            variant: "destructive",
+          });
         }
-      };
-      loadTimes();
+      } catch (error) {
+        console.error('Erro ao atualizar horários:', error);
+        toast({
+          title: "Erro ao atualizar",
+          description: "Não foi possível atualizar os horários. Tente novamente.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingTimes(false);
+      }
     }
   };
 
@@ -215,7 +225,13 @@ const ModernPublicBooking = () => {
     return (
       <ClientLogin
         companyData={companyData}
-        onLoginSuccess={handleLoginSuccess}
+        onLoginSuccess={() => {
+          setCurrentView('booking');
+          if (currentClient) {
+            setClientName(currentClient.name);
+            setClientPhone(currentClient.phone);
+          }
+        }}
       />
     );
   }
@@ -226,7 +242,7 @@ const ModernPublicBooking = () => {
       <ClientHistory
         clientPhone={currentClient?.phone || ''}
         companyId={companyData.id}
-        onBack={handleBackToBooking}
+        onBack={() => setCurrentView('booking')}
       />
     );
   }
@@ -238,7 +254,7 @@ const ModernPublicBooking = () => {
         clientPhone={currentClient?.phone || ''}
         companyId={companyData.id}
         companyData={companyData}
-        onBack={handleBackToBooking}
+        onBack={() => setCurrentView('booking')}
       />
     );
   }
@@ -247,9 +263,25 @@ const ModernPublicBooking = () => {
     <div className="min-h-screen bg-[#FAFAFA] overflow-x-hidden">
       {/* Header */}
       <PublicHeader 
-        onHistoryClick={handleHistoryClick}
-        onNextAppointmentClick={handleNextAppointmentClick}
-        onLogoutClick={handleLogoutClick}
+        onHistoryClick={() => setCurrentView('history')}
+        onNextAppointmentClick={() => setCurrentView('next-appointment')}
+        onLogoutClick={() => {
+          // Limpar todos os dados do formulário
+          setSelectedService('');
+          setSelectedDate('');
+          setSelectedTime('');
+          setClientName('');
+          setClientPhone('');
+          setAvailableTimes([]);
+          
+          logout();
+          setCurrentView('login');
+          
+          toast({
+            title: "Sessão encerrada",
+            description: "Você foi desconectado com sucesso.",
+          });
+        }}
       />
 
       {/* Company Profile Section */}

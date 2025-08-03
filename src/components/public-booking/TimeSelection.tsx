@@ -50,7 +50,7 @@ const TimeSelection = ({
         </div>
         <div className="text-center py-8 text-gray-500">
           <p className="text-sm">Não há horários disponíveis para esta data</p>
-          <p className="text-xs mt-1">Tente selecionar outro dia</p>
+          <p className="text-xs mt-1">Tente selecionar outro dia ou serviço</p>
         </div>
       </div>
     );
@@ -74,7 +74,7 @@ const TimeSelection = ({
         )}
       </div>
       
-      {/* Layout carrossel horizontal */}
+      {/* Layout carrossel horizontal com scrollbar melhorada */}
       <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-[#19c662]">
         <div className="flex gap-3 min-w-max">
           {availableTimes.map((time) => (
@@ -97,7 +97,7 @@ const TimeSelection = ({
       </div>
       
       <div className="text-xs text-[#19c662] text-center mt-2">
-        ✅ Apenas horários disponíveis são exibidos
+        ✅ Apenas horários realmente disponíveis são exibidos
       </div>
     </div>
   );

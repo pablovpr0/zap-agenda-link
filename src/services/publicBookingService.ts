@@ -119,7 +119,13 @@ export const checkAvailableTimes = async (
   lunchStartTime?: string,
   lunchEndTime?: string
 ) => {
-  console.log('🔍 Checking available times with secure policies:', { companyId, selectedDate });
+  console.log('🔍 Checking available times with secure policies:', { 
+    companyId, 
+    selectedDate,
+    lunchBreakEnabled,
+    lunchStartTime,
+    lunchEndTime
+  });
   
   try {
     // Use the secure database function to get available times
@@ -139,9 +145,27 @@ export const checkAvailableTimes = async (
       return [];
     }
 
-    const timeStrings = (availableTimes || []).map(t => t.available_time || '');
+    // Convert time objects to string format and filter out past times for today
+    const timeStrings = (availableTimes || []).map(t => {
+      if (t.available_time) {
+        // Format time to HH:MM
+        return t.available_time.toString().substring(0, 5);
+      }
+      return '';
+    }).filter(Boolean);
+
+    // If it's today, filter out past times
+    const today = new Date().toISOString().split('T')[0];
+    if (selectedDate === today) {
+      const now = new Date();
+      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      
+      const filteredTimes = timeStrings.filter(time => time > currentTime);
+      console.log('⏰ Available times (filtered for today):', filteredTimes.length);
+      return filteredTimes;
+    }
+
     console.log('⏰ Available times found:', timeStrings.length);
-    
     return timeStrings;
     
   } catch (error: any) {
