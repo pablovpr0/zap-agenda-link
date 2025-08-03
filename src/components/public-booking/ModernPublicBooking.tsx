@@ -261,29 +261,6 @@ const ModernPublicBooking = () => {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] overflow-x-hidden">
-      {/* Header */}
-      <PublicHeader 
-        onHistoryClick={() => setCurrentView('history')}
-        onNextAppointmentClick={() => setCurrentView('next-appointment')}
-        onLogoutClick={() => {
-          // Limpar todos os dados do formulário
-          setSelectedService('');
-          setSelectedDate('');
-          setSelectedTime('');
-          setClientName('');
-          setClientPhone('');
-          setAvailableTimes([]);
-          
-          logout();
-          setCurrentView('login');
-          
-          toast({
-            title: "Sessão encerrada",
-            description: "Você foi desconectado com sucesso.",
-          });
-        }}
-      />
-
       {/* Company Profile Section */}
       <CompanyProfileSection
         companyName={profile.company_name}
