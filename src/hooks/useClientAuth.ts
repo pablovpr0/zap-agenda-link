@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -7,6 +8,12 @@ interface ClientData {
   phone: string;
   email?: string;
 }
+
+// Função para extrair apenas o primeiro nome
+const extractFirstName = (fullName: string): string => {
+  const names = fullName.trim().split(/\s+/);
+  return names[0];
+};
 
 export const useClientAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -31,7 +38,9 @@ export const useClientAuth = () => {
   const loginWithPhone = async (phone: string, companyId: string) => {
     setLoading(true);
     try {
-      // Verificar se cliente já existe
+      console.log('🔍 Buscando cliente pelo telefone:', phone);
+      
+      // Verificar se cliente já existe pelo telefone
       const { data: existingClient, error } = await supabase
         .from('clients')
         .select('*')
@@ -45,6 +54,7 @@ export const useClientAuth = () => {
 
       if (existingClient) {
         // Cliente existente - fazer login
+        console.log('✅ Cliente encontrado:', existingClient.name);
         const clientData = {
           id: existingClient.id,
           name: existingClient.name,
@@ -59,6 +69,7 @@ export const useClientAuth = () => {
         return { isFirstTime: false, client: clientData };
       } else {
         // Primeiro acesso - apenas armazenar telefone
+        console.log('📱 Primeiro acesso para o telefone:', phone);
         localStorage.setItem('zapagenda_temp_phone', phone);
         return { isFirstTime: true, phone };
       }
@@ -71,15 +82,31 @@ export const useClientAuth = () => {
   };
 
   const completeRegistration = (clientData: ClientData) => {
-    setCurrentClient(clientData);
+    // Salvar apenas o primeiro nome localmente também
+    const firstName = extractFirstName(clientData.name);
+    const updatedClientData = {
+      ...clientData,
+      name: firstName
+    };
+    
+    console.log('📝 Completando registro com primeiro nome:', firstName);
+    
+    setCurrentClient(updatedClientData);
     setIsAuthenticated(true);
-    localStorage.setItem('zapagenda_client', JSON.stringify(clientData));
+    localStorage.setItem('zapagenda_client', JSON.stringify(updatedClientData));
     localStorage.removeItem('zapagenda_temp_phone');
   };
 
   const updateClientData = (clientData: ClientData) => {
-    setCurrentClient(clientData);
-    localStorage.setItem('zapagenda_client', JSON.stringify(clientData));
+    // Manter apenas o primeiro nome ao atualizar
+    const firstName = extractFirstName(clientData.name);
+    const updatedClientData = {
+      ...clientData,
+      name: firstName
+    };
+    
+    setCurrentClient(updatedClientData);
+    localStorage.setItem('zapagenda_client', JSON.stringify(updatedClientData));
   };
 
   const logout = () => {

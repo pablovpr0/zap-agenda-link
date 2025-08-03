@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,12 @@ interface ClientLoginProps {
   companyData: any;
   onLoginSuccess: () => void;
 }
+
+// Função para extrair apenas o primeiro nome
+const extractFirstName = (fullName: string): string => {
+  const names = fullName.trim().split(/\s+/);
+  return names[0];
+};
 
 const ClientLogin = ({ companyData, onLoginSuccess }: ClientLoginProps) => {
   const { toast } = useToast();
@@ -63,11 +70,15 @@ const ClientLogin = ({ companyData, onLoginSuccess }: ClientLoginProps) => {
     }
 
     try {
-      // Criar cliente no banco
+      // Extrair apenas o primeiro nome antes de salvar
+      const firstName = extractFirstName(clientName.trim());
+      console.log('👤 Salvando cliente com primeiro nome:', firstName);
+
+      // Criar cliente no banco com apenas o primeiro nome
       const { data: newClient, error } = await supabase
         .from('clients')
         .insert({
-          name: clientName.trim(),
+          name: firstName, // Salvando apenas o primeiro nome
           phone: phone.trim(),
           company_id: companyData.id
         })
@@ -90,11 +101,12 @@ const ClientLogin = ({ companyData, onLoginSuccess }: ClientLoginProps) => {
       
       toast({
         title: "Cadastro realizado!",
-        description: `Bem-vindo(a), ${clientName}!`,
+        description: `Bem-vindo(a), ${firstName}!`,
       });
       
       onLoginSuccess();
     } catch (error) {
+      console.error('Erro no cadastro:', error);
       toast({
         title: "Erro no cadastro",
         description: "Não foi possível completar o cadastro. Tente novamente.",
@@ -126,6 +138,9 @@ const ClientLogin = ({ companyData, onLoginSuccess }: ClientLoginProps) => {
                 onChange={(e) => setClientName(e.target.value)}
                 className="border-gray-300 focus:border-[#19c662] focus:ring-[#19c662]"
               />
+              <p className="text-xs text-gray-500">
+                💡 Apenas o primeiro nome será salvo no sistema
+              </p>
             </div>
             
             <div className="flex gap-2">

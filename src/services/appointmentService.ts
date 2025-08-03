@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { BookingFormData, CompanySettings, Service } from '@/types/publicBooking';
 import { Professional } from '@/services/professionalsService';
@@ -44,6 +45,12 @@ const validateEmail = (email: string | undefined): string | null => {
   }
   
   return email;
+};
+
+// Função para extrair apenas o primeiro nome
+const extractFirstName = (fullName: string): string => {
+  const names = fullName.trim().split(/\s+/);
+  return names[0];
 };
 
 // Simple in-memory rate limiting
@@ -102,6 +109,10 @@ export const createAppointment = async (
     const validatedPhone = validatePhoneNumber(clientPhone);
     const validatedEmail = validateEmail(clientEmail);
     
+    // Extrair apenas o primeiro nome para salvar no banco
+    const firstName = extractFirstName(validatedName);
+    console.log('👤 Extraindo primeiro nome:', { fullName: validatedName, firstName });
+    
     console.log('✅ Input validation passed');
     
     // Rate limiting check
@@ -131,11 +142,11 @@ export const createAppointment = async (
       throw new Error('Serviço não encontrado');
     }
 
-    // Create client using secure function
-    console.log('👤 Creating/updating client...');
+    // Create/update client using secure function with first name only
+    console.log('👤 Creating/updating client with phone identification...');
     const { data: clientId, error: clientError } = await supabase.rpc('create_public_client', {
       p_company_id: companySettings.company_id,
-      p_name: validatedName,
+      p_name: firstName, // Salvando apenas o primeiro nome
       p_phone: validatedPhone,
       p_email: validatedEmail
     });
@@ -197,8 +208,11 @@ export const generateWhatsAppMessage = (
   serviceName: string,
   professionalName: string
 ) => {
+  // Usar apenas o primeiro nome na mensagem também
+  const firstName = extractFirstName(clientName);
+  
   let message = `🗓️ *NOVO AGENDAMENTO*\n\n` +
-    `👤 *Cliente:* ${clientName}\n` +
+    `👤 *Cliente:* ${firstName}\n` +
     `📞 *Telefone:* ${clientPhone}\n` +
     `📅 *Data:* ${formattedDate}\n` +
     `⏰ *Horário:* ${selectedTime}\n` +
