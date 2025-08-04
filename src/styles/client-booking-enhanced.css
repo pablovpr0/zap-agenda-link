@@ -4,7 +4,7 @@
 /* CSS Variables for Dynamic Theming */
 :root {
   /* Core Brand Colors */
-  --primary: #25D366;
+  --primary: #19c662;
   --primary-dark: #128C7E;
   --primary-light: #d0ffcf;
   --accent: #19c662;
@@ -27,7 +27,7 @@
   --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   
   /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+  --gradient-primary: linear-gradient(135deg, #19c662 0%, #128C7E 100%);
   --gradient-accent: linear-gradient(135deg, #19c662 0%, #10b981 100%);
   --gradient-soft: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
   

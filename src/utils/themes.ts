@@ -41,6 +41,19 @@ export const themes: Theme[] = [
     description: 'Moderno e sofisticado em tons de cinza'
   },
   {
+    id: 'whatsapp-green',
+    name: 'WhatsApp Verde',
+    category: 'masculine',
+    colors: {
+      primary: '#19c662',
+      secondary: '#128c7e',
+      accent: '#34d399',
+      background: '#f0fdf4',
+      gradient: 'linear-gradient(135deg, #19c662 0%, #128c7e 100%)'
+    },
+    description: 'Tema oficial WhatsApp Business'
+  },
+  {
     id: 'forest-green',
     name: 'Verde Floresta',
     category: 'masculine',
@@ -315,11 +328,11 @@ export const loadSavedTheme = (): Theme => {
     name: 'WhatsApp Verde',
     category: 'masculine',
     colors: {
-      primary: '#25d366',
+      primary: '#19c662',
       secondary: '#128c7e',
       accent: '#34d399',
       background: '#f0fdf4',
-      gradient: 'linear-gradient(135deg, #25d366 0%, #128c7e 100%)'
+      gradient: 'linear-gradient(135deg, #19c662 0%, #128c7e 100%)'
     },
     description: 'Tema padrão WhatsApp'
   };

@@ -29,7 +29,7 @@ const SettingsPanel = () => {
   const [clientAreaCustomization, setClientAreaCustomization] = useState({
     logo: null,
     coverImage: null,
-    themeColor: '#25D366',
+    themeColor: '#19c662',
     companyName: 'Salão Beleza & Estilo',
     isDarkMode: false,
     selectedTheme: 'classic-green'

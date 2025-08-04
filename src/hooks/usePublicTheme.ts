@@ -9,7 +9,7 @@ export const usePublicTheme = (companySettings: CompanySettings | null) => {
 
     // Aplicar tema baseado no tema selecionado ou cor da empresa
     const selectedThemeId = (companySettings as any).selected_theme_id;
-    const themeColor = (companySettings as any).theme_color || '#25d366';
+    const themeColor = (companySettings as any).theme_color || '#19c662';
     
     console.log('🎨 Aplicando tema público para empresa:', {
       slug: companySettings.slug,

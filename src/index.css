@@ -30,18 +30,18 @@
 
 /* Variáveis CSS para temas dinâmicos */
 :root {
-  --theme-primary: #25d366;
+  --theme-primary: #19c662;
   --theme-secondary: #128c7e;
   --theme-accent: #34d399;
   --theme-background: #f0fdf4;
-  --theme-gradient: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  --theme-gradient: linear-gradient(135deg, #19c662 0%, #128c7e 100%);
   
   /* Variáveis específicas para página pública */
-  --public-theme-primary: #25d366;
+  --public-theme-primary: #19c662;
   --public-theme-secondary: #128c7e;
   --public-theme-accent: #34d399;
   --public-theme-background: #f0fdf4;
-  --public-theme-gradient: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  --public-theme-gradient: linear-gradient(135deg, #19c662 0%, #128c7e 100%);
 
   /* Design System - Client Area UI/UX */
   /* Colors */
@@ -50,7 +50,7 @@
   --text-primary: #1f2937;
   --text-secondary: #6b7280;
   --text-muted: #9ca3af;
-  --accent-primary: #25d366;
+  --accent-primary: #19c662;
   --accent-secondary: #10b981;
   --border-light: #e5e7eb;
   --border-medium: #d1d5db;

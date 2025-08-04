@@ -8,7 +8,7 @@ import ModernPublicBooking from '@/components/public-booking/ModernPublicBooking
 
 const PublicBooking = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
-  
+
   console.log('🌐 PublicBooking: Slug capturado da URL:', companySlug);
   console.log('🌐 PublicBooking: window.location.pathname:', window.location.pathname);
   console.log('🌐 PublicBooking: window.location.href:', window.location.href);
