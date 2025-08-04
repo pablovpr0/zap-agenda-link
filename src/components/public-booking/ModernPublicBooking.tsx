@@ -3,22 +3,16 @@ import { useParams } from 'react-router-dom';
 import { usePublicBooking } from '@/hooks/usePublicBooking';
 import { usePublicTheme } from '@/hooks/usePublicTheme';
 import { useToast } from '@/hooks/use-toast';
-import { useClientAuth } from '@/hooks/useClientAuth';
 import LoadingState from '@/components/public-booking/LoadingState';
 import ErrorState from '@/components/public-booking/ErrorState';
-import PublicHeader from '@/components/public-booking/PublicHeader';
 import CompanyProfileSection from '@/components/public-booking/CompanyProfileSection';
 import ScheduleHeroCard from '@/components/public-booking/ScheduleHeroCard';
 import BookingDataCard from '@/components/public-booking/BookingDataCard';
 import ClientDataCard from '@/components/public-booking/ClientDataCard';
-import ClientHistory from '@/components/client/ClientHistory';
-import NextAppointment from '@/components/client/NextAppointment';
-import ClientLogin from '@/components/client/ClientLogin';
 
 const ModernPublicBooking = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
   const { toast } = useToast();
-  const { isAuthenticated, currentClient, logout } = useClientAuth();
   
   const {
     companyData,
@@ -44,70 +38,6 @@ const ModernPublicBooking = () => {
   const [clientPhone, setClientPhone] = useState('');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
-  const [currentView, setCurrentView] = useState<'booking' | 'history' | 'next-appointment' | 'login'>('login');
-
-  // Verificar autenticação e definir view inicial
-  useEffect(() => {
-    if (isAuthenticated && currentClient) {
-      setCurrentView('booking');
-      setClientName(currentClient.name);
-      setClientPhone(currentClient.phone);
-    } else {
-      setCurrentView('login');
-    }
-  }, [isAuthenticated, currentClient]);
-
-  // Funções do menu
-  const handleHistoryClick = () => {
-    if (!isAuthenticated || !currentClient) {
-      toast({
-        title: "Acesso negado",
-        description: "Você precisa estar logado para ver o histórico.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setCurrentView('history');
-  };
-
-  const handleNextAppointmentClick = () => {
-    if (!isAuthenticated || !currentClient) {
-      toast({
-        title: "Acesso negado",
-        description: "Você precisa estar logado para ver agendamentos.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setCurrentView('next-appointment');
-  };
-
-  const handleLogoutClick = () => {
-    // Limpar todos os dados do formulário
-    setSelectedService('');
-    setSelectedDate('');
-    setSelectedTime('');
-    setClientName('');
-    setClientPhone('');
-    setAvailableTimes([]);
-    
-    // Fazer logout
-    logout();
-    setCurrentView('login');
-    
-    toast({
-      title: "Sessão encerrada",
-      description: "Você foi desconectado com sucesso.",
-    });
-  };
-
-  const handleBackToBooking = () => {
-    setCurrentView('booking');
-  };
-
-  const handleLoginSuccess = () => {
-    setCurrentView('booking');
-  };
 
   // Gerar datas disponíveis
   const availableDates = generateAvailableDates();
@@ -218,45 +148,6 @@ const ModernPublicBooking = () => {
 
   if (error || !companyData || !companySettings || !profile) {
     return <ErrorState companySlug={companySlug} />;
-  }
-
-  // Renderizar tela de login se não autenticado
-  if (currentView === 'login') {
-    return (
-      <ClientLogin
-        companyData={companyData}
-        onLoginSuccess={() => {
-          setCurrentView('booking');
-          if (currentClient) {
-            setClientName(currentClient.name);
-            setClientPhone(currentClient.phone);
-          }
-        }}
-      />
-    );
-  }
-
-  // Renderizar histórico
-  if (currentView === 'history') {
-    return (
-      <ClientHistory
-        clientPhone={currentClient?.phone || ''}
-        companyId={companyData.id}
-        onBack={() => setCurrentView('booking')}
-      />
-    );
-  }
-
-  // Renderizar próximo agendamento
-  if (currentView === 'next-appointment') {
-    return (
-      <NextAppointment
-        clientPhone={currentClient?.phone || ''}
-        companyId={companyData.id}
-        companyData={companyData}
-        onBack={() => setCurrentView('booking')}
-      />
-    );
   }
 
   return (
