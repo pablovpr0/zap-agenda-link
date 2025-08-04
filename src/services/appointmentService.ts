@@ -207,23 +207,16 @@ export const generateWhatsAppMessage = (
   selectedTime: string,
   serviceName: string,
   professionalName: string
-) => {
-  // Usar apenas o primeiro nome na mensagem também
+): string => {
   const firstName = extractFirstName(clientName);
   
-  let message = `🗓️ *NOVO AGENDAMENTO*\n\n` +
-    `👤 *Cliente:* ${firstName}\n` +
-    `📞 *Telefone:* ${clientPhone}\n` +
-    `📅 *Data:* ${formattedDate}\n` +
-    `⏰ *Horário:* ${selectedTime}\n` +
-    `💼 *Serviço:* ${serviceName}`;
-  
-  // Só incluir profissional se não for "Qualquer profissional"
-  if (professionalName && professionalName !== 'Qualquer profissional') {
-    message += `\n👨‍💼 *Profissional:* ${professionalName}`;
-  }
-  
-  message += `\n\n✅ Agendamento confirmado automaticamente!`;
-  
-  return message;
+  return `🗓️ *NOVO AGENDAMENTO*
+
+👤 *Cliente:* ${firstName}
+📞 *Telefone:* ${clientPhone}
+📅 *Data:* ${formattedDate}
+🕐 *Horário:* ${selectedTime}
+✂️ *Serviço:* ${serviceName}
+
+✅ Agendamento confirmado automaticamente!`;
 };

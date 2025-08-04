@@ -321,30 +321,39 @@ const ServiceManagement = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex-1">
-                        <h4 className="font-semibold">{service.name}</h4>
-                        <p className="text-sm text-gray-500">{service.description}</p>
-                        <div className="flex gap-2 mt-2">
-                          <Badge variant="secondary">
-                            <Clock className="w-3 h-3 mr-1" />
+                        <h4 className="font-semibold text-lg">{service.name}</h4>
+                        <p className="text-sm text-gray-500 mb-2">{service.description}</p>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="secondary" className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
                             {service.duration} min
                           </Badge>
-                          <Badge variant="outline">
-                            <DollarSign className="w-3 h-3 mr-1" />
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" />
                             R$ {service.price.toFixed(2)}
                           </Badge>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="secondary" onClick={() => handleEditService(service)}>
-                          <Edit className="w-4 h-4 mr-2" />
+                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <Button 
+                          size="sm" 
+                          variant="secondary" 
+                          onClick={() => handleEditService(service)}
+                          className="w-full sm:w-auto text-sm"
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
                           Editar
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="destructive">
-                              <Trash2 className="w-4 h-4 mr-2" />
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              className="w-full sm:w-auto text-sm"
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
                               Excluir
                             </Button>
                           </AlertDialogTrigger>

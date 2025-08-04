@@ -65,10 +65,10 @@ const SettingsPanel = () => {
 
       <Tabs defaultValue="general" className="space-y-4">
         <div className="overflow-x-auto">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 min-w-[700px] md:min-w-0 bg-gray-100">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 min-w-[600px] md:min-w-0 bg-gray-100">
             <TabsTrigger value="general" className="text-xs md:text-sm data-[state=active]:bg-white">Geral</TabsTrigger>
             <TabsTrigger value="company" className="text-xs md:text-sm data-[state=active]:bg-white">Dados Básicos</TabsTrigger>
-            <TabsTrigger value="slug" className="text-xs md:text-sm data-[state=active]:bg-white">Link Personalizado</TabsTrigger>
+            
             <TabsTrigger value="schedule" className="text-xs md:text-sm data-[state=active]:bg-white">Horários</TabsTrigger>
             <TabsTrigger value="client-area" className="text-xs md:text-sm data-[state=active]:bg-white">Área Cliente</TabsTrigger>
             <TabsTrigger value="management" className="text-xs md:text-sm data-[state=active]:bg-white">Cadastros</TabsTrigger>
@@ -90,12 +90,6 @@ const SettingsPanel = () => {
           />
         </TabsContent>
 
-        <TabsContent value="slug" className="space-y-4">
-          <SlugSettings 
-            currentSlug={currentSlug}
-            onSlugUpdate={handleSlugUpdate}
-          />
-        </TabsContent>
 
         <TabsContent value="schedule" className="space-y-4">
           <ScheduleSettings 

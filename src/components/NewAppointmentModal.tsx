@@ -203,22 +203,6 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
               </Select>
             </div>
 
-            {/* Professional Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="professional">Profissional (Opcional)</Label>
-              <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Qualquer profissional" />
-                </SelectTrigger>
-                <SelectContent>
-                  {professionals.map((professional) => (
-                    <SelectItem key={professional.id} value={professional.id}>
-                      {professional.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
             {/* Date Selection */}
             <div className="space-y-2">

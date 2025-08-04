@@ -96,29 +96,6 @@ const NewClientForm = ({ onSubmit, onCancel, loading }: NewClientFormProps) => {
           </div>
         </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="email" className="text-sm">E-mail</Label>
-          <Input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="email@exemplo.com"
-            className="h-9"
-          />
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="notes" className="text-sm">Observações</Label>
-          <Textarea
-            id="notes"
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            placeholder="Informações adicionais sobre o cliente..."
-            rows={2}
-            className="resize-none"
-          />
-        </div>
 
         <div className="flex gap-2 pt-2">
           <Button
