@@ -6,7 +6,7 @@ import { fetchCompanySettings } from '@/services/companySettingsService';
 import { generatePublicBookingUrl } from '@/lib/domainConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardData } from '@/types/dashboard';
-import { getBrasiliaDate, formatBrazilianDate } from '@/lib/dateConfig';
+import { getNowInBrazil, getTodayInBrazil } from '@/utils/timezone';
 
 export const useDashboardData = (companyName?: string) => {
   const { user } = useAuth();
@@ -48,9 +48,8 @@ export const useDashboardData = (companyName?: string) => {
         setDashboardData(prev => ({ ...prev, bookingLink: publicUrl }));
       }
 
-      // Use Brasília timezone for dates
-      const todayBrasilia = getBrasiliaDate();
-      const today = formatBrazilianDate(todayBrasilia).split('/').reverse().join('-'); // Convert DD/MM/YYYY to YYYY-MM-DD
+      // Use Brazil timezone for dates
+      const today = getTodayInBrazil();
       
       // Today's appointments with client and service data
       const { data: todayAppointments, error: todayError } = await supabase
@@ -81,7 +80,7 @@ export const useDashboardData = (companyName?: string) => {
       }
 
       // Monthly revenue - only from COMPLETED appointments (not scheduled)
-      const currentMonth = getBrasiliaDate();
+      const currentMonth = getNowInBrazil();
       const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).toISOString().split('T')[0];
       const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).toISOString().split('T')[0];
 

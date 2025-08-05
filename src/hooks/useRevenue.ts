@@ -13,7 +13,8 @@ export const useRevenue = () => {
   const loadDailyRevenue = async (date?: string) => {
     if (!user) return;
 
-    const targetDate = date || new Date().toISOString().split('T')[0];
+    const { getTodayInBrazil } = await import('@/utils/timezone');
+    const targetDate = date || getTodayInBrazil();
     setLoading(true);
 
     try {
@@ -34,7 +35,8 @@ export const useRevenue = () => {
   const loadMonthlyRevenue = async (year?: number, month?: number) => {
     if (!user) return;
 
-    const now = new Date();
+    const { getNowInBrazil } = await import('@/utils/timezone');
+    const now = getNowInBrazil();
     const targetYear = year || now.getFullYear();
     const targetMonth = month || (now.getMonth() + 1);
     

@@ -30,9 +30,10 @@ interface MonthlyAppointment {
 const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
   const { toast } = useToast();
   // Usar horário de Brasília para data atual
-  const [currentDate, setCurrentDate] = useState(() => 
-    new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }))
-  );
+  const [currentDate, setCurrentDate] = useState(() => {
+    const { getNowInBrazil } = require('@/utils/timezone');
+    return getNowInBrazil();
+  });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
   const { appointments, loading, getAppointmentsForDate, refreshAppointments } = useMonthlyAppointments(currentDate);

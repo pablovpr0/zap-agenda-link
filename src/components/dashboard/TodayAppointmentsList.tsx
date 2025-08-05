@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppointmentActions } from '@/hooks/useAppointmentActions';
 import { useToast } from '@/hooks/use-toast';
-import { getBrasiliaDate, formatBrazilianDate, formatBrazilianTime } from '@/lib/dateConfig';
+import { getNowInBrazil } from '@/utils/timezone';
 interface TodayAppointment {
   id: string;
   appointment_time: string;
@@ -47,7 +47,7 @@ const TodayAppointmentsList = ({
   };
   const handleWhatsAppClick = (phone: string, clientName: string, appointmentTime: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
-    const today = getBrasiliaDate();
+    const today = getNowInBrazil();
     const todayFormatted = format(today, "dd 'de' MMMM", {
       locale: ptBR
     });
