@@ -1,6 +1,7 @@
-import { format, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { toZonedTime, formatInTimeZone, fromZonedTime } from 'date-fns-tz';
+import { utcToZonedTime, zonedTimeToUtc, format } from 'date-fns-tz';
+
 // Timezone do Brasil
 export const BRAZIL_TIMEZONE = 'America/Sao_Paulo';
 
@@ -9,32 +10,32 @@ export const BRAZIL_TIMEZONE = 'America/Sao_Paulo';
  */
 export const utcToBrazilTime = (utcDate: Date | string): Date => {
   const date = typeof utcDate === 'string' ? parseISO(utcDate) : utcDate;
-  return toZonedTime(date, BRAZIL_TIMEZONE);
+  return utcToZonedTime(date, BRAZIL_TIMEZONE);
 };
 
 /**
  * Converte uma data do horário de Brasília para UTC
  */
 export const brazilTimeToUtc = (brazilDate: Date): Date => {
-  return fromZonedTime(brazilDate, BRAZIL_TIMEZONE);
+  return zonedTimeToUtc(brazilDate, BRAZIL_TIMEZONE);
 };
 
 /**
  * Formata uma data UTC para exibição no horário de Brasília
  */
 export const formatUtcToBrazilTime = (
-  utcDate: Date | string, 
+  utcDate: Date | string,
   formatString: string = 'dd/MM/yyyy HH:mm'
 ): string => {
   const date = typeof utcDate === 'string' ? parseISO(utcDate) : utcDate;
-  return formatInTimeZone(date, BRAZIL_TIMEZONE, formatString, { locale: ptBR });
+  return format(date, formatString, { timeZone: BRAZIL_TIMEZONE, locale: ptBR });
 };
 
 /**
  * Obtém a data atual no horário de Brasília
  */
 export const getNowInBrazil = (): Date => {
-  return toZonedTime(new Date(), BRAZIL_TIMEZONE);
+  return utcToZonedTime(new Date(), BRAZIL_TIMEZONE);
 };
 
 /**
@@ -42,7 +43,7 @@ export const getNowInBrazil = (): Date => {
  */
 export const getTodayInBrazil = (): string => {
   const now = getNowInBrazil();
-  return format(now, 'yyyy-MM-dd');
+  return format(now, 'yyyy-MM-dd', { timeZone: BRAZIL_TIMEZONE });
 };
 
 /**
@@ -50,7 +51,7 @@ export const getTodayInBrazil = (): string => {
  */
 export const getCurrentTimeInBrazil = (): string => {
   const now = getNowInBrazil();
-  return format(now, 'HH:mm');
+  return format(now, 'HH:mm', { timeZone: BRAZIL_TIMEZONE });
 };
 
 /**
@@ -59,7 +60,7 @@ export const getCurrentTimeInBrazil = (): string => {
 export const brazilDateTimeToUtc = (dateStr: string, timeStr: string): Date => {
   // Criar data no horário de Brasília
   const brazilDateTime = new Date(`${dateStr}T${timeStr}:00`);
-  return brazilTimeToUtc(brazilDateTime);
+  return zonedTimeToUtc(brazilDateTime, BRAZIL_TIMEZONE);
 };
 
 /**
@@ -68,12 +69,12 @@ export const brazilDateTimeToUtc = (dateStr: string, timeStr: string): Date => {
 export const isDateTimePastInBrazil = (dateStr: string, timeStr?: string): boolean => {
   const now = getNowInBrazil();
   const targetDate = new Date(`${dateStr}T${timeStr || '00:00'}:00`);
-  
+
   if (timeStr) {
     return targetDate < now;
   } else {
     // Se não tem horário, compara apenas a data
-    const today = format(now, 'yyyy-MM-dd');
+    const today = format(now, 'yyyy-MM-dd', { timeZone: BRAZIL_TIMEZONE });
     return dateStr < today;
   }
 };
@@ -82,7 +83,7 @@ export const isDateTimePastInBrazil = (dateStr: string, timeStr?: string): boole
  * Formata timestamp do banco (UTC) para exibição no Brasil
  */
 export const formatDatabaseTimestamp = (
-  timestamp: string, 
+  timestamp: string,
   formatString: string = 'dd/MM/yyyy HH:mm'
 ): string => {
   return formatUtcToBrazilTime(timestamp, formatString);
@@ -103,12 +104,12 @@ export const convertWorkingHours = (timeStr: string): string => {
 export const debugTimezone = () => {
   const now = new Date();
   const brazilTime = getNowInBrazil();
-  
+
   console.log('🕐 Debug Timezone:', {
     utc: now.toISOString(),
-    brazil: format(brazilTime, 'yyyy-MM-dd HH:mm:ss'),
+    brazil: format(brazilTime, 'yyyy-MM-dd HH:mm:ss', { timeZone: BRAZIL_TIMEZONE }),
     utc_formatted: format(now, 'yyyy-MM-dd HH:mm:ss'),
-    brazil_formatted: format(brazilTime, 'yyyy-MM-dd HH:mm:ss'),
+    brazil_formatted: format(brazilTime, 'yyyy-MM-dd HH:mm:ss', { timeZone: BRAZIL_TIMEZONE }),
     timezone: BRAZIL_TIMEZONE
   });
 };

@@ -33,6 +33,14 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  console.log('🕐 ScheduleSettings: Component rendered', { 
+    user: user?.id, 
+    loading, 
+    schedulesCount: schedules.length,
+    hasError: !!error 
+  });
 
   const dayNames = {
     1: 'Segunda-feira',
@@ -61,6 +69,8 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
 
   const loadSchedules = async () => {
     setLoading(true);
+    console.log('🔄 Loading schedules for user:', user?.id);
+    
     try {
       // Since daily_schedules table exists but not in types, use direct query with any cast
       const { data, error } = await (supabase as any)
@@ -69,7 +79,12 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
         .eq('company_id', user!.id)
         .order('day_of_week');
 
-      if (error) throw error;
+      console.log('📋 Schedule query result:', { data, error, userID: user?.id });
+
+      if (error) {
+        console.error('❌ Error loading schedules:', error);
+        throw error;
+      }
 
       // Initialize all days if not exists
       const existingDays = data?.map(d => d.day_of_week) || [];
@@ -90,8 +105,10 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
       }
 
       setSchedules(completeSchedules);
-    } catch (error) {
-      console.error('Erro ao carregar horários:', error);
+      console.log('✅ Schedules loaded successfully:', completeSchedules);
+    } catch (error: any) {
+      console.error('❌ Erro ao carregar horários:', error);
+      setError(error.message || 'Erro desconhecido');
       toast({
         title: "Erro",
         description: "Não foi possível carregar os horários.",
@@ -181,19 +198,70 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
     });
   };
 
+  // Debug: Always show component state
+  console.log('🔍 ScheduleSettings render state:', { 
+    loading, 
+    error, 
+    userExists: !!user, 
+    schedulesLength: schedules.length 
+  });
+
+  if (!user) {
+    return (
+      <Card className="bg-white border-gray-200 shadow-lg">
+        <CardHeader className="bg-red-50">
+          <CardTitle className="text-base md:text-lg text-red-800 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-red-600" />
+            ❌ Erro de Autenticação
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-600 py-4">Usuário não autenticado. Faça login novamente.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-white border-gray-200 shadow-lg">
+        <CardHeader className="bg-red-50">
+          <CardTitle className="text-base md:text-lg text-red-800 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-red-600" />
+            ❌ Erro ao Carregar Horários
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="py-4 space-y-2">
+            <p className="text-red-600">Erro: {error}</p>
+            <Button onClick={() => { setError(null); loadSchedules(); }} variant="outline">
+              Tentar Novamente
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (loading) {
     return (
-      <Card className="bg-white border-gray-200">
-        <CardHeader>
+      <Card className="bg-white border-gray-200 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50">
           <CardTitle className="text-base md:text-lg text-gray-800 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-green-600" />
-            Configuração de Horários por Dia
+            ⏰ Configuração de Horários por Dia
           </CardTitle>
+          <p className="text-sm text-gray-600 mt-1">
+            Configure horários independentes para cada dia da semana
+          </p>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-            <span className="ml-2">Carregando configurações...</span>
+            <span className="ml-2 text-gray-700">Carregando configurações de horários...</span>
+          </div>
+          <div className="text-xs text-gray-500 text-center mt-2">
+            Debug: User ID = {user?.id}
           </div>
         </CardContent>
       </Card>
@@ -201,16 +269,30 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
   }
 
   return (
-    <Card className="bg-white border-gray-200">
-      <CardHeader>
-        <CardTitle className="text-base md:text-lg text-gray-800 flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-green-600" />
-          Configuração de Horários por Dia
-        </CardTitle>
-        <p className="text-sm text-gray-600 mt-1">
-          Configure horários independentes para cada dia da semana
-        </p>
-      </CardHeader>
+    <div className="space-y-4">
+      {/* Debug Info */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+        <h4 className="text-sm font-semibold text-yellow-800">🐛 Debug Info</h4>
+        <div className="text-xs text-yellow-700 mt-1 space-y-1">
+          <div>User ID: {user?.id}</div>
+          <div>Schedules Count: {schedules.length}</div>
+          <div>Loading: {loading.toString()}</div>
+          <div>Has Changes: {hasChanges.toString()}</div>
+          <div>Component Rendered: ✅</div>
+        </div>
+      </div>
+
+      <Card className="bg-white border-gray-200 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50 border-b">
+          <CardTitle className="text-base md:text-lg text-gray-800 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-green-600" />
+            ⏰ Configuração de Horários por Dia
+          </CardTitle>
+          <p className="text-sm text-gray-600 mt-1">
+            Configure horários independentes para cada dia da semana. 
+            <span className="text-green-600 font-medium">Estes horários são usados na página pública de agendamento.</span>
+          </p>
+        </CardHeader>
       <CardContent className="space-y-6">
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-2 justify-between items-center">

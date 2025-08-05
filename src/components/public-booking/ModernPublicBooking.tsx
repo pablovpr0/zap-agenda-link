@@ -47,6 +47,7 @@ const ModernPublicBooking = () => {
     const loadTimes = async () => {
       if (selectedDate && selectedService) {
         console.log('📅 Data selecionada:', selectedDate, '- Carregando horários...');
+        console.log('🏢 Company data:', { companyId: companyData?.id, companySlug });
         setIsLoadingTimes(true);
         setSelectedTime(''); // Reset time when loading new times
         
@@ -54,13 +55,19 @@ const ModernPublicBooking = () => {
           const selectedServiceData = services.find(s => s.id === selectedService);
           const serviceDuration = selectedServiceData?.duration || 30;
           
-          console.log('🔄 Carregando horários para:', { selectedDate, selectedService, serviceDuration });
+          console.log('🔄 Carregando horários para:', { 
+            selectedDate, 
+            selectedService, 
+            serviceDuration,
+            companyId: companyData?.id,
+            servicesCount: services.length
+          });
           
           // Carregamento otimizado dos horários
           const times = await generateAvailableTimes(selectedDate, serviceDuration);
           setAvailableTimes(times);
           
-          console.log('✅ Horários carregados:', times.length, 'horários disponíveis');
+          console.log('✅ Horários carregados:', times.length, 'horários disponíveis', times);
         } catch (error) {
           console.error('❌ Erro ao carregar horários:', error);
           setAvailableTimes([]);
@@ -73,15 +80,16 @@ const ModernPublicBooking = () => {
           setIsLoadingTimes(false);
         }
       } else {
+        console.log('⚠️ Condições não atendidas para carregar horários:', { selectedDate, selectedService });
         setAvailableTimes([]);
         setSelectedTime('');
       }
     };
 
     // Usar timeout mínimo para garantir que a UI seja atualizada imediatamente
-    const timeoutId = setTimeout(loadTimes, 0);
+    const timeoutId = setTimeout(loadTimes, 100);
     return () => clearTimeout(timeoutId);
-  }, [selectedDate, selectedService, services]);
+  }, [selectedDate, selectedService, services, companyData?.id]);
 
   const handleSubmit = async () => {
     if (!selectedService || !selectedDate || !selectedTime || !clientName.trim() || !clientPhone.trim()) {

@@ -23,6 +23,7 @@ import BookingSystemTest from "./pages/BookingSystemTest";
 import ScheduleDebugPage from "./pages/ScheduleDebugPage";
 import QuickScheduleTest from "./pages/QuickScheduleTest";
 import PublicBookingTest from "./pages/PublicBookingTest";
+import TimeSlotDebug from "./pages/TimeSlotDebug";
 import NotFound from "./pages/NotFound";
 import FinalTimezoneDebug from "./components/debug/FinalTimezoneDebug";
 
@@ -56,6 +57,7 @@ const App: React.FC = () => {
               <Route path="/schedule-debug" element={<ScheduleDebugPage />} />
               <Route path="/quick-schedule-test" element={<QuickScheduleTest />} />
               <Route path="/public-booking-test" element={<PublicBookingTest />} />
+              <Route path="/timeslot-debug" element={<TimeSlotDebug />} />
               <Route path="/public/:companySlug" element={<PublicBooking />} />
               <Route path="/timezone-final-test" element={<FinalTimezoneDebug />} />
               <Route path="/" element={<Index />} />

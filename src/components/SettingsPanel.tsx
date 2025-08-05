@@ -69,10 +69,10 @@ const SettingsPanel = () => {
 
       <Tabs defaultValue="general" className="space-y-4">
         <div className="overflow-x-auto">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 min-w-[700px] md:min-w-0 bg-gray-100">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 min-w-[600px] md:min-w-0 bg-gray-100">
             <TabsTrigger value="general" className="text-xs md:text-sm data-[state=active]:bg-white">Geral</TabsTrigger>
             <TabsTrigger value="company" className="text-xs md:text-sm data-[state=active]:bg-white">Dados Básicos</TabsTrigger>
-            <TabsTrigger value="schedule" className="text-xs md:text-sm data-[state=active]:bg-white">Horários</TabsTrigger>
+            <TabsTrigger value="schedule" className="text-xs md:text-sm data-[state=active]:bg-white">⏰ Horários</TabsTrigger>
             <TabsTrigger value="client-area" className="text-xs md:text-sm data-[state=active]:bg-white">Área Cliente</TabsTrigger>
             <TabsTrigger value="management" className="text-xs md:text-sm data-[state=active]:bg-white">Cadastros</TabsTrigger>
             <TabsTrigger value="support" className="text-xs md:text-sm data-[state=active]:bg-white">Suporte</TabsTrigger>
@@ -95,6 +95,14 @@ const SettingsPanel = () => {
 
 
         <TabsContent value="schedule" className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <h3 className="text-sm font-semibold text-blue-800 mb-2">⏰ Configuração de Horários</h3>
+            <p className="text-xs text-blue-700">
+              Configure os horários de funcionamento para cada dia da semana. 
+              Estes horários serão usados na página pública de agendamento.
+            </p>
+          </div>
+          
           <ScheduleSettings 
             onScheduleUpdate={() => {
               // Callback quando os horários são atualizados

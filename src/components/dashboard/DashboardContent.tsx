@@ -9,6 +9,7 @@ import MonthlyAgenda from '../MonthlyAgenda';
 import ReportsButton from '../reports/ReportsButton';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
+import { Settings } from 'lucide-react';
 
 interface DashboardContentProps {
   companyName: string;
@@ -51,6 +52,7 @@ const DashboardContent = ({
             onNewAppointment={onShowAppointments}
             onViewPublicPage={handleViewPublicPage}
             onManageClients={onShowClients}
+            onShowSettings={onShowSettings}
           />
           
           <PublicBookingLink 
@@ -75,6 +77,27 @@ const DashboardContent = ({
             loading={loading}
             onRefresh={onRefreshData}
           />
+        </div>
+      </div>
+
+      {/* Seção de Configurações Importantes */}
+      <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              ⚙️ Configurações do Sistema
+            </h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Configure horários de funcionamento, dados da empresa e outras configurações importantes
+            </p>
+          </div>
+          <button
+            onClick={onShowSettings}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            Abrir Configurações
+          </button>
         </div>
       </div>
 

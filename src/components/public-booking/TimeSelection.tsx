@@ -18,6 +18,14 @@ const TimeSelection = ({
   isLoading = false,
   onRefresh 
 }: TimeSelectionProps) => {
+  // Debug log
+  console.log('🕐 TimeSelection render:', { 
+    availableTimesCount: availableTimes.length, 
+    availableTimes, 
+    selectedTime, 
+    isLoading 
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -51,6 +59,9 @@ const TimeSelection = ({
         <div className="text-center py-8 text-gray-500 public-text-secondary">
           <p className="text-sm">Não há horários disponíveis para esta data</p>
           <p className="text-xs mt-1">Tente selecionar outro dia ou serviço</p>
+          <p className="text-xs mt-2 text-blue-600">
+            Debug: {availableTimes.length} horários encontrados
+          </p>
         </div>
       </div>
     );

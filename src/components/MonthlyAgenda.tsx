@@ -10,6 +10,7 @@ import CalendarGrid from './monthly-agenda/CalendarGrid';
 import AppointmentDialog from './monthly-agenda/AppointmentDialog';
 import BackButton from './BackButton';
 import { useToast } from '@/hooks/use-toast';
+import { getNowInBrazil } from '@/utils/timezone';
 
 interface MonthlyAgendaProps {
   onBack?: () => void;
@@ -31,7 +32,6 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
   const { toast } = useToast();
   // Usar horário de Brasília para data atual
   const [currentDate, setCurrentDate] = useState(() => {
-    const { getNowInBrazil } = require('@/utils/timezone');
     return getNowInBrazil();
   });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
