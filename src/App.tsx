@@ -24,6 +24,7 @@ import ScheduleDebugPage from "./pages/ScheduleDebugPage";
 import QuickScheduleTest from "./pages/QuickScheduleTest";
 import PublicBookingTest from "./pages/PublicBookingTest";
 import NotFound from "./pages/NotFound";
+import FinalTimezoneDebug from "./components/debug/FinalTimezoneDebug";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,6 +57,7 @@ const App: React.FC = () => {
               <Route path="/quick-schedule-test" element={<QuickScheduleTest />} />
               <Route path="/public-booking-test" element={<PublicBookingTest />} />
               <Route path="/public/:companySlug" element={<PublicBooking />} />
+              <Route path="/timezone-final-test" element={<FinalTimezoneDebug />} />
               <Route path="/" element={<Index />} />
               {/* Rota para capturar slugs diretamente na raiz (ex: zapagenda.site/pablo) */}
               <Route path="/:companySlug" element={<PublicBooking />} />

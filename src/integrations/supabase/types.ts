@@ -230,6 +230,48 @@ export type Database = {
           },
         ]
       }
+      daily_schedules: {
+        Row: {
+          company_id: string
+          created_at: string
+          day_of_week: number
+          end_time: string
+          has_lunch_break: boolean
+          id: string
+          is_active: boolean
+          lunch_end: string | null
+          lunch_start: string | null
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          day_of_week: number
+          end_time?: string
+          has_lunch_break?: boolean
+          id?: string
+          is_active?: boolean
+          lunch_end?: string | null
+          lunch_start?: string | null
+          start_time?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          has_lunch_break?: boolean
+          id?: string
+          is_active?: boolean
+          lunch_end?: string | null
+          lunch_start?: string | null
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       professionals: {
         Row: {
           company_id: string
@@ -298,6 +340,33 @@ export type Database = {
           id?: string
           profile_image_url?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      public_theme_settings: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          dark_mode: boolean
+          id: string
+          theme_color: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          dark_mode?: boolean
+          id?: string
+          theme_color?: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          dark_mode?: boolean
+          id?: string
+          theme_color?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -436,16 +505,28 @@ export type Database = {
         }[]
       }
       get_available_times: {
-        Args: {
-          p_company_id: string
-          p_date: string
-          p_working_hours_start: string
-          p_working_hours_end: string
-          p_appointment_interval?: number
-          p_lunch_break_enabled?: boolean
-          p_lunch_start_time?: string
-          p_lunch_end_time?: string
-        }
+        Args:
+          | {
+              p_company_id: string
+              p_date: string
+              p_working_hours_start: string
+              p_working_hours_end: string
+              p_appointment_interval: number
+              p_lunch_break_enabled?: boolean
+              p_lunch_start_time?: string
+              p_lunch_end_time?: string
+              p_service_duration?: number
+            }
+          | {
+              p_company_id: string
+              p_date: string
+              p_working_hours_start: string
+              p_working_hours_end: string
+              p_appointment_interval?: number
+              p_lunch_break_enabled?: boolean
+              p_lunch_start_time?: string
+              p_lunch_end_time?: string
+            }
         Returns: {
           available_time: string
         }[]

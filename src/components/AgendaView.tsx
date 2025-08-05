@@ -6,11 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, User, Phone, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getNowInBrazil } from '@/utils/timezone';
 
 const AgendaView = () => {
   const [currentWeek, setCurrentWeek] = useState(0);
   
-  const today = new Date();
+  const today = getNowInBrazil();
   const startOfCurrentWeek = startOfWeek(addDays(today, currentWeek * 7), { weekStartsOn: 0 });
   
   const weekDays = Array.from({ length: 7 }, (_, i) => {
