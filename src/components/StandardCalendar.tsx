@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getNowInBrazil, getTodayInBrazil } from '@/utils/timezone';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -42,14 +43,19 @@ const StandardCalendar = ({
   };
 
   const isToday = (date: Date) => {
-    return isSameDay(date, new Date());
+    return isSameDay(date, getNowInBrazil());
   };
 
   const handleDateClick = (date: Date) => {
     if (disabled || !isDateAvailable(date)) return;
     
     if (onDateSelect) {
-      onDateSelect(format(date, 'yyyy-MM-dd'));
+      // Seleção imediata da data
+      const dateString = format(date, 'yyyy-MM-dd');
+      onDateSelect(dateString);
+      
+      // Log para debug
+      console.log('📅 Data selecionada imediatamente:', dateString);
     }
   };
 
@@ -115,13 +121,13 @@ const StandardCalendar = ({
               onClick={() => handleDateClick(date)}
               disabled={disabled || !isAvailable}
               className={`
-                aspect-square p-2 text-sm rounded-lg transition-all duration-200 relative font-medium
+                aspect-square p-2 text-sm rounded-lg transition-all duration-150 relative font-medium
                 ${!isCurrentMonth ? 'text-gray-300' : ''}
                 ${isAvailable && isCurrentMonth
-                  ? 'hover:bg-gray-100 cursor-pointer text-black border border-gray-200' 
+                  ? 'hover:bg-gray-100 cursor-pointer text-black border border-gray-200 active:scale-95' 
                   : 'text-gray-300 cursor-not-allowed border border-transparent'
                 }
-                ${isSelected ? 'bg-[#19c662] text-white hover:bg-[#005c39] border-[#19c662] shadow-md' : ''}
+                ${isSelected ? 'bg-[#19c662] dynamic-bg-primary text-white hover:bg-[#005c39] hover:dynamic-bg-secondary border-[#19c662] dynamic-border-primary shadow-md transform scale-105' : ''}
                 ${isTodayDate && !isSelected ? 'bg-gray-100 border-gray-300 font-bold' : ''}
                 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
               `}

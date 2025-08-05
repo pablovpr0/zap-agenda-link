@@ -38,8 +38,8 @@ const ClientDataCard = ({
   };
 
   return (
-    <div className="mx-4 mb-6 bg-white rounded-xl shadow-md p-6">
-      <h3 className="text-black font-bold text-lg mb-6">SEUS DADOS</h3>
+    <div className="mx-4 mb-6 bg-white public-surface rounded-xl shadow-md p-6">
+      <h3 className="text-black public-text font-bold text-lg mb-6">SEUS DADOS</h3>
 
       <div className="space-y-4">
         {/* Campo Nome */}
@@ -50,7 +50,7 @@ const ClientDataCard = ({
             onChange={(e) => onClientNameChange(e.target.value)}
             placeholder="Seu nome completo"
             disabled={disabled}
-            className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-[#19c662] focus:outline-none transition-colors disabled:bg-gray-100"
+            className="w-full p-3 border-2 border-gray-300 public-border rounded-lg focus:border-[#19c662] focus:dynamic-border-primary focus:outline-none transition-colors disabled:bg-gray-100 bg-white public-surface text-black public-text"
           />
         </div>
 
@@ -63,7 +63,7 @@ const ClientDataCard = ({
             placeholder="Seu telefone"
             maxLength={15}
             disabled={disabled}
-            className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-[#19c662] focus:outline-none transition-colors disabled:bg-gray-100"
+            className="w-full p-3 border-2 border-gray-300 public-border rounded-lg focus:border-[#19c662] focus:dynamic-border-primary focus:outline-none transition-colors disabled:bg-gray-100 bg-white public-surface text-black public-text"
           />
         </div>
 
@@ -71,7 +71,7 @@ const ClientDataCard = ({
         <Button
           onClick={onSubmit}
           disabled={disabled || isSubmitting || !clientName.trim() || !clientPhone.trim()}
-          className="w-full bg-[#19c662] hover:bg-[#005c39] text-white font-bold py-4 px-6 rounded-lg text-base transition-colors disabled:opacity-50"
+          className="w-full bg-[#19c662] dynamic-bg-primary hover:bg-[#005c39] hover:dynamic-bg-secondary text-white font-bold py-4 px-6 rounded-lg text-base transition-colors disabled:opacity-50"
         >
           {isSubmitting ? (
             <>

@@ -7,9 +7,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { User, Palette, Upload, Link, Settings, Users } from 'lucide-react';
+import { User, Palette, Upload, Settings } from 'lucide-react';
 import ImageUpload from './ImageUpload';
-import ThemeSelector from './ThemeSelector';
 
 interface ProfileCustomizationModalProps {
   isOpen: boolean;
@@ -28,13 +27,8 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
   const [companyName, setCompanyName] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  const [themeColor, setThemeColor] = useState('#22c55e');
-  const [selectedThemeId, setSelectedThemeId] = useState<string>('');
-  const [welcomeMessage, setWelcomeMessage] = useState('');
-  const [instagramUrl, setInstagramUrl] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
-  const [monthlyLimit, setMonthlyLimit] = useState(4);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -72,14 +66,8 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
 
       if (settings) {
         setLogoUrl(settings.logo_url || '');
-        // Safely access potentially missing fields
-        setThemeColor((settings as any).theme_color || '#22c55e');
-        setSelectedThemeId((settings as any).selected_theme_id || '');
-        setWelcomeMessage(settings.welcome_message || '');
-        setInstagramUrl(settings.instagram_url || '');
         setAddress((settings as any).address || '');
         setPhone((settings as any).phone || '');
-        setMonthlyLimit(settings.monthly_appointments_limit || 4);
       }
 
     } catch (error: any) {
@@ -143,13 +131,8 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
         company_id: user!.id,
         slug: companySlug,
         logo_url: logoUrl || null,
-        theme_color: themeColor,
-        selected_theme_id: selectedThemeId || null,
-        welcome_message: welcomeMessage || null,
-        instagram_url: instagramUrl || null,
         address: address || null,
         phone: phone || null,
-        monthly_appointments_limit: monthlyLimit,
         updated_at: new Date().toISOString(),
       };
 
@@ -276,90 +259,138 @@ const ProfileCustomizationModal = ({ isOpen, onClose, onSuccess }: ProfileCustom
               </h3>
 
               <div className="space-y-4">
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <Label className="flex items-center gap-2">
                     <Upload className="w-4 h-4" />
                     Logo da Empresa (Foto de Perfil)
                   </Label>
+                  
+                  {/* Upload da Logo */}
                   <ImageUpload
                     currentImageUrl={logoUrl}
                     onImageUploaded={setLogoUrl}
                     bucket="company-logos"
                   />
+                  
+                  {/* Preview da Logo na Página Pública */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <Label className="text-sm font-medium text-gray-700 mb-3 block">
+                      📱 Preview: Como ficará na página pública
+                    </Label>
+                    
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      {/* Simulação do cabeçalho da página pública */}
+                      <div className="text-center space-y-3">
+                        {/* Logo Preview */}
+                        <div className="flex justify-center">
+                          <div className="relative">
+                            <div className="w-[80px] h-[80px] rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100">
+                              {logoUrl ? (
+                                <img
+                                  src={logoUrl}
+                                  alt="Preview da logo"
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                  <Upload className="w-6 h-6" />
+                                </div>
+                              )}
+                            </div>
+                            {/* Sombra 3D simulada */}
+                            <div className="absolute inset-0 rounded-full shadow-xl pointer-events-none opacity-30"></div>
+                          </div>
+                        </div>
+                        
+                        {/* Informações da empresa */}
+                        <div>
+                          <h4 className="font-semibold text-gray-800 text-sm">
+                            {companyName || 'Nome da Empresa'}
+                          </h4>
+                          {businessType && (
+                            <p className="text-xs text-gray-600 mt-1">
+                              {businessType}
+                            </p>
+                          )}
+                          {address && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              {address}
+                            </p>
+                          )}
+                        </div>
+                        
+                        {/* Botão simulado */}
+                        <div className="pt-2">
+                          <div className="inline-block bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-medium">
+                            Agendar Horário
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                      ✨ Preview em tempo real - atualize os dados acima para ver as mudanças
+                    </p>
+                  </div>
+                  
                   <p className="text-xs text-gray-500">
-                    A logo será exibida em formato arredondado e tamanho grande
+                    💡 A logo será exibida em formato circular com sombra 3D na página pública
                   </p>
                 </div>
 
-                {/* Seletor de Temas */}
-                <div className="space-y-2">
-                  <ThemeSelector 
-                    onThemeChange={(theme) => {
-                      setThemeColor(theme.colors.primary);
-                      setSelectedThemeId(theme.id);
-                    }}
-                  />
-                  <p className="text-xs text-gray-500">
-                    O tema selecionado será aplicado na página pública de agendamento dos seus clientes
-                  </p>
+                {/* Personalização Avançada */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
+                  <div className="text-center">
+                    <Palette className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                    <h4 className="text-lg font-semibold text-blue-900 mb-2">
+                      Personalização Completa da Página Pública
+                    </h4>
+                    <p className="text-sm text-blue-800 mb-4">
+                      Configure cores dinâmicas, modo escuro/claro e foto de capa profissional 
+                      para impressionar seus clientes.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                      <div className="bg-white/60 rounded-lg p-3">
+                        <h5 className="font-medium text-blue-900 text-sm mb-1">🎨 Tema Avançado</h5>
+                        <p className="text-xs text-blue-700">6 cores • Modo escuro • Preview</p>
+                      </div>
+                      <div className="bg-white/60 rounded-lg p-3">
+                        <h5 className="font-medium text-blue-900 text-sm mb-1">📸 Foto de Capa</h5>
+                        <p className="text-xs text-blue-700">Upload • Efeito 3D • Sombras</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 justify-center">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open('/theme-customization', '_blank')}
+                        className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                      >
+                        🎨 Configurar Tema
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open('/cover-settings', '_blank')}
+                        className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                      >
+                        📸 Configurar Capa
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Mensagens e Configurações */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Link className="w-5 h-5" />
-                Mensagens e Links
-              </h3>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="welcomeMessage">Mensagem de Boas-vindas</Label>
-                  <Input
-                    id="welcomeMessage"
-                    value={welcomeMessage}
-                    onChange={(e) => setWelcomeMessage(e.target.value)}
-                    placeholder="Ex: Seja bem-vindo! Agende seu horário conosco."
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="instagramUrl">Link do Instagram</Label>
-                  <Input
-                    id="instagramUrl"
-                    value={instagramUrl}
-                    onChange={(e) => setInstagramUrl(e.target.value)}
-                    placeholder="https://instagram.com/seuusuario"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Configurações de Agendamento */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Configurações de Agendamento
-              </h3>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="monthlyLimit">Limite de Agendamentos por Cliente/Mês</Label>
-                  <Input
-                    id="monthlyLimit"
-                    type="number"
-                    min="1"
-                    max="50"
-                    value={monthlyLimit}
-                    onChange={(e) => setMonthlyLimit(Number(e.target.value))}
-                  />
-                  <p className="text-xs text-gray-500">
-                    Defina quantos agendamentos cada cliente pode fazer por mês (identificado pelo telefone)
-                  </p>
-                </div>
-              </div>
-            </div>
 
             {/* Botões */}
             <div className="flex justify-end gap-3 pt-4">

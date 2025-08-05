@@ -1,0 +1,345 @@
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Palette, Monitor, Moon, Sun, Eye, Save, Check, AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { savePublicThemeSettings, loadPublicThemeSettings } from '@/services/publicThemeService';
+
+// Cores disponíveis (simplificado)
+const THEME_COLORS = [
+  { id: 'green', name: 'Verde Principal', primary: '#19c662' },
+  { id: 'blue', name: 'Azul Corporativo', primary: '#1e88e5' },
+  { id: 'purple', name: 'Roxo Elegante', primary: '#8e24aa' },
+  { id: 'orange', name: 'Laranja Vibrante', primary: '#f57c00' },
+  { id: 'red', name: 'Vermelho Profissional', primary: '#d32f2f' },
+  { id: 'gray', name: 'Cinza Moderno', primary: '#616161' }
+];
+
+interface PublicThemeCustomizerProps {
+  onSave?: (settings: any) => void;
+}
+
+const PublicThemeCustomizer = ({ onSave }: PublicThemeCustomizerProps) => {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [selectedColorId, setSelectedColorId] = useState('green');
+  const [darkMode, setDarkMode] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Carregar configurações existentes
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setLoading(true);
+        const settings = await loadPublicThemeSettings(user.id);
+        if (settings) {
+          setSelectedColorId(settings.theme_color);
+          setDarkMode(settings.dark_mode);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar configurações:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [user?.id]);
+
+  const handleColorSelect = (colorId: string) => {
+    setSelectedColorId(colorId);
+    toast({
+      title: "Cor selecionada",
+      description: `Tema ${THEME_COLORS.find(c => c.id === colorId)?.name} selecionado`
+    });
+  };
+
+  const handleDarkModeToggle = (enabled: boolean) => {
+    setDarkMode(enabled);
+    toast({
+      title: "Modo alterado",
+      description: enabled ? "Modo escuro ativado" : "Modo claro ativado"
+    });
+  };
+
+  const togglePreview = () => {
+    const newPreviewMode = !isPreviewMode;
+    setIsPreviewMode(newPreviewMode);
+    
+    if (newPreviewMode) {
+      // Aplicar tema temporariamente para preview
+      const { applyPublicTheme } = require('@/types/publicTheme');
+      applyPublicTheme(selectedColorId, darkMode);
+      document.body.classList.add('public-area');
+      document.body.classList.remove('admin-area');
+    } else {
+      // Restaurar tema administrativo
+      document.body.classList.remove('public-area');
+      document.body.classList.add('admin-area');
+      
+      // Limpar variáveis de tema público
+      const root = document.documentElement;
+      root.style.removeProperty('--public-theme-primary');
+      root.style.removeProperty('--public-theme-secondary');
+      root.style.removeProperty('--public-theme-accent');
+      root.style.removeProperty('--public-theme-background');
+      root.style.removeProperty('--public-theme-surface');
+      root.style.removeProperty('--public-theme-text');
+      root.style.removeProperty('--public-theme-text-secondary');
+      root.style.removeProperty('--public-theme-border');
+      root.style.removeProperty('--public-theme-gradient');
+      document.body.classList.remove('dark-mode');
+    }
+    
+    toast({
+      title: newPreviewMode ? "Preview ativado" : "Preview desativado",
+      description: newPreviewMode ? "Visualizando mudanças" : "Tema restaurado"
+    });
+  };
+
+  const handleSave = async () => {
+    if (!user?.id) return;
+    
+    setIsSaving(true);
+    try {
+      const settings = {
+        company_id: user.id,
+        theme_color: selectedColorId,
+        dark_mode: darkMode
+      };
+
+      // Salvar no banco de dados
+      await savePublicThemeSettings(settings);
+
+      // Callback opcional
+      if (onSave) {
+        onSave(settings);
+      }
+
+      toast({
+        title: "✅ Configurações salvas!",
+        description: "Tema da área pública atualizado com sucesso. Seus clientes verão as mudanças imediatamente."
+      });
+    } catch (error) {
+      console.error('Erro ao salvar tema:', error);
+      toast({
+        title: "❌ Erro ao salvar",
+        description: "Não foi possível salvar as configurações. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const selectedColor = THEME_COLORS.find(c => c.id === selectedColorId);
+
+  if (loading) {
+    return (
+      <Card className="w-full">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span className="ml-2">Carregando configurações...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Palette className="w-5 h-5" />
+          Personalização da Área Pública
+        </CardTitle>
+        <p className="text-sm text-gray-600">
+          Configure como seus clientes visualizarão a página de agendamento
+        </p>
+        
+        {/* Aviso importante */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-amber-800">Importante:</p>
+              <p className="text-amber-700">
+                Estas configurações afetam APENAS a área pública onde seus clientes fazem agendamentos. 
+                Seu dashboard administrativo permanecerá com o tema padrão.
+              </p>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        {/* Seletor de Cores */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Cor do Tema</Label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {THEME_COLORS.map((color) => (
+              <Card
+                key={color.id}
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  selectedColorId === color.id ? 'ring-2 ring-blue-500' : ''
+                }`}
+                onClick={() => handleColorSelect(color.id)}
+              >
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: color.primary }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{color.name}</p>
+                      {selectedColorId === color.id && (
+                        <Badge variant="secondary" className="mt-1">
+                          <Check className="w-3 h-3 mr-1" />
+                          Selecionado
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Toggle Dark/Light Mode */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Modo de Visualização</Label>
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center gap-3">
+              {darkMode ? (
+                <Moon className="w-5 h-5 text-gray-600" />
+              ) : (
+                <Sun className="w-5 h-5 text-yellow-500" />
+              )}
+              <div>
+                <p className="font-medium text-sm">
+                  {darkMode ? 'Modo Escuro' : 'Modo Claro'}
+                </p>
+                <p className="text-xs text-gray-600">
+                  {darkMode 
+                    ? 'Fundo escuro com texto claro' 
+                    : 'Fundo claro com texto escuro'
+                  }
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={darkMode}
+              onCheckedChange={handleDarkModeToggle}
+            />
+          </div>
+        </div>
+
+        {/* Preview da Área Pública */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Preview da Área Pública</Label>
+          <div className="border rounded-lg p-4 space-y-4" style={{
+            backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+            color: darkMode ? '#ffffff' : '#1f2937'
+          }}>
+            {/* Header simulado */}
+            <div className="text-center space-y-2">
+              <div 
+                className="w-16 h-16 rounded-full mx-auto"
+                style={{ backgroundColor: selectedColor?.primary }}
+              />
+              <h3 className="font-semibold">Sua Empresa</h3>
+              <p className="text-sm opacity-75">Agende seu horário</p>
+            </div>
+            
+            {/* Botão simulado */}
+            <Button 
+              className="w-full"
+              style={{ 
+                backgroundColor: selectedColor?.primary,
+                borderColor: selectedColor?.primary 
+              }}
+            >
+              Agendar Horário
+            </Button>
+            
+            {/* Cards simulados */}
+            <div className="grid grid-cols-2 gap-2">
+              <div 
+                className="p-3 rounded border"
+                style={{ 
+                  backgroundColor: darkMode ? '#2d2d2d' : '#f8f9fa',
+                  borderColor: darkMode ? '#404040' : '#e5e7eb'
+                }}
+              >
+                <p className="text-xs font-medium">Serviço 1</p>
+                <p className="text-xs opacity-75">R$ 50,00</p>
+              </div>
+              <div 
+                className="p-3 rounded border"
+                style={{ 
+                  backgroundColor: darkMode ? '#2d2d2d' : '#f8f9fa',
+                  borderColor: darkMode ? '#404040' : '#e5e7eb'
+                }}
+              >
+                <p className="text-xs font-medium">Serviço 2</p>
+                <p className="text-xs opacity-75">R$ 80,00</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Controles */}
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={togglePreview}
+            className="flex-1"
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            {isPreviewMode ? 'Desativar Preview' : 'Ativar Preview'}
+          </Button>
+          
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex-1"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {isSaving ? 'Salvando...' : 'Salvar Configurações'}
+          </Button>
+        </div>
+
+        {/* Informações adicionais */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start gap-2">
+            <Monitor className="w-5 h-5 text-blue-600 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-blue-900">
+                Como funciona?
+              </p>
+              <ul className="text-xs text-blue-800 mt-1 space-y-1">
+                <li>• Selecione a cor que representa sua marca</li>
+                <li>• Escolha entre modo claro ou escuro</li>
+                <li>• Use o preview para ver como ficará</li>
+                <li>• Salve para aplicar nas páginas públicas</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default PublicThemeCustomizer;

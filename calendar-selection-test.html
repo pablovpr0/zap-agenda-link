@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Seleção Imediata do Calendário</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 5px solid;
+        }
+        .improvement {
+            background-color: #e7f3ff;
+            border-color: #007bff;
+            color: #004085;
+        }
+        .validation {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+            border: 1px solid #e9ecef;
+            overflow-x: auto;
+        }
+        .test-button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .test-button:hover {
+            background-color: #0056b3;
+        }
+        .test-button.success {
+            background-color: #28a745;
+        }
+        .test-button.success:hover {
+            background-color: #1e7e34;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+        .checklist li:before {
+            content: "✅ ";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .feature-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📅 Teste de Seleção Imediata do Calendário</h1>
+        
+        <div class="test-section validation">
+            <h2>✅ Seleção Já Era Imediata</h2>
+            <p>O calendário já estava implementado corretamente para seleção imediata. Quando um dia é clicado:</p>
+            <div class="code-block">
+const handleDateClick = (date: Date) => {
+  if (disabled || !isDateAvailable(date)) return;
+  
+  if (onDateSelect) {
+    // Seleção imediata da data
+    const dateString = format(date, 'yyyy-MM-dd');
+    onDateSelect(dateString);
+    
+    // Log para debug
+    console.log('📅 Data selecionada imediatamente:', dateString);
+  }
+};
+            </div>
+        </div>
+
+        <div class="test-section improvement">
+            <h2>🚀 Melhorias Implementadas</h2>
+            <p>Para tornar a experiência ainda melhor, foram adicionadas as seguintes melhorias:</p>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>🎨 Feedback Visual Aprimorado</h4>
+                    <ul class="checklist">
+                        <li>Transição mais rápida (150ms)</li>
+                        <li>Efeito de escala no dia selecionado</li>
+                        <li>Efeito active:scale-95 no clique</li>
+                        <li>Cores dinâmicas do tema</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>📋 Confirmação Visual</h4>
+                    <ul class="checklist">
+                        <li>Data selecionada mostrada no label</li>
+                        <li>Formatação em português</li>
+                        <li>Ícone de confirmação (✓)</li>
+                        <li>Cor do tema aplicada</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="code-block">
+{/* Exemplo do feedback visual */}
+&lt;label className="block text-black public-text font-medium mb-2"&gt;
+  Escolha a data
+  {selectedDate && (
+    &lt;span className="ml-2 text-sm text-[#19c662] dynamic-primary font-normal"&gt;
+      ✓ {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long' 
+      })}
+    &lt;/span&gt;
+  )}
+&lt;/label&gt;
+            </div>
+        </div>
+
+        <div class="test-section improvement">
+            <h2>⚡ Otimização do Carregamento</h2>
+            <p>O carregamento dos horários após a seleção da data foi otimizado:</p>
+            
+            <div class="code-block">
+// Usar timeout mínimo para garantir que a UI seja atualizada imediatamente
+const timeoutId = setTimeout(loadTimes, 0);
+return () => clearTimeout(timeoutId);
+            </div>
+            
+            <ul class="checklist">
+                <li>Logs melhorados para debug</li>
+                <li>Timeout otimizado para UI responsiva</li>
+                <li>Feedback imediato da seleção</li>
+                <li>Carregamento assíncrono dos horários</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <h3>🧪 Teste a Funcionalidade</h3>
+            <button class="test-button success" onclick="window.open('/public/pablo', '_blank')">
+                📅 Testar Seleção do Calendário
+            </button>
+            <button class="test-button" onclick="window.open('/theme-test', '_blank')">
+                🎨 Testar com Diferentes Temas
+            </button>
+        </div>
+
+        <div class="test-section validation">
+            <h2>📋 Como Validar</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>Passos do Teste</h4>
+                    <ol>
+                        <li>Abra a área pública</li>
+                        <li>Selecione um serviço</li>
+                        <li>Clique em qualquer dia disponível</li>
+                        <li>Observe o feedback imediato</li>
+                        <li>Verifique o carregamento dos horários</li>
+                    </ol>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>Comportamento Esperado</h4>
+                    <ul class="checklist">
+                        <li>Dia selecionado muda cor imediatamente</li>
+                        <li>Label mostra data selecionada</li>
+                        <li>Console mostra log da seleção</li>
+                        <li>Horários começam a carregar</li>
+                        <li>Transições suaves e responsivas</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section validation">
+            <h2>✅ Resultado Final</h2>
+            <p>A seleção do calendário agora oferece:</p>
+            <ul class="checklist">
+                <li><strong>Seleção Imediata:</strong> Resposta instantânea ao clique</li>
+                <li><strong>Feedback Visual:</strong> Animações e cores dinâmicas</li>
+                <li><strong>Confirmação Clara:</strong> Data selecionada visível no label</li>
+                <li><strong>Performance Otimizada:</strong> Carregamento assíncrono</li>
+                <li><strong>Experiência Fluida:</strong> Transições suaves</li>
+                <li><strong>Debug Melhorado:</strong> Logs detalhados no console</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📅 Teste de Seleção do Calendário Carregado');
+            console.log('✅ Seleção imediata já implementada');
+            console.log('🚀 Melhorias de UX adicionadas');
+            console.log('⚡ Performance otimizada');
+        });
+    </script>
+</body>
+</html>

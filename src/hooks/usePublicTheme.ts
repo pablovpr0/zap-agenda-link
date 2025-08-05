@@ -2,49 +2,70 @@
 import { useEffect } from 'react';
 import { CompanySettings } from '@/types/publicBooking';
 import { themes, getThemeById, applyTheme, Theme } from '@/utils/themes';
+import { applyPublicTheme } from '@/types/publicTheme';
+import { loadPublicThemeBySlug } from '@/services/publicThemeService';
 
 export const usePublicTheme = (companySettings: CompanySettings | null) => {
   useEffect(() => {
     if (!companySettings) return;
 
-    // Aplicar tema baseado no tema selecionado ou cor da empresa
-    const selectedThemeId = (companySettings as any).selected_theme_id;
-    const themeColor = (companySettings as any).theme_color || '#19c662';
-    
-    console.log('🎨 Aplicando tema público para empresa:', {
-      slug: companySettings.slug,
-      selectedThemeId,
-      themeColor
-    });
-
-    let selectedTheme: Theme | null = null;
-    
-    // Primeiro, tentar usar o tema selecionado pelo ID
-    if (selectedThemeId) {
-      selectedTheme = getThemeById(selectedThemeId);
-      console.log('🎨 Tema encontrado por ID:', selectedTheme?.name);
-    }
-    
-    // Se não encontrou por ID, procurar por cor similar
-    if (!selectedTheme) {
-      for (const theme of themes) {
-        if (theme.colors.primary.toLowerCase() === themeColor.toLowerCase()) {
-          selectedTheme = theme;
-          console.log('🎨 Tema encontrado por cor:', selectedTheme.name);
-          break;
+    const loadAndApplyTheme = async () => {
+      try {
+        // Tentar carregar configurações de tema personalizadas
+        const publicThemeSettings = await loadPublicThemeBySlug(companySettings.slug);
+        
+        if (publicThemeSettings) {
+          console.log('🎨 Aplicando tema personalizado:', publicThemeSettings);
+          applyPublicTheme(publicThemeSettings.theme_color, publicThemeSettings.dark_mode);
+          return;
         }
+
+        // Fallback para o sistema antigo
+        const selectedThemeId = (companySettings as any).selected_theme_id;
+        const themeColor = (companySettings as any).theme_color || '#19c662';
+        
+        console.log('🎨 Aplicando tema padrão para empresa:', {
+          slug: companySettings.slug,
+          selectedThemeId,
+          themeColor
+        });
+
+        let selectedTheme: Theme | null = null;
+        
+        // Primeiro, tentar usar o tema selecionado pelo ID
+        if (selectedThemeId) {
+          selectedTheme = getThemeById(selectedThemeId);
+          console.log('🎨 Tema encontrado por ID:', selectedTheme?.name);
+        }
+        
+        // Se não encontrou por ID, procurar por cor similar
+        if (!selectedTheme) {
+          for (const theme of themes) {
+            if (theme.colors.primary.toLowerCase() === themeColor.toLowerCase()) {
+              selectedTheme = theme;
+              console.log('🎨 Tema encontrado por cor:', selectedTheme.name);
+              break;
+            }
+          }
+        }
+
+        // Se ainda não encontrou, criar um tema customizado
+        if (!selectedTheme) {
+          selectedTheme = createCustomTheme(themeColor, companySettings.slug);
+          console.log('🎨 Tema customizado criado:', selectedTheme.name);
+        }
+
+        // Aplicar o tema na página pública usando o sistema antigo
+        applyPublicThemeOld(selectedTheme, companySettings);
+        
+      } catch (error) {
+        console.error('Erro ao carregar tema público:', error);
+        // Aplicar tema padrão em caso de erro
+        applyPublicTheme('green', false);
       }
-    }
+    };
 
-    // Se ainda não encontrou, criar um tema customizado
-    if (!selectedTheme) {
-      selectedTheme = createCustomTheme(themeColor, companySettings.slug);
-      console.log('🎨 Tema customizado criado:', selectedTheme.name);
-    }
-
-    // Aplicar o tema na página pública
-    applyPublicTheme(selectedTheme, companySettings);
-
+    loadAndApplyTheme();
   }, [companySettings]);
 };
 
@@ -90,7 +111,7 @@ const adjustBrightness = (color: string, percent: number): string => {
   return `#${toHex(newR)}${toHex(newG)}${toHex(newB)}`;
 };
 
-const applyPublicTheme = (theme: Theme, companySettings: CompanySettings) => {
+const applyPublicThemeOld = (theme: Theme, companySettings: CompanySettings) => {
   const root = document.documentElement;
   
   // Aplicar variáveis CSS para a página pública

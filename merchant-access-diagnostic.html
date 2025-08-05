@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico de Acesso - Área do Comerciante</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .diagnostic-section {
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 5px solid;
+        }
+
+        .issue {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+
+        .solution {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .info {
+            background-color: #e7f3ff;
+            border-color: #007bff;
+            color: #004085;
+        }
+
+        .code-block {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+            border: 1px solid #e9ecef;
+            overflow-x: auto;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .test-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+
+        .test-button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .test-button:hover {
+            background-color: #0056b3;
+        }
+
+        .test-button.success {
+            background-color: #28a745;
+        }
+
+        .test-button.success:hover {
+            background-color: #1e7e34;
+        }
+
+        .test-button.warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .test-button.warning:hover {
+            background-color: #e0a800;
+        }
+
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+
+        .checklist li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+
+        .checklist li:before {
+            content: "🔍 ";
+            margin-right: 8px;
+        }
+
+        .steps {
+            list-style: none;
+            padding: 0;
+            counter-reset: step-counter;
+        }
+
+        .steps li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            counter-increment: step-counter;
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .steps li:before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 10px;
+            background: #007bff;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔍 Diagnóstico de Acesso - Área do Comerciante</h1>
+
+        <div class="diagnostic-section issue">
+            <h2>❌ Problema Reportado</h2>
+            <p><strong>Situação:</strong> Não conseguindo acessar a área do comerciante</p>
+            <p><strong>Comportamento esperado:</strong> Acesso ao dashboard administrativo</p>
+            <p><strong>Comportamento atual:</strong> Acesso bloqueado ou redirecionamento incorreto</p>
+        </div>
+
+        <div class="diagnostic-section info">
+            <h2>🔍 Possíveis Causas</h2>
+            <div class="test-grid">
+                <div class="test-card">
+                    <h4>1. Problema de Autenticação</h4>
+                    <ul class="checklist">
+                        <li>Usuário não está logado</li>
+                        <li>Sessão expirou</li>
+                        <li>Token inválido</li>
+                        <li>Erro no Supabase Auth</li>
+                    </ul>
+                </div>
+
+                <div class="test-card">
+                    <h4>2. Perfil Incompleto</h4>
+                    <ul class="checklist">
+                        <li>company_name não definido</li>
+                        <li>Perfil não foi criado</li>
+                        <li>Redirecionamento para /company-setup</li>
+                        <li>Erro na verificação do perfil</li>
+                    </ul>
+                </div>
+
+                <div class="test-card">
+                    <h4>3. Problemas de Rota</h4>
+                    <ul class="checklist">
+                        <li>Redirecionamento incorreto</li>
+                        <li>Rota não encontrada</li>
+                        <li>Conflito com rota pública</li>
+                        <li>Erro no React Router</li>
+                    </ul>
+                </div>
+
+                <div class="test-card">
+                    <h4>4. Erro de Configuração</h4>
+                    <ul class="checklist">
+                        <li>Variáveis de ambiente</li>
+                        <li>Configuração do Supabase</li>
+                        <li>Políticas RLS</li>
+                        <li>Permissões de banco</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="diagnostic-section solution">
+            <h2>🛠️ Passos de Diagnóstico</h2>
+            <ol class="steps">
+                <li>
+                    <strong>Verificar Console do Navegador</strong><br>
+                    Abra as ferramentas de desenvolvedor (F12) e verifique se há erros no console
+                </li>
+                <li>
+                    <strong>Testar Autenticação</strong><br>
+                    Acesse /auth e tente fazer login com suas credenciais
+                </li>
+                <li>
+                    <strong>Verificar Redirecionamentos</strong><br>
+                    Observe para onde você está sendo redirecionado após o login
+                </li>
+                <li>
+                    <strong>Testar Perfil</strong><br>
+                    Verifique se o perfil da empresa está completo
+                </li>
+                <li>
+                    <strong>Limpar Cache</strong><br>
+                    Limpe o cache do navegador e tente novamente
+                </li>
+            </ol>
+        </div>
+
+        <div class="diagnostic-section info">
+            <h2>🔧 Fluxo de Autenticação</h2>
+            <p>Entenda como funciona o acesso à área do comerciante:</p>
+
+            <div class="code-block">
+                FLUXO NORMAL:
+                1. Usuário acessa "/" (raiz)
+                2. Index.tsx verifica se há usuário logado
+                3. Se não logado → redireciona para "/auth"
+                4. Se logado → verifica se perfil está completo
+                5. Se perfil incompleto → redireciona para "/company-setup"
+                6. Se tudo OK → mostra dashboard do comerciante
+
+                POSSÍVEIS PONTOS DE FALHA:
+                - useAuth não detecta usuário logado
+                - fetchProfile falha ou retorna dados incompletos
+                - Redirecionamento em loop
+                - Erro na verificação de sessão
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <h3>🧪 Testes Rápidos</h3>
+            <button class="test-button success" onclick="window.open('/', '_blank')">
+                🏠 Testar Acesso à Raiz
+            </button>
+            <button class="test-button" onclick="window.open('/auth', '_blank')">
+                🔐 Testar Página de Login
+            </button>
+            <button class="test-button warning" onclick="window.open('/company-setup', '_blank')">
+                🏢 Testar Setup da Empresa
+            </button>
+        </div>
+
+        <div class="diagnostic-section solution">
+            <h2>✅ Soluções Rápidas</h2>
+
+            <div class="test-grid">
+                <div class="test-card">
+                    <h4>Solução 1: Limpar Dados</h4>
+                    <ol>
+                        <li>Abra as ferramentas de desenvolvedor (F12)</li>
+                        <li>Vá para Application/Storage</li>
+                        <li>Limpe localStorage e sessionStorage</li>
+                        <li>Recarregue a página</li>
+                    </ol>
+                </div>
+
+                <div class="test-card">
+                    <h4>Solução 2: Novo Login</h4>
+                    <ol>
+                        <li>Acesse /auth</li>
+                        <li>Faça logout se necessário</li>
+                        <li>Faça login novamente</li>
+                        <li>Verifique se é redirecionado corretamente</li>
+                    </ol>
+                </div>
+
+                <div class="test-card">
+                    <h4>Solução 3: Verificar Perfil</h4>
+                    <ol>
+                        <li>Acesse /company-setup</li>
+                        <li>Preencha/atualize dados da empresa</li>
+                        <li>Salve as informações</li>
+                        <li>Tente acessar / novamente</li>
+                    </ol>
+                </div>
+
+                <div class="test-card">
+                    <h4>Solução 4: Modo Incógnito</h4>
+                    <ol>
+                        <li>Abra uma janela incógnita</li>
+                        <li>Acesse a aplicação</li>
+                        <li>Faça login normalmente</li>
+                        <li>Verifique se funciona</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="diagnostic-section info">
+            <h2>📋 Checklist de Verificação</h2>
+            <div class="code-block">
+                VERIFIQUE NO CONSOLE:
+                □ Erros de JavaScript
+                □ Erros de rede (404, 500, etc.)
+                □ Mensagens de autenticação
+                □ Logs do useAuth
+                □ Logs do fetchProfile
+
+                VERIFIQUE NO NETWORK:
+                □ Requisições para Supabase
+                □ Status das requisições
+                □ Respostas de erro
+                □ Tempo de resposta
+
+                VERIFIQUE NO APPLICATION:
+                □ localStorage tem dados do Supabase
+                □ sessionStorage está limpo
+                □ Cookies estão corretos
+                □ IndexedDB não tem conflitos
+            </div>
+        </div>
+
+        <div class="diagnostic-section solution">
+            <h2>🆘 Se Nada Funcionar</h2>
+            <p>Se as soluções acima não resolverem, tente estas opções avançadas:</p>
+
+            <div class="code-block">
+                OPÇÕES AVANÇADAS:
+                1. Criar nova conta de teste
+                2. Verificar configuração do Supabase
+                3. Testar em navegador diferente
+                4. Verificar políticas RLS no banco
+                5. Revisar variáveis de ambiente
+                6. Testar conexão com banco de dados
+
+                INFORMAÇÕES PARA DEBUG:
+                - URL atual quando o problema ocorre
+                - Mensagens de erro no console
+                - Comportamento específico observado
+                - Passos para reproduzir o problema
+                - Navegador e versão utilizados
+            </div>
+        </div>
+
+        <div class="diagnostic-section info">
+            <h2>📞 Próximos Passos</h2>
+            <p>Para resolver o problema, precisamos de mais informações:</p>
+            <ol class="steps">
+                <li>Execute os testes rápidos acima</li>
+                <li>Anote qualquer erro que aparecer no console</li>
+                <li>Informe qual solução funcionou (se alguma)</li>
+                <li>Se nenhuma funcionar, compartilhe os erros encontrados</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('🔍 Diagnóstico de Acesso Carregado');
+            console.log('📋 Execute os testes e verifique o console para erros');
+            console.log('🛠️ Siga os passos de diagnóstico para identificar o problema');
+
+            // Verificar se há dados de autenticação
+            const supabaseData = localStorage.getItem('sb-' + window.location.hostname.replace(/\./g, '-') + '-auth-token');
+            if (supabaseData) {
+                console.log('✅ Dados de autenticação encontrados no localStorage');
+                try {
+                    const authData = JSON.parse(supabaseData);
+                    console.log('👤 Usuário:', authData.user?.email || 'Não encontrado');
+                    console.log('⏰ Sessão expira em:', new Date(authData.expires_at * 1000));
+                } catch (e) {
+                    console.log('❌ Erro ao parsear dados de autenticação');
+                }
+            } else {
+                console.log('❌ Nenhum dado de autenticação encontrado');
+            }
+        });
+    </script>
+</body>
+
+</html>

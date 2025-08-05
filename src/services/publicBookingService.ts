@@ -5,11 +5,11 @@ import { Professional } from '@/services/professionalsService';
 
 export const loadCompanyDataBySlug = async (companySlug: string) => {
   console.log('🔍 Loading company data with secure policies:', companySlug);
-  
+
   if (!companySlug || companySlug.trim() === '') {
     throw new Error('Slug da empresa é obrigatório');
   }
-  
+
   try {
     // The new RLS policy allows anon users to read company_settings where status_aberto = true
     const { data: settings, error: settingsError } = await supabase
@@ -25,7 +25,7 @@ export const loadCompanyDataBySlug = async (companySlug: string) => {
       console.error('❌ Error loading company settings:', settingsError);
       throw new Error(`Erro ao buscar empresa: ${settingsError.message}`);
     }
-    
+
     if (!settings) {
       console.error('❌ Company not found or not active:', companySlug);
       throw new Error(`Empresa não encontrada ou não está aceitando agendamentos: ${companySlug}`);
@@ -39,11 +39,11 @@ export const loadCompanyDataBySlug = async (companySlug: string) => {
       .maybeSingle();
 
     let profile = profileData;
-    
+
     if (profileError) {
       console.warn('⚠️ Profile loading error (non-critical):', profileError);
     }
-    
+
     if (!profile) {
       console.warn('⚠️ Profile not found, creating minimal profile');
       profile = {
@@ -78,7 +78,7 @@ export const loadCompanyDataBySlug = async (companySlug: string) => {
       profileData: profile,
       servicesData: servicesData || []
     };
-    
+
   } catch (error: any) {
     console.error('❌ Failed to load company data:', error);
     throw error;
@@ -102,7 +102,7 @@ export const fetchActiveProfessionals = async (companyId: string): Promise<Profe
 
     console.log('👨‍💼 Professionals loaded:', data?.length || 0);
     return data || [];
-    
+
   } catch (error: any) {
     console.error('❌ Failed to load professionals:', error);
     throw error;
@@ -112,66 +112,146 @@ export const fetchActiveProfessionals = async (companyId: string): Promise<Profe
 export const checkAvailableTimes = async (
   companyId: string,
   selectedDate: string,
-  workingHoursStart: string,
-  workingHoursEnd: string,
-  appointmentInterval: number,
-  lunchBreakEnabled?: boolean,
-  lunchStartTime?: string,
-  lunchEndTime?: string,
   serviceDuration?: number
 ) => {
-  console.log('🔍 Checking available times with service duration:', { 
-    companyId, 
+  console.log('🔍 Checking available times with daily schedules:', {
+    companyId,
     selectedDate,
-    lunchBreakEnabled,
-    lunchStartTime,
-    lunchEndTime,
     serviceDuration
   });
-  
-  try {
-    // Use the secure database function to get available times
-    const { data: availableTimes, error } = await supabase.rpc('get_available_times', {
-      p_company_id: companyId,
-      p_date: selectedDate,
-      p_working_hours_start: workingHoursStart,
-      p_working_hours_end: workingHoursEnd,
-      p_appointment_interval: appointmentInterval,
-      p_lunch_break_enabled: lunchBreakEnabled || false,
-      p_lunch_start_time: lunchStartTime || '12:00:00',
-      p_lunch_end_time: lunchEndTime || '13:00:00',
-      p_service_duration: serviceDuration || 60
-    });
 
-    if (error) {
-      console.error('❌ Error checking available times:', error);
+  try {
+    // Get day of week (0=Sunday, 1=Monday, etc.)
+    const date = new Date(selectedDate + 'T00:00:00');
+    const dayOfWeek = date.getDay();
+
+    // Get daily schedule for this day
+    const { data: dailySchedule, error: scheduleError } = await supabase
+      .from('daily_schedules')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('day_of_week', dayOfWeek)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (scheduleError) {
+      console.error('❌ Error fetching daily schedule:', scheduleError);
       return [];
     }
 
-    // Convert time objects to string format
-    let timeStrings = (availableTimes || []).map(t => {
-      if (t.available_time) {
-        return t.available_time.toString().substring(0, 5);
-      }
-      return '';
-    }).filter(Boolean);
-
-    // If it's today, filter out past times
-    const today = new Date().toISOString().split('T')[0];
-    if (selectedDate === today) {
-      const now = new Date();
-      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      
-      const filteredTimes = timeStrings.filter(time => time > currentTime);
-      console.log('⏰ Available times (filtered for today, service duration & lunch):', filteredTimes.length);
-      return filteredTimes;
+    if (!dailySchedule) {
+      console.log('📅 No schedule configured for this day or day is closed');
+      return [];
     }
 
-    console.log('⏰ Available times found (service duration & lunch considered):', timeStrings.length);
-    return timeStrings;
-    
+    // Get company settings for appointment interval
+    const { data: companySettings, error: settingsError } = await supabase
+      .from('company_settings')
+      .select('appointment_interval')
+      .eq('company_id', companyId)
+      .single();
+
+    if (settingsError) {
+      console.error('❌ Error fetching company settings:', settingsError);
+      return [];
+    }
+
+    // Get booked appointments for the date
+    const { data: bookedAppointments, error: appointmentsError } = await supabase
+      .from('appointments')
+      .select('appointment_time')
+      .eq('company_id', companyId)
+      .eq('appointment_date', selectedDate)
+      .neq('status', 'cancelled');
+
+    if (appointmentsError) {
+      console.error('❌ Error fetching booked appointments:', appointmentsError);
+      return [];
+    }
+
+    // Extract booked times
+    const bookedTimes = (bookedAppointments || []).map(apt => 
+      apt.appointment_time.substring(0, 5) // HH:mm
+    );
+
+    // Generate available time slots
+    const availableTimes = generateTimeSlots(
+      dailySchedule.start_time,
+      dailySchedule.end_time,
+      companySettings.appointment_interval || 30,
+      serviceDuration || 60,
+      bookedTimes,
+      dailySchedule.has_lunch_break,
+      dailySchedule.lunch_start,
+      dailySchedule.lunch_end
+    );
+
+    console.log('⏰ Available times generated:', {
+      date: selectedDate,
+      dayOfWeek,
+      schedule: `${dailySchedule.start_time}-${dailySchedule.end_time}`,
+      lunchBreak: dailySchedule.has_lunch_break ? `${dailySchedule.lunch_start}-${dailySchedule.lunch_end}` : 'none',
+      bookedCount: bookedTimes.length,
+      availableCount: availableTimes.length,
+      availableTimes
+    });
+
+    return availableTimes;
+
   } catch (error: any) {
     console.error('❌ Failed to check available times:', error);
     return [];
   }
+};
+
+// Helper function to generate time slots
+const generateTimeSlots = (
+  startTime: string,
+  endTime: string,
+  interval: number,
+  serviceDuration: number,
+  bookedTimes: string[],
+  hasLunchBreak: boolean,
+  lunchStart?: string,
+  lunchEnd?: string
+): string[] => {
+  const slots: string[] = [];
+  const start = new Date(`2000-01-01T${startTime}:00`);
+  const end = new Date(`2000-01-01T${endTime}:00`);
+  
+  let current = new Date(start);
+  
+  while (current < end) {
+    const timeStr = current.toTimeString().substring(0, 5);
+    
+    // Check if service would end before closing time
+    const serviceEnd = new Date(current.getTime() + serviceDuration * 60000);
+    if (serviceEnd > end) break;
+    
+    // Check if time conflicts with lunch break
+    if (hasLunchBreak && lunchStart && lunchEnd) {
+      const lunchStartTime = new Date(`2000-01-01T${lunchStart}:00`);
+      const lunchEndTime = new Date(`2000-01-01T${lunchEnd}:00`);
+      
+      if (current >= lunchStartTime && current < lunchEndTime) {
+        current = new Date(current.getTime() + interval * 60000);
+        continue;
+      }
+      
+      // Check if service would overlap with lunch
+      if (current < lunchStartTime && serviceEnd > lunchStartTime) {
+        current = new Date(current.getTime() + interval * 60000);
+        continue;
+      }
+    }
+    
+    // Check if time is not already booked
+    if (!bookedTimes.includes(timeStr)) {
+      slots.push(timeStr);
+    }
+    
+    current = new Date(current.getTime() + interval * 60000);
+  }
+  
+  return slots;
 };

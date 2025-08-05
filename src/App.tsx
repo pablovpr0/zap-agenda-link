@@ -14,6 +14,15 @@ import PublicBooking from "./pages/PublicBooking";
 import CreateTestCompany from "./pages/CreateTestCompany";
 import DebugPublicBooking from "./pages/DebugPublicBooking";
 import FixPabloLink from "./pages/FixPabloLink";
+import TimezoneTest from "./pages/TimezoneTest";
+import ThemeTestPage from "./pages/ThemeTestPage";
+import ErrorTestPage from "./pages/ErrorTestPage";
+import CoverSettings from "./pages/CoverSettings";
+import ThemeCustomization from "./pages/ThemeCustomization";
+import BookingSystemTest from "./pages/BookingSystemTest";
+import ScheduleDebugPage from "./pages/ScheduleDebugPage";
+import QuickScheduleTest from "./pages/QuickScheduleTest";
+import PublicBookingTest from "./pages/PublicBookingTest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -37,6 +46,15 @@ const App: React.FC = () => {
               <Route path="/create-test-company" element={<CreateTestCompany />} />
               <Route path="/fix-pablo" element={<FixPabloLink />} />
               <Route path="/debug/:companySlug" element={<DebugPublicBooking />} />
+              <Route path="/timezone-test" element={<TimezoneTest />} />
+              <Route path="/theme-test" element={<ThemeTestPage />} />
+              <Route path="/error-test" element={<ErrorTestPage />} />
+              <Route path="/cover-settings" element={<CoverSettings />} />
+              <Route path="/theme-customization" element={<ThemeCustomization />} />
+              <Route path="/booking-system-test" element={<BookingSystemTest />} />
+              <Route path="/schedule-debug" element={<ScheduleDebugPage />} />
+              <Route path="/quick-schedule-test" element={<QuickScheduleTest />} />
+              <Route path="/public-booking-test" element={<PublicBookingTest />} />
               <Route path="/public/:companySlug" element={<PublicBooking />} />
               <Route path="/" element={<Index />} />
               {/* Rota para capturar slugs diretamente na raiz (ex: zapagenda.site/pablo) */}

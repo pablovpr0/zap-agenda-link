@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correção do Erro de Hooks</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .fix-section {
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 5px solid;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .solution {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .info {
+            background-color: #e7f3ff;
+            border-color: #007bff;
+            color: #004085;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+            border: 1px solid #e9ecef;
+            overflow-x: auto;
+        }
+        .test-button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .test-button:hover {
+            background-color: #0056b3;
+        }
+        .test-button.success {
+            background-color: #28a745;
+        }
+        .test-button.success:hover {
+            background-color: #1e7e34;
+        }
+        .before-after {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .before, .after {
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .before {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .after {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Correção do Erro de Hooks</h1>
+        
+        <div class="fix-section error">
+            <h2>❌ Erro Identificado</h2>
+            <p><strong>Mensagem:</strong> "Rendered more hooks than during the previous render"</p>
+            <p><strong>Causa:</strong> Early returns após chamadas de hooks no componente Index.tsx</p>
+            <p><strong>Localização:</strong> chunk-FJ2A54M7.js?v=592792bc:11678</p>
+        </div>
+
+        <div class="fix-section info">
+            <h2>🔍 Análise do Problema</h2>
+            <p>O erro ocorreu porque o componente Index.tsx estava violando as regras dos hooks do React:</p>
+            
+            <div class="code-block">
+REGRAS DOS HOOKS VIOLADAS:
+1. Hooks devem ser chamados sempre na mesma ordem
+2. Hooks não podem ser chamados condicionalmente
+3. Early returns após hooks causam inconsistência na ordem
+
+PROBLEMA NO CÓDIGO:
+- useAuth(), useNavigate(), useState() eram chamados
+- Depois havia early returns (return null)
+- Isso causava diferença na quantidade de hooks entre renders
+            </div>
+        </div>
+
+        <div class="fix-section solution">
+            <h2>✅ Correção Aplicada</h2>
+            <p>Reestruturei o componente para respeitar as regras dos hooks:</p>
+            
+            <div class="before-after">
+                <div class="before">
+                    <strong>❌ ANTES (Problemático):</strong>
+                    <pre>
+const Index = () => {
+  const { user, isLoading, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [currentView, setCurrentView] = useState('dashboard');
+  
+  // ... outros hooks
+  
+  if (isLoading) {
+    return (&lt;LoadingComponent /&gt;);
+  }
+  
+  if (!user || !profileComplete) {
+    return null; // ❌ PROBLEMA AQUI
+  }
+  
+  // useEffect aqui causava inconsistência
+  useEffect(() => {
+    // ...
+  }, []);
+}</pre>
+                </div>
+                <div class="after">
+                    <strong>✅ DEPOIS (Corrigido):</strong>
+                    <pre>
+const Index = () => {
+  const { user, isLoading, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [currentView, setCurrentView] = useState('dashboard');
+  
+  // ✅ TODOS os hooks ANTES de qualquer return
+  useEffect(() => {
+    // Garantir classe admin-area
+  }, []);
+  
+  useEffect(() => {
+    // Verificação de perfil
+  }, [user, isLoading, navigate]);
+  
+  // ✅ Returns condicionais APÓS todos os hooks
+  if (isLoading) {
+    return (&lt;LoadingComponent /&gt;);
+  }
+  
+  if (!user || !profileComplete) {
+    return (&lt;RedirectingComponent /&gt;);
+  }
+}</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="fix-section solution">
+            <h2>🔧 Mudanças Específicas</h2>
+            
+            <div class="code-block">
+ALTERAÇÕES REALIZADAS:
+
+1. MOVIDO useEffect para ANTES dos returns condicionais:
+   - useEffect para classes CSS movido para o topo
+   - Todos os hooks agora são chamados na mesma ordem sempre
+
+2. SUBSTITUÍDO return null por componente de loading:
+   - Antes: return null (problemático)
+   - Depois: return &lt;RedirectingComponent /&gt; (consistente)
+
+3. ADICIONADO estado de loading para redirecionamentos:
+   - Mostra "Redirecionando..." em vez de tela em branco
+   - Melhora UX durante navegação
+
+4. MANTIDA lógica de redirecionamento:
+   - Funcionalidade permanece a mesma
+   - Apenas estrutura foi reorganizada
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <h3>🧪 Teste a Correção</h3>
+            <button class="test-button success" onclick="window.open('/', '_blank')">
+                🏠 Testar Acesso à Área do Comerciante
+            </button>
+            <button class="test-button" onclick="window.open('/auth', '_blank')">
+                🔐 Testar Login
+            </button>
+        </div>
+
+        <div class="fix-section info">
+            <h2>📋 Verificações Pós-Correção</h2>
+            <p>Após a correção, verifique se:</p>
+            
+            <div class="code-block">
+✅ CHECKLIST DE VALIDAÇÃO:
+
+1. Console do navegador (F12):
+   □ Não há mais erro "Rendered more hooks"
+   □ Não há outros erros de React
+   □ Logs de autenticação aparecem normalmente
+
+2. Navegação funciona:
+   □ Acesso a "/" redireciona corretamente
+   □ Login em "/auth" funciona
+   □ Setup em "/company-setup" funciona
+   □ Dashboard carrega sem erros
+
+3. Estados de loading:
+   □ Mostra "Carregando..." durante verificação
+   □ Mostra "Redirecionando..." durante navegação
+   □ Transições são suaves
+
+4. Funcionalidades mantidas:
+   □ Autenticação funciona
+   □ Verificação de perfil funciona
+   □ Redirecionamentos funcionam
+   □ Dashboard carrega corretamente
+            </div>
+        </div>
+
+        <div class="fix-section solution">
+            <h2>🎯 Resultado Esperado</h2>
+            <p>Com a correção aplicada, o comportamento deve ser:</p>
+            
+            <div class="code-block">
+FLUXO CORRIGIDO:
+
+1. Usuário acessa "/"
+2. Componente Index carrega TODOS os hooks
+3. Verifica se está carregando → mostra loading
+4. Verifica se usuário está logado → redireciona para /auth se necessário
+5. Verifica se perfil está completo → redireciona para /company-setup se necessário
+6. Se tudo OK → mostra dashboard do comerciante
+
+BENEFÍCIOS:
+- Sem mais erros de hooks
+- Navegação fluida
+- UX melhorada com feedbacks visuais
+- Código mais robusto e maintível
+            </div>
+        </div>
+
+        <div class="fix-section info">
+            <h2>🔍 Se Ainda Houver Problemas</h2>
+            <p>Se o erro persistir, verifique:</p>
+            
+            <div class="code-block">
+OUTRAS POSSÍVEIS CAUSAS:
+
+1. Cache do navegador:
+   - Limpe cache e recarregue (Ctrl+Shift+R)
+   - Teste em modo incógnito
+
+2. Outros componentes:
+   - Verifique se MerchantDashboard tem problemas similares
+   - Verifique hooks em SettingsPanel, MonthlyAgenda, etc.
+
+3. Dependências:
+   - Verifique se todas as dependências estão atualizadas
+   - Reinicie o servidor de desenvolvimento
+
+4. Estado da aplicação:
+   - Limpe localStorage/sessionStorage
+   - Faça logout e login novamente
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 Teste de Correção de Hooks Carregado');
+            console.log('✅ Erro "Rendered more hooks" deve estar resolvido');
+            console.log('🧪 Teste o acesso à área do comerciante agora');
+            
+            // Verificar se ainda há erros no console
+            const originalError = console.error;
+            console.error = function(...args) {
+                if (args[0] && args[0].includes && args[0].includes('hooks')) {
+                    console.log('❌ AINDA HÁ ERRO DE HOOKS:', ...args);
+                }
+                originalError.apply(console, args);
+            };
+        });
+    </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 
 import { useParams } from 'react-router-dom';
 import { usePublicBooking } from '@/hooks/usePublicBooking';
-import { usePublicTheme } from '@/hooks/usePublicTheme';
+import { usePublicThemeApplication } from '@/hooks/usePublicThemeApplication';
 import LoadingState from '@/components/public-booking/LoadingState';
 import ErrorState from '@/components/public-booking/ErrorState';
 import ModernPublicBooking from '@/components/public-booking/ModernPublicBooking';
@@ -23,8 +23,8 @@ const PublicBooking = () => {
     error
   } = usePublicBooking(companySlug || '');
 
-  // Aplicar tema da empresa na página pública
-  usePublicTheme(companySettings);
+  // Aplicar tema personalizado APENAS na área pública
+  usePublicThemeApplication(companySlug);
 
   if (loading) {
     return <LoadingState />;

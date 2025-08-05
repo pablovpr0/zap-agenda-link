@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guia de Funcionalidades - Área do Comerciante</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .feature-section {
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 5px solid;
+        }
+        .available {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .new-feature {
+            background-color: #e7f3ff;
+            border-color: #007bff;
+            color: #004085;
+        }
+        .coming-soon {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .feature-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+        .test-button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .test-button:hover {
+            background-color: #0056b3;
+        }
+        .test-button.success {
+            background-color: #28a745;
+        }
+        .test-button.success:hover {
+            background-color: #1e7e34;
+        }
+        .test-button.new {
+            background-color: #17a2b8;
+        }
+        .test-button.new:hover {
+            background-color: #138496;
+        }
+        .steps {
+            list-style: none;
+            padding: 0;
+            counter-reset: step-counter;
+        }
+        .steps li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            counter-increment: step-counter;
+            position: relative;
+            padding-left: 40px;
+        }
+        .steps li:before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 10px;
+            background: #007bff;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+        .checklist li:before {
+            content: "✅ ";
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏪 Guia de Funcionalidades - Área do Comerciante</h1>
+        
+        <div class="feature-section available">
+            <h2>✅ Funcionalidades Disponíveis</h2>
+            <p>Estas funcionalidades já estão implementadas e funcionando na sua área administrativa:</p>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>📊 Dashboard Principal</h4>
+                    <ul class="checklist">
+                        <li>Visão geral dos agendamentos</li>
+                        <li>Estatísticas do negócio</li>
+                        <li>Acesso rápido às funcionalidades</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>📅 Agenda Mensal</h4>
+                    <ul class="checklist">
+                        <li>Visualização de agendamentos</li>
+                        <li>Calendário interativo</li>
+                        <li>Gerenciamento de horários</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>👥 Gerenciamento de Clientes</h4>
+                    <ul class="checklist">
+                        <li>Lista de clientes</li>
+                        <li>Histórico de agendamentos</li>
+                        <li>Informações de contato</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>💼 Gerenciamento de Serviços</h4>
+                    <ul class="checklist">
+                        <li>Cadastro de serviços</li>
+                        <li>Definição de preços</li>
+                        <li>Duração dos serviços</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="feature-section new-feature">
+            <h2>🎨 Novas Funcionalidades Implementadas</h2>
+            <p>Funcionalidades que acabamos de implementar e estão disponíveis:</p>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>🎨 Personalização de Tema Público</h4>
+                    <p><strong>Localização:</strong> Configurações → Tema Público</p>
+                    <ul class="checklist">
+                        <li>6 cores de tema disponíveis</li>
+                        <li>Modo claro/escuro</li>
+                        <li>Preview em tempo real</li>
+                        <li>Aplicação automática na área pública</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>📸 Sistema de Foto de Capa</h4>
+                    <p><strong>Localização:</strong> Configurações → Área Cliente</p>
+                    <ul class="checklist">
+                        <li>Upload de foto de capa</li>
+                        <li>Foto de perfil sobreposta</li>
+                        <li>Efeitos 3D e sombras dinâmicas</li>
+                        <li>Preview profissional</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <h3>🧪 Teste as Funcionalidades</h3>
+            <button class="test-button success" onclick="window.open('/', '_blank')">
+                🏠 Acessar Dashboard
+            </button>
+            <button class="test-button new" onclick="testThemeSettings()">
+                🎨 Testar Personalização de Tema
+            </button>
+            <button class="test-button new" onclick="testCoverSettings()">
+                📸 Testar Sistema de Capa
+            </button>
+        </div>
+
+        <div class="feature-section new-feature">
+            <h2>📍 Como Acessar as Novas Funcionalidades</h2>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>🎨 Personalização de Tema</h4>
+                    <ol class="steps">
+                        <li>Acesse o Dashboard (botão "🏠" acima)</li>
+                        <li>Clique no menu (⋯) no canto superior direito</li>
+                        <li>Selecione "Configurações" ou use Ctrl+, </li>
+                        <li>Clique na aba "Tema Público"</li>
+                        <li>Escolha cor e modo (claro/escuro)</li>
+                        <li>Use o preview para visualizar</li>
+                        <li>Clique em "Salvar Configurações"</li>
+                    </ol>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>📸 Sistema de Foto de Capa</h4>
+                    <ol class="steps">
+                        <li>Acesse o Dashboard</li>
+                        <li>Vá em Configurações</li>
+                        <li>Clique na aba "Área Cliente"</li>
+                        <li>Clique em "Configurar Foto de Capa e Perfil"</li>
+                        <li>Faça upload da foto de capa</li>
+                        <li>Visualize o preview</li>
+                        <li>Salve as alterações</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="feature-section available">
+            <h2>⚙️ Configurações Disponíveis</h2>
+            <p>Todas as abas de configurações e suas funcionalidades:</p>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>🔧 Geral</h4>
+                    <ul class="checklist">
+                        <li>Configurações básicas</li>
+                        <li>Preferências do sistema</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>🏢 Dados Básicos</h4>
+                    <ul class="checklist">
+                        <li>Nome da empresa</li>
+                        <li>Tipo de negócio</li>
+                        <li>Endereço e contato</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>⏰ Horários</h4>
+                    <ul class="checklist">
+                        <li>Dias de funcionamento</li>
+                        <li>Horários de atendimento</li>
+                        <li>Intervalos e pausas</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>🎨 Tema Público (NOVO)</h4>
+                    <ul class="checklist">
+                        <li>6 cores de tema</li>
+                        <li>Modo claro/escuro</li>
+                        <li>Preview em tempo real</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>👥 Área Cliente (ATUALIZADO)</h4>
+                    <ul class="checklist">
+                        <li>Personalização visual</li>
+                        <li>Sistema de foto de capa</li>
+                        <li>Configurações de aparência</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>📋 Cadastros</h4>
+                    <ul class="checklist">
+                        <li>Gerenciamento de dados</li>
+                        <li>Importação/exportação</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="feature-section coming-soon">
+            <h2>🚀 Melhorias Futuras</h2>
+            <p>Funcionalidades que podem ser implementadas:</p>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>📊 Analytics Avançado</h4>
+                    <ul class="checklist">
+                        <li>Relatórios detalhados</li>
+                        <li>Métricas de performance</li>
+                        <li>Gráficos interativos</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>🔔 Notificações</h4>
+                    <ul class="checklist">
+                        <li>Lembretes automáticos</li>
+                        <li>Confirmações por WhatsApp</li>
+                        <li>Alertas personalizados</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="feature-section available">
+            <h2>✅ Status Atual</h2>
+            <p><strong>Todas as funcionalidades prometidas foram implementadas:</strong></p>
+            <ul class="checklist">
+                <li><strong>Acesso à área do comerciante:</strong> ✅ Funcionando</li>
+                <li><strong>Sistema de temas dinâmicos:</strong> ✅ Implementado</li>
+                <li><strong>Foto de capa com efeitos 3D:</strong> ✅ Implementado</li>
+                <li><strong>Cores que seguem o tema:</strong> ✅ Funcionando</li>
+                <li><strong>Modo escuro/claro:</strong> ✅ Funcionando</li>
+                <li><strong>Preview em tempo real:</strong> ✅ Funcionando</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function testThemeSettings() {
+            alert('📍 Para testar a personalização de tema:\n\n1. Acesse o Dashboard\n2. Vá em Configurações\n3. Clique na aba "Tema Público"\n4. Escolha uma cor e teste o preview!');
+            window.open('/', '_blank');
+        }
+
+        function testCoverSettings() {
+            alert('📍 Para testar o sistema de foto de capa:\n\n1. Acesse o Dashboard\n2. Vá em Configurações\n3. Clique na aba "Área Cliente"\n4. Clique em "Configurar Foto de Capa e Perfil"!');
+            window.open('/', '_blank');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🏪 Guia de Funcionalidades Carregado');
+            console.log('✅ Todas as funcionalidades estão implementadas');
+            console.log('🎨 Teste a personalização de tema em Configurações → Tema Público');
+            console.log('📸 Teste o sistema de capa em Configurações → Área Cliente');
+        });
+    </script>
+</body>
+</html>

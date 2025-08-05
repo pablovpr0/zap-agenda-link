@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePublicBooking } from '@/hooks/usePublicBooking';
-import { usePublicTheme } from '@/hooks/usePublicTheme';
+
 import { useToast } from '@/hooks/use-toast';
 import LoadingState from '@/components/public-booking/LoadingState';
 import ErrorState from '@/components/public-booking/ErrorState';
 import CompanyProfileSection from '@/components/public-booking/CompanyProfileSection';
+import CompanyHeaderWithCover from '@/components/public-booking/CompanyHeaderWithCover';
 import ScheduleHeroCard from '@/components/public-booking/ScheduleHeroCard';
 import BookingDataCard from '@/components/public-booking/BookingDataCard';
 import ClientDataCard from '@/components/public-booking/ClientDataCard';
@@ -27,8 +28,7 @@ const ModernPublicBooking = () => {
     submitBooking
   } = usePublicBooking(companySlug || '');
 
-  // Aplicar tema da empresa
-  usePublicTheme(companySettings);
+  // Tema é aplicado automaticamente pelo hook usePublicThemeApplication na página pai
 
   // Estados do formulário
   const [selectedService, setSelectedService] = useState('');
@@ -46,18 +46,21 @@ const ModernPublicBooking = () => {
   useEffect(() => {
     const loadTimes = async () => {
       if (selectedDate && selectedService) {
+        console.log('📅 Data selecionada:', selectedDate, '- Carregando horários...');
         setIsLoadingTimes(true);
         setSelectedTime(''); // Reset time when loading new times
+        
         try {
           const selectedServiceData = services.find(s => s.id === selectedService);
           const serviceDuration = selectedServiceData?.duration || 30;
           
           console.log('🔄 Carregando horários para:', { selectedDate, selectedService, serviceDuration });
           
+          // Carregamento otimizado dos horários
           const times = await generateAvailableTimes(selectedDate, serviceDuration);
           setAvailableTimes(times);
           
-          console.log('✅ Horários carregados:', times);
+          console.log('✅ Horários carregados:', times.length, 'horários disponíveis');
         } catch (error) {
           console.error('❌ Erro ao carregar horários:', error);
           setAvailableTimes([]);
@@ -75,7 +78,9 @@ const ModernPublicBooking = () => {
       }
     };
 
-    loadTimes();
+    // Usar timeout mínimo para garantir que a UI seja atualizada imediatamente
+    const timeoutId = setTimeout(loadTimes, 0);
+    return () => clearTimeout(timeoutId);
   }, [selectedDate, selectedService, services]);
 
   const handleSubmit = async () => {
@@ -151,13 +156,15 @@ const ModernPublicBooking = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] overflow-x-hidden">
-      {/* Company Profile Section */}
-      <CompanyProfileSection
+    <div className="min-h-screen public-page overflow-x-hidden">
+      {/* Company Header with Cover */}
+      <CompanyHeaderWithCover
         companyName={profile.company_name}
         businessType={profile.business_type}
         address={companyData.address}
         logoUrl={companySettings.logo_url || profile.company_logo}
+        coverUrl={companySettings.cover_image_url}
+        canEditCover={false} // Área pública não permite edição
       />
 
       {/* Schedule Hero Card */}

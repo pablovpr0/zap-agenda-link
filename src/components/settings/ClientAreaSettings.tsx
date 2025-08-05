@@ -169,30 +169,33 @@ const ClientAreaSettings = ({ customization, onCustomizationChange }: ClientArea
           </div>
         </div>
         
-        {/* Profile and Cover Images */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label>Foto do Perfil</Label>
-            <div className="border-2 border-dashed border-whatsapp rounded-lg p-4 text-center mt-2">
-              <Camera className="w-8 h-8 text-whatsapp-muted mx-auto mb-2" />
-              <p className="text-sm text-whatsapp-muted mb-2">Clique para enviar foto do perfil</p>
-              <Button variant="outline" size="sm" className="border-whatsapp">
-                <Upload className="w-4 h-4 mr-2" />
-                Enviar Foto
-              </Button>
+        {/* Redirecionamento para Personalização Completa */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
+          <div className="text-center">
+            <Palette className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-blue-900 mb-2">
+              Personalização Completa
+            </h3>
+            <p className="text-sm text-blue-800 mb-4">
+              Para uma personalização completa da sua página pública, incluindo temas avançados, 
+              foto de capa e configurações visuais, use o menu "Personalizar Perfil".
+            </p>
+            <div className="bg-white/50 rounded-lg p-4 mb-4">
+              <p className="text-xs text-blue-700">
+                <strong>📍 Como acessar:</strong> Menu (⋯) → "Personalizar Perfil" → Seção "Personalização Visual"
+              </p>
             </div>
-          </div>
-          
-          <div>
-            <Label>Foto de Capa</Label>
-            <div className="border-2 border-dashed border-whatsapp rounded-lg p-4 text-center mt-2">
-              <Camera className="w-8 h-8 text-whatsapp-muted mx-auto mb-2" />
-              <p className="text-sm text-whatsapp-muted mb-2">Clique para enviar foto de capa</p>
-              <Button variant="outline" size="sm" className="border-whatsapp">
-                <Upload className="w-4 h-4 mr-2" />
-                Enviar Capa
-              </Button>
-            </div>
+            <Button 
+              variant="outline" 
+              className="border-blue-300 text-blue-700 hover:bg-blue-100"
+              onClick={() => {
+                // Fechar modal atual e abrir personalização
+                window.parent.postMessage('openProfileCustomization', '*');
+              }}
+            >
+              <Palette className="w-4 h-4 mr-2" />
+              Ir para Personalização Completa
+            </Button>
           </div>
         </div>
       </CardContent>

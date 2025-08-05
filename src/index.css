@@ -40,8 +40,21 @@
   --public-theme-primary: #19c662;
   --public-theme-secondary: #128c7e;
   --public-theme-accent: #34d399;
-  --public-theme-background: #f0fdf4;
+  --public-theme-background: #ffffff;
+  --public-theme-surface: #f8f9fa;
+  --public-theme-text: #1f2937;
+  --public-theme-text-secondary: #6b7280;
+  --public-theme-border: #e5e7eb;
   --public-theme-gradient: linear-gradient(135deg, #19c662 0%, #128c7e 100%);
+  
+  /* Cores dinâmicas que mudam com o tema */
+  --dynamic-primary: var(--public-theme-primary);
+  --dynamic-secondary: var(--public-theme-secondary);
+  --dynamic-accent: var(--public-theme-accent);
+  --dynamic-success: var(--public-theme-primary);
+  --dynamic-info: #3b82f6;
+  --dynamic-warning: #f59e0b;
+  --dynamic-danger: #ef4444;
 
   /* Design System - Client Area UI/UX */
   /* Colors */
@@ -115,6 +128,85 @@
   background-color: var(--theme-secondary) !important;
 }
 
+/* Sistema de cores dinâmicas para área pública */
+.public-area .dynamic-primary {
+  color: var(--dynamic-primary) !important;
+}
+
+.public-area .dynamic-bg-primary {
+  background-color: var(--dynamic-primary) !important;
+}
+
+.public-area .dynamic-border-primary {
+  border-color: var(--dynamic-primary) !important;
+}
+
+.public-area .dynamic-secondary {
+  color: var(--dynamic-secondary) !important;
+}
+
+.public-area .dynamic-bg-secondary {
+  background-color: var(--dynamic-secondary) !important;
+}
+
+.public-area .dynamic-selected-bg {
+  background-color: color-mix(in srgb, var(--dynamic-primary) 15%, transparent) !important;
+}
+
+/* Botões neutros - garantir que não sejam afetados por outras regras */
+.public-area .neutral-button {
+  background-color: white !important;
+  border-color: #d1d5db !important;
+  color: #6b7280 !important;
+}
+
+.public-area .neutral-button:hover {
+  background-color: #f9fafb !important;
+  border-color: #9ca3af !important;
+  color: #374151 !important;
+}
+
+.public-area.dark-mode .neutral-button {
+  background-color: var(--public-theme-surface) !important;
+  border-color: var(--public-theme-border) !important;
+  color: var(--public-theme-text-secondary) !important;
+}
+
+.public-area.dark-mode .neutral-button:hover {
+  background-color: color-mix(in srgb, var(--public-theme-surface) 90%, white) !important;
+  border-color: color-mix(in srgb, var(--public-theme-border) 80%, white) !important;
+  color: var(--public-theme-text) !important;
+}
+
+/* Aplicar cores dinâmicas na área pública */
+.public-area .bg-whatsapp-green,
+.public-area .bg-\[#19c662\] {
+  background-color: var(--dynamic-primary) !important;
+}
+
+.public-area .text-whatsapp-green,
+.public-area .text-\[#19c662\] {
+  color: var(--dynamic-primary) !important;
+}
+
+.public-area .border-whatsapp,
+.public-area .border-\[#19c662\] {
+  border-color: var(--dynamic-primary) !important;
+}
+
+.public-area .bg-\[#d0ffcf\] {
+  background-color: color-mix(in srgb, var(--dynamic-primary) 20%, white) !important;
+}
+
+.public-area .text-\[#005c39\] {
+  color: var(--dynamic-secondary) !important;
+}
+
+.public-area .hover\:bg-green-600:hover,
+.public-area .hover\:bg-\[#005c39\]:hover {
+  background-color: var(--dynamic-secondary) !important;
+}
+
 /* Logo arredondada e grande */
 .company-logo {
   width: 120px;
@@ -125,35 +217,228 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Classes específicas para página pública */
-.public-page {
-  background: var(--public-theme-background);
+/* Efeitos para foto de perfil com capa */
+.company-profile-shadow {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
-.public-primary {
+.company-profile-3d-shadow {
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+}
+
+/* Sombras dinâmicas baseadas no tema */
+.public-area .company-profile-shadow {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.public-area.dark-mode .company-profile-shadow {
+  box-shadow: 0 8px 32px rgba(255, 255, 255, 0.1);
+}
+
+.public-area .company-profile-3d-shadow {
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+}
+
+.public-area.dark-mode .company-profile-3d-shadow {
+  box-shadow: 0 16px 48px rgba(255, 255, 255, 0.15);
+}
+
+/* Gradiente para transição da capa */
+.public-gradient-overlay {
+  background: linear-gradient(to top, var(--public-theme-background), transparent);
+}
+
+/* ========================================
+   SEPARAÇÃO DE ESTILOS: PÚBLICO vs ADMIN
+   ======================================== */
+
+/* Área Pública - Personalizável pelo comerciante */
+.public-area {
+  /* Aplicar tema personalizado apenas na área pública */
+  background: var(--public-theme-background) !important;
+  color: var(--public-theme-text) !important;
+}
+
+.public-area .public-page {
+  background: var(--public-theme-background) !important;
+  color: var(--public-theme-text) !important;
+  transition: all 0.3s ease;
+}
+
+/* Área Administrativa - Tema fixo do sistema */
+.admin-area {
+  /* Manter tema padrão do sistema */
+  --admin-primary: #19c662;
+  --admin-secondary: #128c7e;
+  --admin-background: #ffffff;
+  --admin-text: #1f2937;
+  background: var(--admin-background) !important;
+  color: var(--admin-text) !important;
+}
+
+/* Estilos aplicados APENAS na área pública */
+.public-area .public-surface {
+  background-color: var(--public-theme-surface);
+  color: var(--public-theme-text);
+}
+
+.public-area .public-text {
+  color: var(--public-theme-text);
+}
+
+.public-area .public-text-secondary {
+  color: var(--public-theme-text-secondary);
+}
+
+.public-area .public-border {
+  border-color: var(--public-theme-border);
+}
+
+.public-area .public-primary {
   color: var(--public-theme-primary) !important;
 }
 
-.public-bg-primary {
+.public-area .public-bg-primary {
   background-color: var(--public-theme-primary) !important;
 }
 
-.public-border-primary {
+.public-area .public-border-primary {
   border-color: var(--public-theme-primary) !important;
 }
 
-.public-gradient {
+.public-area .public-gradient {
   background: var(--public-theme-gradient) !important;
 }
 
-.public-button {
+.public-area .public-button {
   background-color: var(--public-theme-primary) !important;
   border-color: var(--public-theme-primary) !important;
+  color: white !important;
 }
 
-.public-button:hover {
+.public-area .public-button:hover {
   background-color: var(--public-theme-secondary) !important;
   border-color: var(--public-theme-secondary) !important;
+}
+
+/* Garantir que área administrativa use cores padrão */
+.admin-area .bg-whatsapp-green {
+  background-color: var(--admin-primary) !important;
+}
+
+.admin-area .text-whatsapp-green {
+  color: var(--admin-primary) !important;
+}
+
+.admin-area .border-whatsapp {
+  border-color: var(--admin-primary) !important;
+}
+
+/* Dark mode específico APENAS para área pública */
+.public-area.dark-mode {
+  /* Sobrescrever variáveis do Tailwind para modo escuro */
+  --background: 26 26 26; /* #1a1a1a em HSL */
+  --foreground: 255 255 255; /* #ffffff em HSL */
+  --card: 45 45 45; /* #2d2d2d em HSL */
+  --card-foreground: 255 255 255; /* #ffffff em HSL */
+  --popover: 45 45 45; /* #2d2d2d em HSL */
+  --popover-foreground: 255 255 255; /* #ffffff em HSL */
+  --border: 64 64 64; /* #404040 em HSL */
+  --input: 64 64 64; /* #404040 em HSL */
+  --muted: 45 45 45; /* #2d2d2d em HSL */
+  --muted-foreground: 179 179 179; /* #b3b3b3 em HSL */
+  --secondary: 45 45 45; /* #2d2d2d em HSL */
+  --secondary-foreground: 255 255 255; /* #ffffff em HSL */
+}
+
+.public-area.dark-mode .public-page {
+  background: var(--public-theme-background) !important;
+  color: var(--public-theme-text) !important;
+}
+
+.public-area.dark-mode .public-surface {
+  background-color: var(--public-theme-surface) !important;
+  color: var(--public-theme-text) !important;
+}
+
+.public-area.dark-mode .public-text {
+  color: var(--public-theme-text) !important;
+}
+
+.public-area.dark-mode .public-text-secondary {
+  color: var(--public-theme-text-secondary) !important;
+}
+
+.public-area.dark-mode .public-border {
+  border-color: var(--public-theme-border) !important;
+}
+
+/* Aplicar modo escuro aos cards do Tailwind */
+.public-area.dark-mode .bg-white,
+.public-area.dark-mode .public-surface {
+  background-color: var(--public-theme-surface) !important;
+}
+
+.public-area.dark-mode .bg-gray-50 {
+  background-color: var(--public-theme-surface) !important;
+}
+
+.public-area.dark-mode .bg-gray-100 {
+  background-color: var(--public-theme-surface) !important;
+}
+
+.public-area.dark-mode .text-gray-900,
+.public-area.dark-mode .public-text {
+  color: var(--public-theme-text) !important;
+}
+
+.public-area.dark-mode .text-gray-800 {
+  color: var(--public-theme-text) !important;
+}
+
+.public-area.dark-mode .text-gray-700,
+.public-area.dark-mode .public-text-secondary {
+  color: var(--public-theme-text-secondary) !important;
+}
+
+.public-area.dark-mode .text-gray-600 {
+  color: var(--public-theme-text-secondary) !important;
+}
+
+.public-area.dark-mode .text-black {
+  color: var(--public-theme-text) !important;
+}
+
+.public-area.dark-mode .border-gray-200,
+.public-area.dark-mode .public-border {
+  border-color: var(--public-theme-border) !important;
+}
+
+.public-area.dark-mode .border-gray-300 {
+  border-color: var(--public-theme-border) !important;
+}
+
+/* Garantir que as classes públicas funcionem mesmo sem dark mode */
+.public-area .public-surface {
+  background-color: var(--public-theme-surface);
+}
+
+.public-area .public-text {
+  color: var(--public-theme-text);
+}
+
+.public-area .public-text-secondary {
+  color: var(--public-theme-text-secondary);
+}
+
+.public-area .public-border {
+  border-color: var(--public-theme-border);
+}
+
+/* Garantir que área administrativa NUNCA use dark mode automático */
+.admin-area {
+  background: var(--admin-background);
+  color: var(--admin-text);
 }
 
 /* Aplicar tema público aos componentes existentes na página pública */
@@ -453,12 +738,12 @@ All colors MUST be HSL.
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #e0e0e0;
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  background: #d1d5db;
 }
 
 /* Dark mode scrollbar */

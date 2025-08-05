@@ -157,6 +157,71 @@ export const themes: Theme[] = [
     },
     description: 'Metálico e contemporâneo'
   },
+  {
+    id: 'natureza-profissional',
+    name: 'Natureza Profissional',
+    category: 'masculine',
+    colors: {
+      primary: '#19c662',
+      secondary: '#16a34a',
+      accent: '#22c55e',
+      background: '#f0fdf4',
+      gradient: 'linear-gradient(135deg, #19c662 0%, #16a34a 100%)'
+    },
+    description: 'Verde natural com toque profissional'
+  },
+  {
+    id: 'verde-corporativo',
+    name: 'Verde Corporativo',
+    category: 'masculine',
+    colors: {
+      primary: '#19c662',
+      secondary: '#15803d',
+      accent: '#4ade80',
+      background: '#f7fef7',
+      gradient: 'linear-gradient(135deg, #19c662 0%, #15803d 100%)'
+    },
+    description: 'Verde elegante para ambiente corporativo'
+  },
+  {
+    id: 'elegancia-verde',
+    name: 'Elegância Verde',
+    category: 'masculine',
+    colors: {
+      primary: '#19c662',
+      secondary: '#166534',
+      accent: '#34d399',
+      background: '#ecfdf5',
+      gradient: 'linear-gradient(135deg, #19c662 0%, #166534 100%)'
+    },
+    description: 'Verde sofisticado e elegante'
+  },
+  {
+    id: 'verde-moderno',
+    name: 'Verde Moderno',
+    category: 'masculine',
+    colors: {
+      primary: '#19c662',
+      secondary: '#10b981',
+      accent: '#6ee7b7',
+      background: '#f0fdfa',
+      gradient: 'linear-gradient(135deg, #19c662 0%, #10b981 100%)'
+    },
+    description: 'Verde contemporâneo e moderno'
+  },
+  {
+    id: 'verde-classico',
+    name: 'Verde Clássico',
+    category: 'masculine',
+    colors: {
+      primary: '#19c662',
+      secondary: '#059669',
+      accent: '#2dd4bf',
+      background: '#f0fdf4',
+      gradient: 'linear-gradient(135deg, #19c662 0%, #059669 100%)'
+    },
+    description: 'Verde tradicional e atemporal'
+  },
 
   // TEMAS FEMININOS (10)
   {

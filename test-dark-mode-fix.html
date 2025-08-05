@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Correção do Modo Escuro</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .code {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 10px 0;
+            border: 1px solid #e9ecef;
+        }
+        .test-button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐛 Correção do Bug: Modo Escuro nos Cards</h1>
+        
+        <div class="status success">
+            <h3>✅ Problema Identificado</h3>
+            <p>Os cards estavam usando classes CSS fixas (<code>bg-white</code>) em vez das variáveis CSS do tema.</p>
+        </div>
+
+        <div class="status info">
+            <h3>🔧 Correções Aplicadas</h3>
+            <ul>
+                <li><strong>BookingDataCard.tsx:</strong> Adicionadas classes <code>public-surface</code>, <code>public-text</code>, <code>public-text-secondary</code>, <code>public-border</code></li>
+                <li><strong>ClientDataCard.tsx:</strong> Aplicadas classes de tema nos inputs e textos</li>
+                <li><strong>ScheduleHeroCard.tsx:</strong> Corrigidas classes de texto e fundo</li>
+                <li><strong>TimeSelection.tsx:</strong> Aplicadas classes de tema nos botões e textos</li>
+                <li><strong>CompanyProfileSection.tsx:</strong> Corrigidas classes de texto</li>
+                <li><strong>index.css:</strong> Melhoradas regras CSS para garantir aplicação correta do tema</li>
+            </ul>
+        </div>
+
+        <div class="status warning">
+            <h3>🧪 Como Testar</h3>
+            <ol>
+                <li>Acesse a página de teste: <code>/theme-test</code></li>
+                <li>Altere a cor do tema e ative o modo escuro</li>
+                <li>Abra a área pública em uma nova aba</li>
+                <li>Verifique se os cards agora seguem o tema selecionado</li>
+            </ol>
+        </div>
+
+        <div class="code">
+            <h4>Estrutura das Classes Aplicadas:</h4>
+            <pre>
+• public-surface: Cor de fundo dos cards
+• public-text: Cor do texto principal
+• public-text-secondary: Cor do texto secundário
+• public-border: Cor das bordas
+• public-primary: Cor primária do tema
+• public-bg-primary: Fundo com cor primária
+            </pre>
+        </div>
+
+        <div class="status info">
+            <h3>📋 Comportamento Esperado</h3>
+            <ul>
+                <li><strong>Modo Claro:</strong> Cards brancos com texto escuro</li>
+                <li><strong>Modo Escuro:</strong> Cards escuros (#2d2d2d) com texto claro</li>
+                <li><strong>Cores do Tema:</strong> Elementos de destaque seguem a cor selecionada</li>
+                <li><strong>Contraste:</strong> Textos mantêm legibilidade adequada</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="test-button" onclick="window.open('/theme-test', '_blank')">
+                🧪 Abrir Página de Teste
+            </button>
+            <button class="test-button" onclick="window.open('/public/pablo', '_blank')">
+                🌐 Abrir Área Pública
+            </button>
+        </div>
+
+        <div class="status success" style="margin-top: 20px;">
+            <h3>✅ Resultado Final</h3>
+            <p>Agora os cards na área pública devem:</p>
+            <ul>
+                <li>Mudar para fundo escuro quando o modo escuro estiver ativo</li>
+                <li>Adaptar as cores dos textos para manter contraste adequado</li>
+                <li>Seguir consistentemente o tema selecionado pelo comerciante</li>
+                <li>Manter a área administrativa inalterada (sempre tema padrão)</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

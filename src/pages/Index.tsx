@@ -28,6 +28,17 @@ const Index = () => {
   const [profileComplete, setProfileComplete] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+
+  // Garantir que área administrativa tenha classe correta
+  useEffect(() => {
+    document.body.classList.add('admin-area');
+    document.body.classList.remove('public-area');
+    
+    return () => {
+      document.body.classList.remove('admin-area');
+    };
+  }, []);
 
   useEffect(() => {
     if (isLoading) return;
@@ -75,21 +86,6 @@ const Index = () => {
     window.location.reload();
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-whatsapp-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-xl font-bold text-whatsapp-green">ZapAgenda</div>
-          <div className="text-whatsapp-muted">Carregando...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user || !profileComplete) {
-    return null; // Will redirect via useEffect
-  }
-
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard':
@@ -106,6 +102,30 @@ const Index = () => {
         return <MerchantDashboard companyName={companyName} onViewChange={setCurrentView} />;
     }
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-whatsapp-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl font-bold text-whatsapp-green">ZapAgenda</div>
+          <div className="text-whatsapp-muted">Carregando...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect states - show loading while redirecting
+  if (!user || !profileComplete) {
+    return (
+      <div className="min-h-screen bg-whatsapp-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl font-bold text-whatsapp-green">ZapAgenda</div>
+          <div className="text-whatsapp-muted">Redirecionando...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

@@ -21,10 +21,10 @@ const TimeSelection = ({
   if (isLoading) {
     return (
       <div className="space-y-3">
-        <Label className="text-black font-medium">Horários Disponíveis</Label>
+        <Label className="text-black public-text font-medium">Horários Disponíveis</Label>
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#19c662]"></div>
-          <span className="ml-2 text-gray-600">Carregando horários...</span>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#19c662] dynamic-border-primary"></div>
+          <span className="ml-2 text-gray-600 public-text-secondary">Carregando horários...</span>
         </div>
       </div>
     );
@@ -34,21 +34,21 @@ const TimeSelection = ({
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label className="text-black font-medium">Horários Disponíveis</Label>
+          <Label className="text-black public-text font-medium">Horários Disponíveis</Label>
           {onRefresh && (
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={onRefresh}
-              className="text-xs border-gray-300 hover:border-[#19c662] hover:text-[#19c662]"
+              className="text-xs neutral-button"
             >
               <RefreshCw className="w-3 h-3 mr-1" />
               Atualizar
             </Button>
           )}
         </div>
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-gray-500 public-text-secondary">
           <p className="text-sm">Não há horários disponíveis para esta data</p>
           <p className="text-xs mt-1">Tente selecionar outro dia ou serviço</p>
         </div>
@@ -59,14 +59,14 @@ const TimeSelection = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Label className="text-black font-medium">Horários Disponíveis</Label>
+        <Label className="text-black public-text font-medium">Horários Disponíveis</Label>
         {onRefresh && (
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onRefresh}
-            className="text-xs border-gray-300 hover:border-[#19c662] hover:text-[#19c662]"
+            className="text-xs neutral-button"
           >
             <RefreshCw className="w-3 h-3 mr-1" />
             Atualizar
@@ -85,8 +85,8 @@ const TimeSelection = ({
               className={`
                 px-4 py-3 text-sm font-medium rounded-lg border-2 whitespace-nowrap min-w-[80px] transition-all duration-200
                 ${selectedTime === time 
-                  ? 'bg-[#19c662] text-white border-[#19c662] shadow-md' 
-                  : 'bg-white text-black border-gray-300 hover:border-[#19c662] hover:bg-gray-50'
+                  ? 'bg-[#19c662] dynamic-bg-primary text-white border-[#19c662] dynamic-border-primary shadow-md' 
+                  : 'bg-white public-surface text-black public-text border-gray-300 public-border hover:border-[#19c662] hover:dynamic-border-primary hover:bg-gray-50'
                 }
               `}
             >
@@ -96,7 +96,7 @@ const TimeSelection = ({
         </div>
       </div>
       
-      <div className="text-xs text-[#19c662] text-center mt-2">
+      <div className="text-xs text-[#19c662] dynamic-primary text-center mt-2">
         ✅ Apenas horários realmente disponíveis são exibidos
       </div>
     </div>

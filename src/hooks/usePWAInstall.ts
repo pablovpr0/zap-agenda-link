@@ -17,7 +17,13 @@ export const usePWAInstall = () => {
   const location = useLocation();
 
   // Determina se é área do cliente (URL pública) ou comerciante
-  const isClientArea = location.pathname.startsWith('/public/');
+  const isClientArea = location.pathname.startsWith('/public/') || 
+                       (location.pathname !== '/' && 
+                        location.pathname !== '/auth' && 
+                        location.pathname !== '/company-setup' && 
+                        !location.pathname.startsWith('/create-test') &&
+                        !location.pathname.startsWith('/debug') &&
+                        !location.pathname.startsWith('/fix-'));
   
   const appName = isClientArea ? 'ZapAgenda Cliente' : 'ZapAgenda Comércio';
   const installMessage = isClientArea 
@@ -28,7 +34,8 @@ export const usePWAInstall = () => {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setShowInstallPrompt(true);
+      // Só mostrar o pop-up se NÃO for área do cliente (página pública)
+      setShowInstallPrompt(!isClientArea);
     };
 
     const handleAppInstalled = () => {

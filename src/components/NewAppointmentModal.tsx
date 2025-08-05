@@ -6,13 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { CalendarIcon, Clock, User, Phone, Plus } from 'lucide-react';
+import { CalendarIcon, Clock, User, Phone, Plus, Search, UserPlus, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
-import { getStorageData, setStorageData, MockClient, MockService, MockProfessional, MockAppointment, STORAGE_KEYS } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NewAppointmentModalProps {
   isOpen: boolean;
@@ -20,38 +22,95 @@ interface NewAppointmentModalProps {
   onSuccess: () => void;
 }
 
+interface Client {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+}
+
+interface Service {
+  id: string;
+  name: string;
+  duration: number;
+  price: number;
+  description?: string;
+}
+
+interface Professional {
+  id: string;
+  name: string;
+  phone: string;
+}
+
 const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModalProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [clientName, setClientName] = useState('');
-  const [clientPhone, setClientPhone] = useState('');
-  const [selectedService, setSelectedService] = useState('');
+  // Client selection states
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [isNewClient, setIsNewClient] = useState(false);
+  const [showClientSelector, setShowClientSelector] = useState(false);
+  
+  // New client form states
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
+  const [newClientEmail, setNewClientEmail] = useState('');
+
+  // Service and appointment states
+  const [services, setServices] = useState<Service[]>([]);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [selectedProfessional, setSelectedProfessional] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [services, setServices] = useState<MockService[]>([]);
-  const [professionals, setProfessionals] = useState<MockProfessional[]>([]);
+  const [selectedTime, setSelectedTime] = useState('');
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  
+  // Loading states
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [loadingTimes, setLoadingTimes] = useState(false);
+  const [loadingServices, setLoadingServices] = useState(false);
 
   useEffect(() => {
     if (isOpen && user) {
-      loadData();
+      loadInitialData();
+      resetForm();
     }
   }, [isOpen, user]);
 
-  const loadData = async () => {
+  // Load available times when date and service change
+  useEffect(() => {
+    if (selectedDate && selectedService && user) {
+      loadAvailableTimes();
+    }
+  }, [selectedDate, selectedService, user]);
+
+  const resetForm = () => {
+    setSelectedClient(null);
+    setClientSearchTerm('');
+    setIsNewClient(false);
+    setShowClientSelector(false);
+    setNewClientName('');
+    setNewClientPhone('');
+    setNewClientEmail('');
+    setSelectedService(null);
+    setSelectedProfessional('');
+    setSelectedDate(undefined);
+    setSelectedTime('');
+    setAvailableTimes([]);
+  };
+
+  const loadInitialData = async () => {
     setLoading(true);
     try {
-      const servicesData = getStorageData<MockService[]>(STORAGE_KEYS.SERVICES, []);
-      const professionalsData = getStorageData<MockProfessional[]>(STORAGE_KEYS.PROFESSIONALS, []);
-
-      // Filter services and professionals by company_id
-      const filteredServices = servicesData.filter(service => service.company_id === user?.id && service.is_active);
-      const filteredProfessionals = professionalsData.filter(professional => professional.company_id === user?.id && professional.is_active);
-
-      setServices(filteredServices);
-      setProfessionals(filteredProfessionals);
+      await Promise.all([
+        loadClients(),
+        loadServices(),
+        loadProfessionals()
+      ]);
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -63,13 +122,111 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
     }
   };
 
+  const loadClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, name, phone, email')
+        .eq('company_id', user!.id)
+        .order('name');
+
+      if (error) throw error;
+      setClients(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar clientes:', error);
+    }
+  };
+
+  const loadServices = async () => {
+    setLoadingServices(true);
+    try {
+      const { data, error } = await supabase
+        .from('services')
+        .select('id, name, duration, price, description')
+        .eq('company_id', user!.id)
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      setServices(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar serviços:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os serviços.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
+  const loadProfessionals = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('professionals')
+        .select('id, name, phone')
+        .eq('company_id', user!.id)
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      setProfessionals(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar profissionais:', error);
+    }
+  };
+
+  const loadAvailableTimes = async () => {
+    if (!selectedDate || !selectedService) return;
+
+    setLoadingTimes(true);
+    try {
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      
+      // Import the updated checkAvailableTimes function
+      const { checkAvailableTimes } = await import('@/services/publicBookingService');
+      
+      // Get available times using the new daily schedule system
+      const times = await checkAvailableTimes(
+        user!.id,
+        formattedDate,
+        selectedService.duration
+      );
+
+      setAvailableTimes(times);
+    } catch (error) {
+      console.error('Erro ao carregar horários:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os horários disponíveis.",
+        variant: "destructive",
+      });
+      setAvailableTimes([]);
+    } finally {
+      setLoadingTimes(false);
+    }
+  };
+
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!clientName || !clientPhone || !selectedService || !selectedDate) {
+    // Validation
+    if (!selectedService || !selectedDate || !selectedTime) {
       toast({
         title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        description: "Por favor, selecione serviço, data e horário.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedClient && (!newClientName || !newClientPhone)) {
+      toast({
+        title: "Cliente obrigatório",
+        description: "Selecione um cliente existente ou preencha os dados do novo cliente.",
         variant: "destructive",
       });
       return;
@@ -78,52 +235,41 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
     setSubmitting(true);
 
     try {
-      // Format the selected date to 'YYYY-MM-DD'
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      let clientId = selectedClient?.id;
 
-      // Create or find client
-      let clientId;
-      const clients = getStorageData<MockClient[]>(STORAGE_KEYS.CLIENTS, []);
-      let existingClient = clients.find(client => client.company_id === user?.id && client.phone === clientPhone);
+      // Create new client if needed
+      if (!selectedClient && isNewClient) {
+        const { data: newClient, error: clientError } = await supabase
+          .from('clients')
+          .insert({
+            company_id: user!.id,
+            name: newClientName,
+            phone: newClientPhone,
+            email: newClientEmail || null
+          })
+          .select()
+          .single();
 
-      if (existingClient) {
-        clientId = existingClient.id;
-        // Update existing client
-        existingClient = { ...existingClient, name: clientName };
-        const updatedClients = clients.map(client => client.id === clientId ? existingClient! : client);
-        setStorageData(STORAGE_KEYS.CLIENTS, updatedClients);
-      } else {
-        // Create new client
-        clientId = `client-${Date.now()}`;
-        const newClient: MockClient = {
-          id: clientId,
-          company_id: user!.id,
-          name: clientName,
-          phone: clientPhone,
-          created_at: new Date().toISOString()
-        };
-        clients.push(newClient);
-        setStorageData(STORAGE_KEYS.CLIENTS, clients);
+        if (clientError) throw clientError;
+        clientId = newClient.id;
       }
 
       // Create appointment
-      const appointmentId = `appointment-${Date.now()}`;
-      const newAppointment: MockAppointment = {
-        id: appointmentId,
-        company_id: user!.id,
-        client_id: clientId,
-        service_id: selectedService,
-        professional_id: selectedProfessional || undefined,
-        appointment_date: formattedDate,
-        appointment_time: '09:00', // Mock time
-        duration: 60, // Mock duration
-        status: 'confirmed',
-        created_at: new Date().toISOString()
-      };
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      const { error: appointmentError } = await supabase
+        .from('appointments')
+        .insert({
+          company_id: user!.id,
+          client_id: clientId,
+          service_id: selectedService.id,
+          professional_id: selectedProfessional || null,
+          appointment_date: formattedDate,
+          appointment_time: selectedTime,
+          duration: selectedService.duration,
+          status: 'confirmed'
+        });
 
-      const appointments = getStorageData<MockAppointment[]>(STORAGE_KEYS.APPOINTMENTS, []);
-      appointments.push(newAppointment);
-      setStorageData(STORAGE_KEYS.APPOINTMENTS, appointments);
+      if (appointmentError) throw appointmentError;
 
       toast({
         title: "Agendamento criado!",
@@ -134,6 +280,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       onClose();
 
     } catch (error: any) {
+      console.error('Erro ao criar agendamento:', error);
       toast({
         title: "Erro",
         description: "Não foi possível criar o agendamento. Tente novamente.",
@@ -143,6 +290,11 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       setSubmitting(false);
     }
   };
+
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+    client.phone.includes(clientSearchTerm)
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -160,57 +312,217 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Client Name */}
-            <div className="space-y-2">
-              <Label htmlFor="client-name">Nome do Cliente</Label>
-              <Input
-                id="client-name"
-                type="text"
-                placeholder="Nome completo do cliente"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                required
-              />
-            </div>
+            {/* Client Selection */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Cliente</Label>
+              
+              {!selectedClient ? (
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={!isNewClient ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setIsNewClient(false);
+                        setShowClientSelector(true);
+                      }}
+                      className="flex-1"
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Cliente Existente
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={isNewClient ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setIsNewClient(true);
+                        setShowClientSelector(false);
+                      }}
+                      className="flex-1"
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Novo Cliente
+                    </Button>
+                  </div>
 
-            {/* Client Phone */}
-            <div className="space-y-2">
-              <Label htmlFor="client-phone">Telefone do Cliente</Label>
-              <Input
-                id="client-phone"
-                type="tel"
-                placeholder="(XX) XXXX-XXXX"
-                value={clientPhone}
-                onChange={(e) => setClientPhone(e.target.value)}
-                required
-              />
+                  {/* Existing Client Selector */}
+                  {!isNewClient && (
+                    <Popover open={showClientSelector} onOpenChange={setShowClientSelector}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className="w-full justify-between"
+                        >
+                          <span className="flex items-center">
+                            <Search className="w-4 h-4 mr-2" />
+                            {selectedClient ? selectedClient.name : "Buscar cliente..."}
+                          </span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput
+                            placeholder="Digite nome ou telefone..."
+                            value={clientSearchTerm}
+                            onValueChange={setClientSearchTerm}
+                          />
+                          <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                          <CommandGroup className="max-h-48 overflow-y-auto">
+                            {filteredClients.map((client) => (
+                              <CommandItem
+                                key={client.id}
+                                onSelect={() => {
+                                  setSelectedClient(client);
+                                  setShowClientSelector(false);
+                                }}
+                                className="flex items-center justify-between"
+                              >
+                                <div>
+                                  <div className="font-medium">{client.name}</div>
+                                  <div className="text-sm text-gray-500">{client.phone}</div>
+                                </div>
+                                {selectedClient?.id === client.id && (
+                                  <CheckCircle className="w-4 h-4 text-green-600" />
+                                )}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+
+                  {/* New Client Form */}
+                  {isNewClient && (
+                    <div className="space-y-3 p-3 border rounded-lg bg-gray-50">
+                      <div>
+                        <Label htmlFor="new-client-name" className="text-sm">Nome *</Label>
+                        <Input
+                          id="new-client-name"
+                          placeholder="Nome completo"
+                          value={newClientName}
+                          onChange={(e) => setNewClientName(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="new-client-phone" className="text-sm">Telefone *</Label>
+                        <Input
+                          id="new-client-phone"
+                          placeholder="(XX) XXXXX-XXXX"
+                          value={newClientPhone}
+                          onChange={(e) => setNewClientPhone(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="new-client-email" className="text-sm">Email</Label>
+                        <Input
+                          id="new-client-email"
+                          type="email"
+                          placeholder="email@exemplo.com"
+                          value={newClientEmail}
+                          onChange={(e) => setNewClientEmail(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-3 border rounded-lg bg-green-50">
+                  <div>
+                    <div className="font-medium text-green-800">{selectedClient.name}</div>
+                    <div className="text-sm text-green-600">{selectedClient.phone}</div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedClient(null)}
+                    className="text-green-600 hover:text-green-800"
+                  >
+                    Alterar
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Service Selection */}
             <div className="space-y-2">
-              <Label htmlFor="service">Serviço</Label>
-              <Select value={selectedService} onValueChange={setSelectedService} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um serviço" />
-                </SelectTrigger>
-                <SelectContent>
-                  {services.map((service) => (
-                    <SelectItem key={service.id} value={service.id}>
-                      {service.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Serviço *</Label>
+              {loadingServices ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-whatsapp-green"></div>
+                  <span className="ml-2 text-sm">Carregando serviços...</span>
+                </div>
+              ) : services.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  <p className="text-sm">Nenhum serviço cadastrado</p>
+                  <p className="text-xs">Cadastre serviços primeiro</p>
+                </div>
+              ) : (
+                <Select 
+                  value={selectedService?.id || ''} 
+                  onValueChange={(value) => {
+                    const service = services.find(s => s.id === value);
+                    setSelectedService(service || null);
+                    setSelectedTime(''); // Reset time when service changes
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um serviço" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {services.map((service) => (
+                      <SelectItem key={service.id} value={service.id}>
+                        <div className="flex items-center justify-between w-full">
+                          <span>{service.name}</span>
+                          <div className="flex items-center gap-2 ml-2">
+                            <Badge variant="secondary" className="text-xs">
+                              {service.duration}min
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              R$ {service.price.toFixed(2)}
+                            </Badge>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
+            {/* Professional Selection (Optional) */}
+            {professionals.length > 0 && (
+              <div className="space-y-2">
+                <Label>Profissional (Opcional)</Label>
+                <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um profissional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Qualquer profissional</SelectItem>
+                    {professionals.map((professional) => (
+                      <SelectItem key={professional.id} value={professional.id}>
+                        {professional.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Date Selection */}
             <div className="space-y-2">
-              <Label>Data</Label>
+              <Label>Data *</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
+                    variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
                       !selectedDate && "text-muted-foreground"
@@ -224,27 +536,69 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="center" side="bottom">
+                <PopoverContent className="w-auto p-0">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    disabled={(date) =>
-                      date < new Date()
-                    }
+                    onSelect={(date) => {
+                      setSelectedDate(date);
+                      setSelectedTime(''); // Reset time when date changes
+                    }}
+                    disabled={(date) => date < new Date()}
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
             </div>
 
+            {/* Time Selection */}
+            {selectedDate && selectedService && (
+              <div className="space-y-2">
+                <Label>Horário *</Label>
+                {loadingTimes ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-whatsapp-green"></div>
+                    <span className="ml-2 text-sm">Carregando horários...</span>
+                  </div>
+                ) : availableTimes.length === 0 ? (
+                  <div className="text-center py-4 text-gray-500">
+                    <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">Nenhum horário disponível</p>
+                    <p className="text-xs">Tente outra data ou serviço</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                    {availableTimes.map((time) => (
+                      <Button
+                        key={time}
+                        type="button"
+                        variant={selectedTime === time ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedTime(time)}
+                        className="text-sm"
+                      >
+                        {time}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Submit Button */}
             <Button 
               type="submit" 
               className="w-full bg-whatsapp-green hover:bg-green-600"
-              disabled={submitting}
+              disabled={submitting || !selectedService || !selectedDate || !selectedTime || (!selectedClient && (!newClientName || !newClientPhone))}
             >
-              {submitting ? "Criando..." : "Criar Agendamento"}
+              {submitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Criando...
+                </>
+              ) : (
+                "Criar Agendamento"
+              )}
             </Button>
           </form>
         )}

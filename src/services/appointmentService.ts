@@ -1,222 +1,303 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { BookingFormData, CompanySettings, Service } from '@/types/publicBooking';
-import { Professional } from '@/services/professionalsService';
-import { formatAppointmentDate } from '@/utils/dateUtils';
+import { brazilDateTimeToUtc, formatDatabaseTimestamp, getNowInBrazil } from '@/utils/timezone';
 
-// Input validation utilities
-const validatePhoneNumber = (phone: string): string => {
-  if (!phone) throw new Error('Número de telefone é obrigatório');
-  
-  // Remove all non-digit characters except + and ()
-  const cleanPhone = phone.replace(/[^0-9+()-]/g, '');
-  
-  // Check length
-  if (cleanPhone.length < 10 || cleanPhone.length > 20) {
-    throw new Error('Número de telefone deve ter entre 10 e 20 dígitos');
-  }
-  
-  return cleanPhone;
-};
+export interface AppointmentData {
+  id?: string;
+  company_id: string;
+  client_name: string;
+  client_phone: string;
+  client_email?: string;
+  service_id: string;
+  professional_id?: string;
+  appointment_date: string; // YYYY-MM-DD no horário do Brasil
+  appointment_time: string; // HH:mm no horário do Brasil
+  status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
 
-const validateName = (name: string): string => {
-  if (!name) throw new Error('Nome é obrigatório');
-  
-  const trimmedName = name.trim();
-  
-  if (trimmedName.length < 2 || trimmedName.length > 100) {
-    throw new Error('Nome deve ter entre 2 e 100 caracteres');
-  }
-  
-  // Basic XSS protection
-  if (/<[^>]*>/.test(trimmedName)) {
-    throw new Error('Nome contém caracteres não permitidos');
-  }
-  
-  return trimmedName;
-};
 
-const validateEmail = (email: string | undefined): string | null => {
-  if (!email) return null;
-  
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    throw new Error('Formato de email inválido');
-  }
-  
-  return email;
-};
 
-// Função para extrair apenas o primeiro nome
-const extractFirstName = (fullName: string): string => {
-  const names = fullName.trim().split(/\s+/);
-  return names[0];
-};
-
-// Simple in-memory rate limiting
-const rateLimitMap = new Map<string, { attempts: number; windowStart: number }>();
-
-const checkRateLimit = async (identifier: string, actionType: string) => {
+/**
+ * Busca agendamentos de uma empresa formatando timestamps para horário do Brasil
+ */
+export const getCompanyAppointments = async (companyId: string, startDate?: string, endDate?: string) => {
   try {
-    const now = Date.now();
-    const windowMs = 15 * 60 * 1000; // 15 minutes
-    const maxAttempts = 5;
-    
-    const key = `${identifier}:${actionType}`;
-    const existing = rateLimitMap.get(key);
-    
-    if (!existing) {
-      // First attempt
-      rateLimitMap.set(key, { attempts: 1, windowStart: now });
-      return true;
+    let query = supabase
+      .from('appointments')
+      .select(`
+        *,
+        services (name, duration, price),
+        professionals (name)
+      `)
+      .eq('company_id', companyId)
+      .order('appointment_date', { ascending: true })
+      .order('appointment_time', { ascending: true });
+
+    if (startDate) {
+      query = query.gte('appointment_date', startDate);
     }
     
-    // Check if window has expired
-    if (now - existing.windowStart > windowMs) {
-      // Reset window
-      rateLimitMap.set(key, { attempts: 1, windowStart: now });
-      return true;
+    if (endDate) {
+      query = query.lte('appointment_date', endDate);
     }
-    
-    // Check if limit exceeded
-    if (existing.attempts >= maxAttempts) {
-      return false;
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('❌ Error fetching appointments:', error);
+      throw error;
     }
-    
-    // Increment attempts
-    existing.attempts++;
-    return true;
-    
+
+    // Formatar timestamps para exibição no horário do Brasil
+    const formattedAppointments = data?.map(appointment => ({
+      ...appointment,
+      created_at_formatted: formatDatabaseTimestamp(appointment.created_at),
+      updated_at_formatted: formatDatabaseTimestamp(appointment.updated_at),
+      // appointment_date e appointment_time já estão no horário local
+    }));
+
+    return formattedAppointments || [];
+
   } catch (error) {
-    console.warn('Rate limit check error:', error);
-    return true; // Allow if rate limit check fails
-  }
-};
-
-export const createAppointment = async (
-  formData: BookingFormData,
-  companySettings: CompanySettings,
-  services: Service[],
-  professionals: Professional[]
-) => {
-  const { selectedService, selectedProfessional, selectedDate, selectedTime, clientName, clientPhone, clientEmail } = formData;
-
-  console.log('🔒 Starting secure appointment creation process...');
-  
-  // Input validation
-  try {
-    const validatedName = validateName(clientName);
-    const validatedPhone = validatePhoneNumber(clientPhone);
-    const validatedEmail = validateEmail(clientEmail);
-    
-    // Extrair apenas o primeiro nome para salvar no banco
-    const firstName = extractFirstName(validatedName);
-    console.log('👤 Extraindo primeiro nome:', { fullName: validatedName, firstName });
-    
-    console.log('✅ Input validation passed');
-    
-    // Rate limiting check
-    const rateLimitOk = await checkRateLimit(validatedPhone, 'booking');
-    if (!rateLimitOk) {
-      throw new Error('Muitas tentativas de agendamento. Tente novamente em 15 minutos.');
-    }
-    
-    // Validate company settings
-    if (!companySettings?.company_id) {
-      console.error('🚫 Company settings invalid');
-      throw new Error('Configurações da empresa não encontradas');
-    }
-
-    // UUID validation
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(companySettings.company_id)) {
-      console.error('🚫 Invalid company UUID');
-      throw new Error('ID da empresa inválido');
-    }
-
-    console.log('✅ Company validation passed');
-
-    // Find service details
-    const service = services.find(s => s.id === selectedService);
-    if (!service) {
-      throw new Error('Serviço não encontrado');
-    }
-
-    // Create/update client using secure function with first name only
-    console.log('👤 Creating/updating client with phone identification...');
-    const { data: clientId, error: clientError } = await supabase.rpc('create_public_client', {
-      p_company_id: companySettings.company_id,
-      p_name: firstName, // Salvando apenas o primeiro nome
-      p_phone: validatedPhone,
-      p_email: validatedEmail
-    });
-
-    if (clientError) {
-      console.error('❌ Client creation error:', clientError);
-      throw new Error(`Erro ao processar cliente: ${clientError.message}`);
-    }
-
-    if (!clientId) {
-      throw new Error('Erro ao criar cliente');
-    }
-
-    console.log('✅ Client processed:', clientId);
-
-    // Create appointment using secure function
-    console.log('📅 Creating appointment...');
-    const { data: appointmentId, error: appointmentError } = await supabase.rpc('create_public_appointment', {
-      p_company_id: companySettings.company_id,
-      p_client_id: clientId,
-      p_service_id: selectedService,
-      p_professional_id: selectedProfessional || null,
-      p_appointment_date: selectedDate,
-      p_appointment_time: selectedTime,
-      p_duration: service.duration || 60
-    });
-
-    if (appointmentError) {
-      console.error('❌ Appointment creation error:', appointmentError);
-      throw new Error(`Erro ao criar agendamento: ${appointmentError.message}`);
-    }
-
-    if (!appointmentId) {
-      throw new Error('Erro ao criar agendamento');
-    }
-
-    console.log('✅ Appointment created:', appointmentId);
-
-    return {
-      appointment: { id: appointmentId },
-      service,
-      formattedDate: formatAppointmentDate(selectedDate),
-      professionalName: selectedProfessional 
-        ? professionals.find(p => p.id === selectedProfessional)?.name || 'Profissional'
-        : 'Qualquer profissional'
-    };
-
-  } catch (error: any) {
-    console.error('❌ Secure appointment creation failed:', error);
+    console.error('❌ Failed to fetch appointments:', error);
     throw error;
   }
 };
 
+/**
+ * Busca agendamentos do dia atual no horário do Brasil
+ */
+export const getTodayAppointments = async (companyId: string) => {
+  const { getTodayInBrazil } = await import('@/utils/timezone');
+  const today = getTodayInBrazil();
+  
+  return getCompanyAppointments(companyId, today, today);
+};
+
+/**
+ * Atualiza um agendamento
+ */
+export const updateAppointment = async (appointmentId: string, updates: Partial<AppointmentData>) => {
+  try {
+    const updateData: any = {
+      ...updates,
+      updated_at: new Date().toISOString()
+    };
+
+    // Se está atualizando data/hora, manter no horário local
+    // (não precisa converter para UTC pois os campos são date/time locais)
+
+    const { data, error } = await supabase
+      .from('appointments')
+      .update(updateData)
+      .eq('id', appointmentId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Error updating appointment:', error);
+      throw error;
+    }
+
+    console.log('✅ Appointment updated successfully:', data);
+    return data;
+
+  } catch (error) {
+    console.error('❌ Failed to update appointment:', error);
+    throw error;
+  }
+};
+
+/**
+ * Cancela um agendamento
+ */
+export const cancelAppointment = async (appointmentId: string, reason?: string) => {
+  return updateAppointment(appointmentId, {
+    status: 'cancelled',
+    notes: reason ? `Cancelado: ${reason}` : 'Cancelado'
+  });
+};
+
+/**
+ * Verifica conflitos de horário para um agendamento
+ */
+export const checkTimeConflict = async (
+  companyId: string,
+  date: string,
+  time: string,
+  professionalId?: string,
+  excludeAppointmentId?: string
+) => {
+  try {
+    let query = supabase
+      .from('appointments')
+      .select('id, appointment_time, professional_id')
+      .eq('company_id', companyId)
+      .eq('appointment_date', date)
+      .eq('appointment_time', time)
+      .neq('status', 'cancelled');
+
+    if (professionalId) {
+      query = query.eq('professional_id', professionalId);
+    }
+
+    if (excludeAppointmentId) {
+      query = query.neq('id', excludeAppointmentId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('❌ Error checking time conflict:', error);
+      throw error;
+    }
+
+    return (data?.length || 0) > 0;
+
+  } catch (error) {
+    console.error('❌ Failed to check time conflict:', error);
+    throw error;
+  }
+};
+
+/**
+ * Sobrecarga da função createAppointment para compatibilidade com useBookingSubmission
+ */
+export const createAppointment = async (
+  formDataOrAppointment: any,
+  companySettings?: any,
+  services?: any[],
+  professionals?: any[]
+): Promise<any> => {
+  // Se recebeu apenas um parâmetro (AppointmentData), usar a função original
+  if (!companySettings) {
+    return createAppointmentOriginal(formDataOrAppointment);
+  }
+
+  // Se recebeu múltiplos parâmetros, processar como BookingFormData
+  const formData = formDataOrAppointment;
+  
+  try {
+    console.log('📅 Creating appointment from booking form:', formData);
+
+    // Encontrar o serviço selecionado
+    const selectedService = services?.find(s => s.id === formData.selectedService);
+    const selectedProfessional = professionals?.find(p => p.id === formData.selectedProfessional);
+
+    // Criar dados do agendamento
+    const appointmentData: AppointmentData = {
+      company_id: companySettings.company_id,
+      client_name: formData.clientName,
+      client_phone: formData.clientPhone,
+      client_email: formData.clientEmail,
+      service_id: formData.selectedService,
+      professional_id: formData.selectedProfessional,
+      appointment_date: formData.selectedDate,
+      appointment_time: formData.selectedTime,
+      status: 'scheduled',
+      notes: formData.notes
+    };
+
+    // Criar o agendamento
+    const appointment = await createAppointmentOriginal(appointmentData);
+
+    // Formatar data para exibição
+    const appointmentDate = new Date(formData.selectedDate);
+    const formattedDate = appointmentDate.toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    // Retornar resultado no formato esperado pelo useBookingSubmission
+    return {
+      appointment,
+      service: selectedService,
+      professionalName: selectedProfessional?.name,
+      formattedDate
+    };
+
+  } catch (error) {
+    console.error('❌ Failed to create appointment from booking form:', error);
+    throw error;
+  }
+};
+
+/**
+ * Função original createAppointment (renomeada para evitar conflito)
+ */
+const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
+  try {
+    console.log('📅 Creating appointment with Brazil timezone:', {
+      date: appointmentData.appointment_date,
+      time: appointmentData.appointment_time
+    });
+
+    // Converter data/hora do Brasil para UTC para salvar no banco
+    const utcDateTime = brazilDateTimeToUtc(
+      appointmentData.appointment_date, 
+      appointmentData.appointment_time
+    );
+
+    const { data, error } = await supabase
+      .from('appointments')
+      .insert({
+        company_id: appointmentData.company_id,
+        client_name: appointmentData.client_name,
+        client_phone: appointmentData.client_phone,
+        client_email: appointmentData.client_email,
+        service_id: appointmentData.service_id,
+        professional_id: appointmentData.professional_id,
+        appointment_date: appointmentData.appointment_date, // Manter data local
+        appointment_time: appointmentData.appointment_time, // Manter horário local
+        status: appointmentData.status || 'scheduled',
+        notes: appointmentData.notes,
+        created_at: new Date().toISOString(), // UTC para metadados
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Error creating appointment:', error);
+      throw error;
+    }
+
+    console.log('✅ Appointment created successfully:', data);
+    return data;
+
+  } catch (error) {
+    console.error('❌ Failed to create appointment:', error);
+    throw error;
+  }
+};
+
+/**
+ * Gera mensagem do WhatsApp para agendamento
+ */
 export const generateWhatsAppMessage = (
   clientName: string,
   clientPhone: string,
-  formattedDate: string,
-  selectedTime: string,
+  date: string,
+  time: string,
   serviceName: string,
-  professionalName: string
+  professionalName?: string
 ): string => {
-  const firstName = extractFirstName(clientName);
+  let message = `Olá! Novo agendamento realizado:\n\n`;
+  message += `👤 Cliente: ${clientName}\n`;
+  message += `📞 Telefone: ${clientPhone}\n`;
+  message += `📅 Data: ${date}\n`;
+  message += `⏰ Horário: ${time}\n`;
+  message += `💼 Serviço: ${serviceName}\n`;
   
-  return `🗓️ *NOVO AGENDAMENTO*
-
-👤 *Cliente:* ${firstName}
-📞 *Telefone:* ${clientPhone}
-📅 *Data:* ${formattedDate}
-🕐 *Horário:* ${selectedTime}
-✂️ *Serviço:* ${serviceName}
-
-✅ Agendamento confirmado automaticamente!`;
+  if (professionalName) {
+    message += `👨‍💼 Profissional: ${professionalName}\n`;
+  }
+  
+  message += `\nAgendamento confirmado! ✅`;
+  
+  return message;
 };
