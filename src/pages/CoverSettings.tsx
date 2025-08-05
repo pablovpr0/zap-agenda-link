@@ -51,11 +51,11 @@ const CoverSettings = () => {
       {/* Main Content */}
       <div className="max-w-4xl mx-auto p-6">
         <CoverImageSettings
-          companyName={companyBasicData.companyName || 'Sua Empresa'}
-          businessType={companyBasicData.businessType}
+          companyName={companyBasicData.name || 'Sua Empresa'}
+          businessType=""
           address={companyBasicData.address}
-          logoUrl={companyBasicData.logoUrl}
-          currentCoverUrl={companyBasicData.coverImageUrl}
+          logoUrl=""
+          currentCoverUrl=""
           onSave={handleSaveCover}
         />
 

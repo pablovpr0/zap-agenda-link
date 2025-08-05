@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { debugAvailableTimes } from '@/utils/debugAvailableTimes';
 import { checkAvailableTimes } from '@/services/publicBookingService';
+import { supabase } from '@/integrations/supabase/client';
 import { Calendar, Clock, Bug, Play } from 'lucide-react';
 
 const ScheduleDebugPage = () => {
@@ -31,8 +32,15 @@ const ScheduleDebugPage = () => {
     try {
       console.log('🚀 Starting debug test...');
       
+      // Get company settings first
+      const { data: companySettings } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('company_id', user.id)
+        .single();
+      
       // Test debug function
-      const debugRes = await debugAvailableTimes(user.id, selectedDate);
+      const debugRes = await debugAvailableTimes(user.id, selectedDate, companySettings);
       setDebugResult(debugRes);
       
       // Test public function

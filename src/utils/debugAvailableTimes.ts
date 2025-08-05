@@ -1,165 +1,177 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export const debugAvailableTimes = async (companyId: string, selectedDate: string) => {
-  console.log('🔍 DEBUG: Checking available times for:', { companyId, selectedDate });
+export async function debugAvailableTimesGeneration(
+  companyId: string, 
+  selectedDate: string, 
+  companySettings: any
+) {
+  console.log('🔍 DEBUG: Available Times Generation');
+  console.log('📅 Date selected:', selectedDate);
+  const date = new Date(selectedDate + 'T00:00:00');
+  const dayOfWeek = date.getDay();
+  console.log('📅 Day of week:', dayOfWeek);
 
-  try {
-    // Get day of week (0=Sunday, 1=Monday, etc.)
-    const date = new Date(selectedDate + 'T00:00:00');
-    const dayOfWeek = date.getDay();
-    console.log('📅 Day of week:', dayOfWeek);
+  // Get daily schedule for this day
+  const { data: dailySchedule, error: scheduleError } = await (supabase as any)
+    .from('daily_schedules')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('day_of_week', dayOfWeek);
 
-    // Get daily schedule for this day
-    const { data: dailySchedule, error: scheduleError } = await supabase
-      .from('daily_schedules')
-      .select('*')
-      .eq('company_id', companyId)
-      .eq('day_of_week', dayOfWeek);
+  console.log('📋 Daily schedules query result:', { dailySchedule, scheduleError });
 
-    console.log('📋 Daily schedules query result:', { dailySchedule, scheduleError });
+  if (scheduleError) {
+    console.error('❌ Error fetching daily schedule:', scheduleError);
+    return null;
+  }
 
-    if (scheduleError) {
-      console.error('❌ Error fetching daily schedule:', scheduleError);
-      return { error: 'Error fetching schedule', details: scheduleError };
-    }
+  // Find active schedule for this day
+  const activeSchedule = dailySchedule?.find((schedule: any) => schedule.is_active);
 
-    if (!dailySchedule || dailySchedule.length === 0) {
-      console.log('📅 No schedule configured for this day');
-      return { error: 'No schedule configured', dayOfWeek };
-    }
-
-    const activeSchedule = dailySchedule.find(s => s.is_active);
-    if (!activeSchedule) {
-      console.log('📅 Day is closed (no active schedule)');
-      return { error: 'Day is closed', schedules: dailySchedule };
-    }
-
-    console.log('✅ Active schedule found:', activeSchedule);
-
-    // Get company settings for appointment interval
-    const { data: companySettings, error: settingsError } = await supabase
-      .from('company_settings')
-      .select('appointment_interval')
-      .eq('company_id', companyId);
-
-    console.log('⚙️ Company settings:', { companySettings, settingsError });
-
-    // Get booked appointments for the date
-    const { data: bookedAppointments, error: appointmentsError } = await supabase
-      .from('appointments')
-      .select('appointment_time')
-      .eq('company_id', companyId)
-      .eq('appointment_date', selectedDate)
-      .neq('status', 'cancelled');
-
-    console.log('📅 Booked appointments:', { bookedAppointments, appointmentsError });
-
-    const bookedTimes = (bookedAppointments || []).map(apt => 
-      apt.appointment_time.substring(0, 5)
-    );
-
-    console.log('🚫 Booked times:', bookedTimes);
-
-    // Generate time slots
-    const interval = companySettings?.[0]?.appointment_interval || 30;
-    const serviceDuration = 60; // Default service duration
-
-    console.log('⏰ Generating slots with:', {
-      start: activeSchedule.start_time,
-      end: activeSchedule.end_time,
-      interval,
-      serviceDuration,
-      hasLunchBreak: activeSchedule.has_lunch_break,
-      lunchStart: activeSchedule.lunch_start,
-      lunchEnd: activeSchedule.lunch_end
-    });
-
-    const availableTimes = generateTimeSlots(
-      activeSchedule.start_time,
-      activeSchedule.end_time,
-      interval,
-      serviceDuration,
-      bookedTimes,
-      activeSchedule.has_lunch_break,
-      activeSchedule.lunch_start,
-      activeSchedule.lunch_end
-    );
-
-    console.log('✅ Generated available times:', availableTimes);
-
-    return {
-      success: true,
-      dayOfWeek,
-      schedule: activeSchedule,
-      bookedTimes,
-      availableTimes,
-      interval,
-      serviceDuration
+  if (!activeSchedule) {
+    console.log('🚫 No active schedule found for this day');
+    console.log('🔄 Falling back to company_settings working hours');
+    
+    // Fallback to company_settings
+    const workingHours = {
+      start_time: companySettings.working_hours_start,
+      end_time: companySettings.working_hours_end,
+      interval: companySettings.appointment_interval,
+      lunch_break_enabled: companySettings.lunch_break_enabled,
+      lunch_start: companySettings.lunch_start_time,
+      lunch_end: companySettings.lunch_end_time
     };
 
-  } catch (error: any) {
-    console.error('❌ Debug failed:', error);
-    return { error: 'Debug failed', details: error };
+    console.log('⏰ Using company settings:', workingHours);
+    return workingHours;
   }
-};
 
-const generateTimeSlots = (
-  startTime: string,
-  endTime: string,
-  interval: number,
-  serviceDuration: number,
-  bookedTimes: string[],
-  hasLunchBreak: boolean,
-  lunchStart?: string,
-  lunchEnd?: string
-): string[] => {
-  const slots: string[] = [];
-  const start = new Date(`2000-01-01T${startTime}:00`);
-  const end = new Date(`2000-01-01T${endTime}:00`);
+  console.log('✅ Active schedule found:', activeSchedule);
   
-  let current = new Date(start);
-  
-  console.log('🔄 Generating slots from', start.toTimeString(), 'to', end.toTimeString());
-  
-  while (current < end) {
-    const timeStr = current.toTimeString().substring(0, 5);
-    
-    // Check if service would end before closing time
-    const serviceEnd = new Date(current.getTime() + serviceDuration * 60000);
-    if (serviceEnd > end) {
-      console.log('⏰ Service would end after closing time:', timeStr);
-      break;
-    }
-    
-    // Check if time conflicts with lunch break
-    if (hasLunchBreak && lunchStart && lunchEnd) {
-      const lunchStartTime = new Date(`2000-01-01T${lunchStart}:00`);
-      const lunchEndTime = new Date(`2000-01-01T${lunchEnd}:00`);
-      
-      if (current >= lunchStartTime && current < lunchEndTime) {
-        console.log('🍽️ Time conflicts with lunch break:', timeStr);
-        current = new Date(current.getTime() + interval * 60000);
-        continue;
-      }
-      
-      // Check if service would overlap with lunch
-      if (current < lunchStartTime && serviceEnd > lunchStartTime) {
-        console.log('🍽️ Service would overlap with lunch:', timeStr);
-        current = new Date(current.getTime() + interval * 60000);
-        continue;
-      }
-    }
-    
-    // Check if time is not already booked
-    if (!bookedTimes.includes(timeStr)) {
-      slots.push(timeStr);
-      console.log('✅ Available slot:', timeStr);
-    } else {
-      console.log('🚫 Slot already booked:', timeStr);
-    }
-    
-    current = new Date(current.getTime() + interval * 60000);
+  console.log('⏰ Using schedule:', {
+    start_time: activeSchedule.start_time,
+    end_time: activeSchedule.end_time,
+    interval: companySettings.appointment_interval,
+    has_lunch_break: activeSchedule.has_lunch_break,
+    lunch_start: activeSchedule.lunch_start,
+    lunch_end: activeSchedule.lunch_end
+  });
+
+  // Use the schedule data for time generation
+  const workingHours = {
+    start_time: activeSchedule.start_time,
+    end_time: activeSchedule.end_time,
+    interval: companySettings.appointment_interval,
+    lunch_break_enabled: activeSchedule.has_lunch_break,
+    lunch_start: activeSchedule.lunch_start,
+    lunch_end: activeSchedule.lunch_end
+  };
+
+  console.log('🎯 Final working hours config:', workingHours);
+
+  // Generate time slots for debugging
+  const timeSlots = [];
+  let currentTime = new Date(`1970-01-01T${workingHours.start_time}`);
+  const endTime = new Date(`1970-01-01T${workingHours.end_time}`);
+  const intervalMs = workingHours.interval * 60 * 1000;
+
+  // Lunch break times
+  let lunchStart = null;
+  let lunchEnd = null;
+  if (workingHours.lunch_break_enabled && workingHours.lunch_start && workingHours.lunch_end) {
+    lunchStart = new Date(`1970-01-01T${workingHours.lunch_start}`);
+    lunchEnd = new Date(`1970-01-01T${workingHours.lunch_end}`);
   }
+
+  console.log('🍽️ Lunch break config:', { 
+    enabled: workingHours.lunch_break_enabled, 
+    start: workingHours.lunch_start, 
+    end: workingHours.lunch_end,
+    lunchStart: lunchStart?.toTimeString().substr(0, 5),
+    lunchEnd: lunchEnd?.toTimeString().substr(0, 5)
+  });
+
+  while (currentTime < endTime) {
+    const timeString = currentTime.toTimeString().substr(0, 5);
+    
+    // Check if this time is within lunch break
+    let isLunchTime = false;
+    if (lunchStart && lunchEnd) {
+      isLunchTime = currentTime >= lunchStart && currentTime < lunchEnd;
+    }
+
+    timeSlots.push({
+      time: timeString,
+      available: !isLunchTime,
+      reason: isLunchTime ? 'lunch_break' : 'available'
+    });
+
+    currentTime = new Date(currentTime.getTime() + intervalMs);
+  }
+
+  console.log('🕐 Generated time slots:', timeSlots);
+  console.log('🚫 Lunch break slots:', timeSlots.filter(slot => !slot.available));
+  console.log('✅ Available slots:', timeSlots.filter(slot => slot.available));
+
+  return workingHours;
+}
+
+// Legacy export for compatibility
+export const debugAvailableTimes = debugAvailableTimesGeneration;
+
+// New function to get available times with proper filtering
+export async function getAvailableTimesForDate(
+  companyId: string,
+  selectedDate: string
+) {
+  console.log('🔍 Getting available times for:', { companyId, selectedDate });
   
-  return slots;
-};
+  try {
+    // Get company settings
+    const { data: companySettings } = await supabase
+      .from('company_settings')
+      .select('*')
+      .eq('company_id', companyId)
+      .single();
+
+    if (!companySettings) {
+      console.error('❌ No company settings found');
+      return [];
+    }
+
+    // Debug the time generation process
+    const workingHours = await debugAvailableTimesGeneration(companyId, selectedDate, companySettings);
+    
+    if (!workingHours) {
+      console.log('❌ No working hours configuration found');
+      return [];
+    }
+
+    // Use the get_available_times function
+    const { data: availableTimes, error } = await supabase
+      .rpc('get_available_times', {
+        p_company_id: companyId,
+        p_date: selectedDate,
+        p_working_hours_start: workingHours.start_time,
+        p_working_hours_end: workingHours.end_time,
+        p_appointment_interval: workingHours.interval,
+        p_lunch_break_enabled: workingHours.lunch_break_enabled || false,
+        p_lunch_start_time: workingHours.lunch_start || '12:00:00',
+        p_lunch_end_time: workingHours.lunch_end || '13:00:00'
+      });
+
+    if (error) {
+      console.error('❌ Error from get_available_times:', error);
+      return [];
+    }
+
+    const times = availableTimes?.map((item: any) => item.available_time) || [];
+    console.log('✅ Final available times:', times);
+    
+    return times;
+
+  } catch (error) {
+    console.error('❌ Error in getAvailableTimesForDate:', error);
+    return [];
+  }
+}
