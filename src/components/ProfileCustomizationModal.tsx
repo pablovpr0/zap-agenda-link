@@ -214,7 +214,7 @@ const ProfileCustomizationModal = ({
                   </Label>
                   
                   {/* Upload da Logo */}
-                  <ImageUpload currentImageUrl={logoUrl} onImageUploaded={setLogoUrl} bucket="company-logos" />
+                  <ImageUpload currentImageUrl={logoUrl} onImageUploaded={setLogoUrl} bucket="company-logos" className="bg-green-50" />
                   
                   {/* Preview da Logo na Página Pública */}
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
