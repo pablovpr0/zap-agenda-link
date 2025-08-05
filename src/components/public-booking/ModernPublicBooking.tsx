@@ -163,7 +163,7 @@ const ModernPublicBooking = () => {
         businessType={profile.business_type}
         address={companyData.address}
         logoUrl={companySettings.logo_url || profile.company_logo}
-        coverUrl={companySettings.cover_image_url}
+        coverUrl={companyData.cover_image_url}
         canEditCover={false} // Área pública não permite edição
       />
 

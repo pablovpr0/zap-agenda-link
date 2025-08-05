@@ -62,7 +62,8 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
   const loadSchedules = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Since daily_schedules table exists but not in types, use direct query with any cast
+      const { data, error } = await (supabase as any)
         .from('daily_schedules')
         .select('*')
         .eq('company_id', user!.id)
@@ -114,7 +115,7 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
     setSaving(true);
     try {
       // Delete existing schedules
-      await supabase
+      await (supabase as any)
         .from('daily_schedules')
         .delete()
         .eq('company_id', user!.id);
@@ -131,7 +132,7 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
         has_lunch_break: schedule.has_lunch_break
       }));
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('daily_schedules')
         .insert(schedulesToInsert);
 

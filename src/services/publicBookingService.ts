@@ -126,7 +126,7 @@ export const checkAvailableTimes = async (
     const dayOfWeek = date.getDay();
 
     // Get daily schedule for this day
-    const { data: dailySchedule, error: scheduleError } = await supabase
+    const { data: dailySchedule, error: scheduleError } = await (supabase as any)
       .from('daily_schedules')
       .select('*')
       .eq('company_id', companyId)

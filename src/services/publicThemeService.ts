@@ -3,7 +3,7 @@ import { PublicThemeSettings } from '@/types/publicTheme';
 
 export const savePublicThemeSettings = async (settings: PublicThemeSettings): Promise<PublicThemeSettings> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('public_theme_settings')
       .upsert({
         company_id: settings.company_id,
@@ -30,11 +30,11 @@ export const savePublicThemeSettings = async (settings: PublicThemeSettings): Pr
 
 export const loadPublicThemeSettings = async (companyId: string): Promise<PublicThemeSettings | null> => {
   try {
-    const { data, error } = await supabase
-      .from('public_theme_settings')
-      .select('*')
-      .eq('company_id', companyId)
-      .maybeSingle();
+  const { data, error } = await (supabase as any)
+    .from('public_theme_settings')
+    .select('*')
+    .eq('company_id', companyId)
+    .maybeSingle();
 
     if (error) {
       console.error('Error loading public theme settings:', error);
@@ -64,7 +64,7 @@ export const loadPublicThemeBySlug = async (companySlug: string): Promise<Public
     }
 
     // Buscar as configurações de tema
-    const { data: themeData, error: themeError } = await supabase
+    const { data: themeData, error: themeError } = await (supabase as any)
       .from('public_theme_settings')
       .select('*')
       .eq('company_id', companyData.company_id)

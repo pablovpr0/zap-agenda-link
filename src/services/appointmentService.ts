@@ -4,8 +4,9 @@ import { brazilDateTimeToUtc, formatDatabaseTimestamp, getNowInBrazil } from '@/
 export interface AppointmentData {
   id?: string;
   company_id: string;
-  client_name: string;
-  client_phone: string;
+  client_id?: string;
+  client_name?: string;
+  client_phone?: string;
   client_email?: string;
   service_id: string;
   professional_id?: string;
@@ -246,9 +247,7 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
       .from('appointments')
       .insert({
         company_id: appointmentData.company_id,
-        client_name: appointmentData.client_name,
-        client_phone: appointmentData.client_phone,
-        client_email: appointmentData.client_email,
+        client_id: appointmentData.client_id || '00000000-0000-0000-0000-000000000000',
         service_id: appointmentData.service_id,
         professional_id: appointmentData.professional_id,
         appointment_date: appointmentData.appointment_date, // Manter data local
