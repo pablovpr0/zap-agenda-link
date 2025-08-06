@@ -496,6 +496,7 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 };
 

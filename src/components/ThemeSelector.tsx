@@ -101,6 +101,7 @@ const ThemeSelector = ({
           </div>
         </div>
       </CardContent>
-    </Card>;
+    </Card>
+  );
 };
 export default ThemeSelector;

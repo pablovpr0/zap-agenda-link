@@ -155,7 +155,8 @@ const ProfileCustomizationModal = ({
       setSubmitting(false);
     }
   };
-  return <Dialog open={isOpen} onOpenChange={onClose}>
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -314,6 +315,7 @@ const ProfileCustomizationModal = ({
             </div>
           </form>}
       </DialogContent>
-    </Dialog>;
+    </Dialog>
+  );
 };
 export default ProfileCustomizationModal;
