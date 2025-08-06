@@ -1,14 +1,10 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 import CompanySettingsModal from '../CompanySettingsModal';
-
 const WelcomeSection = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-
-  return (
-    <>
+  return <>
       <div className="bg-white rounded-lg p-4 md:p-6 border border-whatsapp">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -20,28 +16,14 @@ const WelcomeSection = () => {
             </p>
           </div>
           
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowSettingsModal(true)}
-            className="border-whatsapp text-whatsapp-green hover:bg-whatsapp-green hover:text-white"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Configurações
-          </Button>
+          
         </div>
       </div>
 
-      <CompanySettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-        onSuccess={() => {
-          // Poderia recarregar dados se necessário
-          console.log('Configurações salvas com sucesso');
-        }}
-      />
-    </>
-  );
+      <CompanySettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} onSuccess={() => {
+      // Poderia recarregar dados se necessário
+      console.log('Configurações salvas com sucesso');
+    }} />
+    </>;
 };
-
 export default WelcomeSection;
