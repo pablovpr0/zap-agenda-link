@@ -12,9 +12,7 @@ interface ThemeSelectorProps {
 const ThemeSelector = ({
   onThemeChange
 }: ThemeSelectorProps) => {
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const [selectedTheme, setSelectedTheme] = useState<Theme>(loadSavedTheme());
   const handleThemeSelect = (theme: Theme) => {
     setSelectedTheme(theme);
@@ -53,7 +51,9 @@ const ThemeSelector = ({
     </Card>;
   const masculineThemes = themes.filter(t => t.category === 'masculine');
   const feminineThemes = themes.filter(t => t.category === 'feminine');
-  return <Card>
+  
+  return (
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Palette className="w-5 h-5" />
@@ -92,8 +92,8 @@ const ThemeSelector = ({
           <h4 className="font-medium mb-2">Tema Atual</h4>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full" style={{
-            background: selectedTheme.colors.gradient
-          }} />
+              background: selectedTheme.colors.gradient
+            }} />
             <div>
               <p className="font-medium text-sm">{selectedTheme.name}</p>
               <p className="text-xs text-gray-600">{selectedTheme.description}</p>
