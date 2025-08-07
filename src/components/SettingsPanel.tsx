@@ -101,13 +101,7 @@ const SettingsPanel = () => {
         </TabsContent>
 
         <TabsContent value="schedule" className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <h3 className="text-sm font-semibold text-blue-800 mb-2">⏰ Configuração de Horários</h3>
-            <p className="text-xs text-blue-700">
-              Configure os horários de funcionamento para cada dia da semana. 
-              Estes horários serão usados na página pública de agendamento.
-            </p>
-          </div>
+          
           
           <ScheduleSettings onScheduleUpdate={() => {
           // Callback quando os horários são atualizados
