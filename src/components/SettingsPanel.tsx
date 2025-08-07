@@ -8,9 +8,10 @@ import { useToast } from '@/hooks/use-toast';
 import GeneralSettings from './settings/GeneralSettings';
 import ScheduleSettings from './settings/ScheduleSettings';
 import { usePublicThemeCustomizer } from '@/hooks/usePublicThemeCustomizer';
-
 const SettingsPanel = () => {
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const {
     loading,
     saving,
@@ -19,8 +20,9 @@ const SettingsPanel = () => {
     saveSettings,
     refreshSettings
   } = useCompanySettings();
-
-  const { saveSettings: saveThemeSettings } = usePublicThemeCustomizer();
+  const {
+    saveSettings: saveThemeSettings
+  } = usePublicThemeCustomizer();
 
   // Real-time sync callbacks
   const handleSettingsSync = useCallback(() => {
@@ -28,44 +30,37 @@ const SettingsPanel = () => {
     refreshSettings?.();
     toast({
       title: "Configurações atualizadas",
-      description: "As configurações foram sincronizadas automaticamente.",
+      description: "As configurações foram sincronizadas automaticamente."
     });
   }, [refreshSettings, toast]);
-
   const handleScheduleSync = useCallback(() => {
     console.log('🔄 Schedule synced from real-time update');
     // Trigger schedule refresh if needed
   }, []);
-
   const handleCompanyDataSync = useCallback(() => {
     console.log('🔄 Company data synced from real-time update');
     refreshSettings?.();
   }, [refreshSettings]);
 
   // Setup real-time sync
-  const { triggerSync } = useRealTimeSync({
+  const {
+    triggerSync
+  } = useRealTimeSync({
     onSettingsChange: handleSettingsSync,
     onScheduleChange: handleScheduleSync,
-    onCompanyDataChange: handleCompanyDataSync,
+    onCompanyDataChange: handleCompanyDataSync
   });
-
-
-
   if (loading) {
-    return (
-      <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in">
+    return <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin text-whatsapp-green mx-auto mb-4" />
             <p className="text-gray-600">Carregando configurações...</p>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in max-w-6xl mx-auto">
+  return <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in max-w-6xl mx-auto">
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -75,24 +70,12 @@ const SettingsPanel = () => {
             </h2>
             <p className="text-whatsapp-muted text-sm">
               Gerencie as configurações do seu negócio
-              <span className="inline-block ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                🔄 Sincronização em tempo real
-              </span>
+              
             </p>
-            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-blue-700 text-xs">
-                💡 <strong>Dica:</strong> Para gerenciar dados da empresa e clientes, 
-                use o menu de 3 pontos (⋯) no cabeçalho superior.
-              </p>
-            </div>
+            
           </div>
           
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={triggerSync}
-            className="border-whatsapp-green text-whatsapp-green hover:bg-green-50"
-          >
+          <Button variant="outline" size="sm" onClick={triggerSync} className="border-whatsapp-green text-whatsapp-green hover:bg-green-50">
             <RefreshCw className="w-4 h-4 mr-2" />
             Sincronizar
           </Button>
@@ -112,17 +95,9 @@ const SettingsPanel = () => {
         </div>
 
         <TabsContent value="general" className="space-y-4">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-            <h3 className="text-sm font-semibold text-green-800 mb-2">⚙️ Configurações Gerais do Sistema</h3>
-            <p className="text-xs text-green-700">
-              Configure as regras gerais de funcionamento do seu sistema de agendamento.
-            </p>
-          </div>
           
-          <GeneralSettings 
-            settings={generalSettings} 
-            onSettingsChange={setGeneralSettings} 
-          />
+          
+          <GeneralSettings settings={generalSettings} onSettingsChange={setGeneralSettings} />
         </TabsContent>
 
         <TabsContent value="schedule" className="space-y-4">
@@ -134,45 +109,27 @@ const SettingsPanel = () => {
             </p>
           </div>
           
-          <ScheduleSettings 
-            onScheduleUpdate={() => {
-              // Callback quando os horários são atualizados
-              console.log('Horários atualizados com sucesso');
-            }}
-          />
+          <ScheduleSettings onScheduleUpdate={() => {
+          // Callback quando os horários são atualizados
+          console.log('Horários atualizados com sucesso');
+        }} />
         </TabsContent>
       </Tabs>
 
       {/* Save Button */}
       <div className="text-center pt-4 space-y-3">
-        <Button 
-          onClick={saveSettings} 
-          size="lg" 
-          disabled={saving}
-          className="bg-whatsapp-green hover:bg-green-600 text-white disabled:opacity-50"
-        >
-          {saving ? (
-            <>
+        <Button onClick={saveSettings} size="lg" disabled={saving} className="bg-whatsapp-green hover:bg-green-600 text-white disabled:opacity-50">
+          {saving ? <>
               <Loader2 className="w-4 md:w-5 h-4 md:h-5 mr-2 animate-spin" />
               Salvando e Sincronizando...
-            </>
-          ) : (
-            <>
+            </> : <>
               <Save className="w-4 md:w-5 h-4 md:h-5 mr-2" />
               Salvar Configurações
-            </>
-          )}
+            </>}
         </Button>
         
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-          <p className="text-blue-700 text-xs">
-            ✨ <strong>Sincronização Automática:</strong> Suas alterações são aplicadas 
-            instantaneamente na área pública após salvar.
-          </p>
-        </div>
+        
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default SettingsPanel;
