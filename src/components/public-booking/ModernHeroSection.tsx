@@ -53,7 +53,7 @@ const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
           {/* Profile Image with 3D Effect */}
           <div className="relative mb-4">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-600 rounded-full blur-lg opacity-30 scale-110 animate-pulse" />
-            <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-2xl transform hover:scale-105 transition-all duration-300">
+            <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 profile-border profile-shadow transform hover:scale-105 transition-all duration-300">
               <img
                 src={profileImage}
                 alt={companyData?.company_name}

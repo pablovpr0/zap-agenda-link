@@ -16,7 +16,7 @@ interface CompanyHeaderProps {
 
 const CompanyHeader = ({ companySettings, profile }: CompanyHeaderProps) => {
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+    <div className="bg-white public-surface public-card-border rounded-xl shadow-lg p-6 mb-6">
       <div className="text-center">
         {/* Foto de perfil grande e redonda */}
         {(companySettings?.logo_url || profile?.profile_image_url) && (
@@ -24,7 +24,7 @@ const CompanyHeader = ({ companySettings, profile }: CompanyHeaderProps) => {
             <img
               src={companySettings.logo_url || profile.profile_image_url}
               alt={profile?.company_name || 'Logo'}
-              className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-green-500 shadow-lg"
+              className="w-24 h-24 rounded-full mx-auto object-cover border-4 profile-border profile-shadow"
             />
           </div>
         )}

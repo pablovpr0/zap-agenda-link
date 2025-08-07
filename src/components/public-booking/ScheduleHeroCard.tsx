@@ -4,7 +4,7 @@ import { Calendar, CheckCircle } from 'lucide-react';
 
 const ScheduleHeroCard = () => {
   return (
-    <div className="mx-4 mb-6 bg-white public-surface rounded-xl shadow-md p-6 text-center">
+    <div className="mx-4 mb-6 bg-white public-surface public-card-border rounded-xl shadow-md p-6 text-center">
       {/* Ícone calendário com fundo circular */}
       <div className="flex justify-center mb-4">
         <div className="w-16 h-16 dynamic-selected-bg rounded-full flex items-center justify-center">

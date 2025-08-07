@@ -243,9 +243,84 @@
   box-shadow: 0 16px 48px rgba(255, 255, 255, 0.15);
 }
 
+/* Sombreamento da foto de perfil seguindo a cor do tema */
+.profile-shadow {
+  box-shadow: 0 8px 32px rgba(25, 198, 98, 0.3);
+  transition: all 0.3s ease;
+}
+
+.profile-shadow:hover {
+  box-shadow: 0 12px 40px rgba(25, 198, 98, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Borda da foto de perfil seguindo a cor do tema */
+.profile-border {
+  border-color: var(--public-theme-primary, #19c662) !important;
+}
+
+/* Sombras dinâmicas da foto de perfil baseadas no tema */
+.public-area .profile-shadow {
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--public-theme-primary, #19c662) 30%, transparent);
+}
+
+.public-area .profile-shadow:hover {
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--public-theme-primary, #19c662) 40%, transparent);
+  transform: translateY(-2px);
+}
+
+/* Modo escuro - sombra mais suave */
+.public-area.dark-mode .profile-shadow {
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--public-theme-primary, #19c662) 20%, transparent);
+}
+
+.public-area.dark-mode .profile-shadow:hover {
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--public-theme-primary, #19c662) 30%, transparent);
+  transform: translateY(-2px);
+}
+
 /* Gradiente para transição da capa */
 .public-gradient-overlay {
   background: linear-gradient(to top, var(--public-theme-background), transparent);
+}
+
+/* Contornos médios nos cards seguindo a cor do tema */
+.public-card-border {
+  border: 1.5px solid color-mix(in srgb, var(--public-theme-primary, #19c662) 25%, transparent);
+  transition: border-color 0.3s ease;
+}
+
+.public-card-border:hover {
+  border-color: color-mix(in srgb, var(--public-theme-primary, #19c662) 35%, transparent);
+}
+
+/* Aplicar contornos nos cards da área pública */
+.public-area .bg-white,
+.public-area .public-surface {
+  border: 1.5px solid color-mix(in srgb, var(--public-theme-primary, #19c662) 20%, transparent);
+}
+
+/* Contornos mais visíveis para cards interativos */
+.public-area .cursor-pointer {
+  border: 2px solid color-mix(in srgb, var(--public-theme-primary, #19c662) 25%, transparent);
+}
+
+.public-area .cursor-pointer:hover {
+  border-color: color-mix(in srgb, var(--public-theme-primary, #19c662) 40%, transparent);
+}
+
+/* Modo escuro - contornos mais suaves */
+.public-area.dark-mode .bg-white,
+.public-area.dark-mode .public-surface {
+  border: 1.5px solid color-mix(in srgb, var(--public-theme-primary, #19c662) 30%, transparent);
+}
+
+.public-area.dark-mode .cursor-pointer {
+  border: 2px solid color-mix(in srgb, var(--public-theme-primary, #19c662) 35%, transparent);
+}
+
+.public-area.dark-mode .cursor-pointer:hover {
+  border-color: color-mix(in srgb, var(--public-theme-primary, #19c662) 50%, transparent);
 }
 
 /* ========================================

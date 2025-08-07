@@ -3,8 +3,14 @@ import { addDays, format, setHours, setMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export const generateAvailableDates = (workingDays: number[], advanceBookingLimit: number) => {
+  console.log('📅 Gerando datas disponíveis:', { workingDays, advanceBookingLimit });
+  
   const dates = [];
   const today = new Date();
+  
+  // Mapear os dias da semana para debug
+  const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  console.log('📅 Dias de trabalho configurados:', workingDays.map(day => `${day} (${dayNames[day]})`));
   
   for (let i = 0; i < advanceBookingLimit; i++) {
     const date = addDays(today, i);
@@ -12,9 +18,13 @@ export const generateAvailableDates = (workingDays: number[], advanceBookingLimi
     
     if (workingDays.includes(dayOfWeek)) {
       dates.push(date);
+      console.log(`✅ Dia ${format(date, 'dd/MM')} (${dayNames[dayOfWeek]}) incluído - é dia de trabalho`);
+    } else {
+      console.log(`❌ Dia ${format(date, 'dd/MM')} (${dayNames[dayOfWeek]}) excluído - não é dia de trabalho`);
     }
   }
   
+  console.log('📅 Total de datas disponíveis:', dates.length);
   return dates;
 };
 

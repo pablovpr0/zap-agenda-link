@@ -95,7 +95,7 @@ Nome: ${appointmentData.clientName}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md mx-auto bg-white dark:bg-gray-900 border-0 shadow-2xl rounded-3xl overflow-hidden">
+      <DialogContent className="max-w-md mx-auto bg-white dark:bg-gray-900 public-card-border shadow-2xl rounded-3xl overflow-hidden">
         <div className="relative p-6">
           {/* Animated Background */}
           <div className="absolute inset-0 overflow-hidden">
@@ -127,7 +127,7 @@ Nome: ${appointmentData.clientName}`;
             </div>
 
             {/* Appointment Details */}
-            <Card className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 border-green-200 dark:border-green-800">
+            <Card className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 public-card-border">
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Serviço:</span>

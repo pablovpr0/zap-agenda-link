@@ -332,11 +332,11 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
         {/* Schedule Configuration */}
         <div className="space-y-4">
           {schedules.map((schedule) => (
-            <div key={schedule.day_of_week} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <div key={schedule.day_of_week} className="p-3 md:p-4 border border-gray-200 rounded-lg bg-gray-50 overflow-hidden">
               {/* Day Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <span className="text-sm font-semibold text-gray-800 min-w-[120px]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <span className="text-sm font-semibold text-gray-800 min-w-[100px] sm:min-w-[120px]">
                     {dayNames[schedule.day_of_week as keyof typeof dayNames]}
                   </span>
                   <div className="flex items-center space-x-2">
@@ -347,7 +347,7 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
                       }
                       className="data-[state=checked]:bg-green-600"
                     />
-                    <Badge variant={schedule.is_active ? "default" : "secondary"} className="text-xs">
+                    <Badge variant={schedule.is_active ? "default" : "secondary"} className="text-xs whitespace-nowrap">
                       {schedule.is_active ? 'ABERTO' : 'FECHADO'}
                     </Badge>
                   </div>
@@ -367,9 +367,9 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
               
               {/* Hours Configuration */}
               {schedule.is_active && (
-                <div className="space-y-4 ml-4 border-l-2 border-green-200 pl-4">
+                <div className="space-y-4 ml-0 sm:ml-4 sm:border-l-2 sm:border-green-200 sm:pl-4 mt-4">
                   {/* Working Hours */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label className="text-xs font-medium text-gray-600 flex items-center gap-1">
                         <Clock className="w-3 h-3 text-green-600" />
@@ -381,7 +381,7 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
                         onChange={(e) => 
                           updateSchedule(schedule.day_of_week, { start_time: e.target.value })
                         }
-                        className="text-sm h-9 border-gray-300 focus:border-green-500"
+                        className="text-sm h-9 border-gray-300 focus:border-green-500 w-full"
                       />
                     </div>
                     <div className="space-y-2">
@@ -395,7 +395,7 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
                         onChange={(e) => 
                           updateSchedule(schedule.day_of_week, { end_time: e.target.value })
                         }
-                        className="text-sm h-9 border-gray-300 focus:border-green-500"
+                        className="text-sm h-9 border-gray-300 focus:border-green-500 w-full"
                       />
                     </div>
                   </div>
@@ -417,7 +417,7 @@ const ScheduleSettings = ({ onScheduleUpdate }: ScheduleSettingsProps) => {
 
                   {/* Lunch Break Hours */}
                   {schedule.has_lunch_break && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-4 border-l border-orange-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-0 sm:pl-4 sm:border-l border-orange-200">
                       <div className="space-y-2">
                         <Label className="text-xs font-medium text-gray-600">
                           Início do almoço

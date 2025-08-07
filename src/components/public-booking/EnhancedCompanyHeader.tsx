@@ -10,7 +10,7 @@ interface EnhancedCompanyHeaderProps {
 const EnhancedCompanyHeader = ({ companySettings, profile }: EnhancedCompanyHeaderProps) => {
   return (
     <div className="text-center mb-8">
-      <div className="bg-white rounded-2xl p-8 shadow-xl border border-green-100 relative overflow-hidden">
+      <div className="bg-white public-surface public-card-border rounded-2xl p-8 shadow-xl relative overflow-hidden">
         {/* Decoração de fundo */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-100 to-blue-100 rounded-full -translate-y-16 translate-x-16 opacity-50"></div>
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-purple-100 to-pink-100 rounded-full translate-y-12 -translate-x-12 opacity-50"></div>

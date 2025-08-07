@@ -1,48 +1,55 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Save, Loader2 } from 'lucide-react';
+import { Settings, Save, Loader2, RefreshCw } from 'lucide-react';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
+import { useRealTimeSync } from '@/hooks/useRealTimeSync';
+import { useToast } from '@/hooks/use-toast';
 import GeneralSettings from './settings/GeneralSettings';
-import CompanyDataSettings from './settings/CompanyDataSettings';
 import ScheduleSettings from './settings/ScheduleSettings';
-import ClientAreaSettings from './settings/ClientAreaSettings';
-import SlugSettings from './settings/SlugSettings';
-import ManagementSection from './settings/ManagementSection';
-import SupportSection from './settings/SupportSection';
-import PublicThemeCustomizer from './settings/PublicThemeCustomizer';
 import { usePublicThemeCustomizer } from '@/hooks/usePublicThemeCustomizer';
 
 const SettingsPanel = () => {
+  const { toast } = useToast();
   const {
     loading,
     saving,
     generalSettings,
-    companyBasicData,
-    workingDays,
-    currentSlug,
     setGeneralSettings,
-    setCompanyBasicData,
-    setWorkingDays,
-    setCurrentSlug,
-    saveSettings
+    saveSettings,
+    refreshSettings
   } = useCompanySettings();
 
   const { saveSettings: saveThemeSettings } = usePublicThemeCustomizer();
 
-  const [clientAreaCustomization, setClientAreaCustomization] = useState({
-    logo: null,
-    coverImage: null,
-    themeColor: '#19c662',
-    companyName: 'Salão Beleza & Estilo',
-    isDarkMode: false,
-    selectedTheme: 'classic-green'
+  // Real-time sync callbacks
+  const handleSettingsSync = useCallback(() => {
+    console.log('🔄 Settings synced from real-time update');
+    refreshSettings?.();
+    toast({
+      title: "Configurações atualizadas",
+      description: "As configurações foram sincronizadas automaticamente.",
+    });
+  }, [refreshSettings, toast]);
+
+  const handleScheduleSync = useCallback(() => {
+    console.log('🔄 Schedule synced from real-time update');
+    // Trigger schedule refresh if needed
+  }, []);
+
+  const handleCompanyDataSync = useCallback(() => {
+    console.log('🔄 Company data synced from real-time update');
+    refreshSettings?.();
+  }, [refreshSettings]);
+
+  // Setup real-time sync
+  const { triggerSync } = useRealTimeSync({
+    onSettingsChange: handleSettingsSync,
+    onScheduleChange: handleScheduleSync,
+    onCompanyDataChange: handleCompanyDataSync,
   });
 
-  const handleSlugUpdate = (newSlug: string) => {
-    setCurrentSlug(newSlug);
-    setCompanyBasicData(prev => ({ ...prev, customUrl: newSlug }));
-  };
+
 
   if (loading) {
     return (
@@ -58,41 +65,65 @@ const SettingsPanel = () => {
   }
 
   return (
-    <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in max-w-6xl mx-auto">
       <div className="mb-6 md:mb-8">
-        <h2 className="text-lg md:text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-          <Settings className="w-5 md:w-6 h-5 md:h-6 text-whatsapp-green" />
-          Configurações
-        </h2>
-        <p className="text-whatsapp-muted text-sm">Gerencie as configurações do seu negócio</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-lg md:text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+              <Settings className="w-5 md:w-6 h-5 md:h-6 text-whatsapp-green" />
+              Configurações
+            </h2>
+            <p className="text-whatsapp-muted text-sm">
+              Gerencie as configurações do seu negócio
+              <span className="inline-block ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                🔄 Sincronização em tempo real
+              </span>
+            </p>
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-blue-700 text-xs">
+                💡 <strong>Dica:</strong> Para gerenciar dados da empresa e clientes, 
+                use o menu de 3 pontos (⋯) no cabeçalho superior.
+              </p>
+            </div>
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={triggerSync}
+            className="border-whatsapp-green text-whatsapp-green hover:bg-green-50"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Sincronizar
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="general" className="space-y-4">
-        <div className="overflow-x-auto">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 min-w-[600px] md:min-w-0 bg-gray-100">
-            <TabsTrigger value="general" className="text-xs md:text-sm data-[state=active]:bg-white">Geral</TabsTrigger>
-            <TabsTrigger value="company" className="text-xs md:text-sm data-[state=active]:bg-white">Dados Básicos</TabsTrigger>
-            <TabsTrigger value="schedule" className="text-xs md:text-sm data-[state=active]:bg-white">⏰ Horários</TabsTrigger>
-            <TabsTrigger value="client-area" className="text-xs md:text-sm data-[state=active]:bg-white">Área Cliente</TabsTrigger>
-            <TabsTrigger value="management" className="text-xs md:text-sm data-[state=active]:bg-white">Cadastros</TabsTrigger>
-            <TabsTrigger value="support" className="text-xs md:text-sm data-[state=active]:bg-white">Suporte</TabsTrigger>
+        <div className="overflow-x-auto pb-2">
+          <TabsList className="grid w-full grid-cols-2 min-w-[300px] md:min-w-0 bg-gray-100 h-auto">
+            <TabsTrigger value="general" className="text-xs md:text-sm data-[state=active]:bg-white data-[state=active]:text-whatsapp-green px-3 py-2">
+              ⚙️ Configurações Gerais
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="text-xs md:text-sm data-[state=active]:bg-white data-[state=active]:text-whatsapp-green px-3 py-2">
+              ⏰ Horários de Funcionamento
+            </TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="general" className="space-y-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+            <h3 className="text-sm font-semibold text-green-800 mb-2">⚙️ Configurações Gerais do Sistema</h3>
+            <p className="text-xs text-green-700">
+              Configure as regras gerais de funcionamento do seu sistema de agendamento.
+            </p>
+          </div>
+          
           <GeneralSettings 
             settings={generalSettings} 
             onSettingsChange={setGeneralSettings} 
           />
         </TabsContent>
-
-        <TabsContent value="company" className="space-y-4">
-          <CompanyDataSettings 
-            data={companyBasicData} 
-            onDataChange={setCompanyBasicData} 
-          />
-        </TabsContent>
-
 
         <TabsContent value="schedule" className="space-y-4">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
@@ -110,25 +141,10 @@ const SettingsPanel = () => {
             }}
           />
         </TabsContent>
-
-        <TabsContent value="client-area" className="space-y-4">
-          <ClientAreaSettings 
-            customization={clientAreaCustomization} 
-            onCustomizationChange={setClientAreaCustomization} 
-          />
-        </TabsContent>
-
-        <TabsContent value="management" className="space-y-4">
-          <ManagementSection />
-        </TabsContent>
-
-        <TabsContent value="support" className="space-y-4">
-          <SupportSection />
-        </TabsContent>
       </Tabs>
 
       {/* Save Button */}
-      <div className="text-center pt-4">
+      <div className="text-center pt-4 space-y-3">
         <Button 
           onClick={saveSettings} 
           size="lg" 
@@ -138,7 +154,7 @@ const SettingsPanel = () => {
           {saving ? (
             <>
               <Loader2 className="w-4 md:w-5 h-4 md:h-5 mr-2 animate-spin" />
-              Salvando...
+              Salvando e Sincronizando...
             </>
           ) : (
             <>
@@ -147,6 +163,13 @@ const SettingsPanel = () => {
             </>
           )}
         </Button>
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+          <p className="text-blue-700 text-xs">
+            ✨ <strong>Sincronização Automática:</strong> Suas alterações são aplicadas 
+            instantaneamente na área pública após salvar.
+          </p>
+        </div>
       </div>
     </div>
   );

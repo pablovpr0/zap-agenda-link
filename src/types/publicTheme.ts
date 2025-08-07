@@ -57,6 +57,120 @@ export const PUBLIC_THEME_COLORS: PublicThemeColor[] = [
     primary: '#616161',
     secondary: '#424242',
     accent: '#757575'
+  },
+  // 6 cores anteriores
+  {
+    id: 'teal',
+    name: 'Verde Água',
+    primary: '#0d9488',
+    secondary: '#0f766e',
+    accent: '#14b8a6'
+  },
+  {
+    id: 'indigo',
+    name: 'Índigo Profundo',
+    primary: '#4f46e5',
+    secondary: '#4338ca',
+    accent: '#6366f1'
+  },
+  {
+    id: 'pink',
+    name: 'Rosa Elegante',
+    primary: '#ec4899',
+    secondary: '#db2777',
+    accent: '#f472b6'
+  },
+  {
+    id: 'emerald',
+    name: 'Esmeralda',
+    primary: '#059669',
+    secondary: '#047857',
+    accent: '#10b981'
+  },
+  {
+    id: 'amber',
+    name: 'Âmbar Dourado',
+    primary: '#f59e0b',
+    secondary: '#d97706',
+    accent: '#fbbf24'
+  },
+  {
+    id: 'slate',
+    name: 'Ardósia Moderna',
+    primary: '#475569',
+    secondary: '#334155',
+    accent: '#64748b'
+  },
+  // 10 novas cores
+  {
+    id: 'brown',
+    name: 'Marrom Café',
+    primary: '#8C6651',
+    secondary: '#7c5a47',
+    accent: '#a0735d'
+  },
+  {
+    id: 'tan',
+    name: 'Bege Elegante',
+    primary: '#B88E66',
+    secondary: '#a67e56',
+    accent: '#c99e76'
+  },
+  {
+    id: 'cream',
+    name: 'Creme Suave',
+    primary: '#DEBBA5',
+    secondary: '#d4b095',
+    accent: '#e8c6b5'
+  },
+  {
+    id: 'sand',
+    name: 'Areia Dourada',
+    primary: '#D3B88B',
+    secondary: '#c9ae7b',
+    accent: '#ddc29b'
+  },
+  {
+    id: 'blush',
+    name: 'Rosa Claro',
+    primary: '#F5CCC6',
+    secondary: '#f1c2b6',
+    accent: '#f9d6d6'
+  },
+  {
+    id: 'silver',
+    name: 'Prata Moderna',
+    primary: '#B2B1B6',
+    secondary: '#a8a7a6',
+    accent: '#bcbbc6'
+  },
+  {
+    id: 'lime',
+    name: 'Lima Vibrante',
+    primary: '#F7F78F',
+    secondary: '#f3f37f',
+    accent: '#fbfb9f'
+  },
+  {
+    id: 'gold',
+    name: 'Ouro Brilhante',
+    primary: '#F9DB5C',
+    secondary: '#f5d74c',
+    accent: '#fddf6c'
+  },
+  {
+    id: 'bronze',
+    name: 'Bronze Antigo',
+    primary: '#A87B05',
+    secondary: '#986f04',
+    accent: '#b88706'
+  },
+  {
+    id: 'chocolate',
+    name: 'Chocolate Escuro',
+    primary: '#664300',
+    secondary: '#5c3d00',
+    accent: '#704900'
   }
 ];
 

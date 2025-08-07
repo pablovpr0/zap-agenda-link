@@ -45,10 +45,10 @@ const ProfessionalSelection = ({
         {professionals.map((professional) => (
           <Card 
             key={professional.id}
-            className={`cursor-pointer transition-all border-2 ${
+            className={`cursor-pointer transition-all border-2 public-card-border ${
               selectedProfessional === professional.id 
-                ? 'border-whatsapp-green bg-green-50' 
-                : 'border-gray-200 hover:border-whatsapp-green'
+                ? 'border-[var(--public-theme-primary)] bg-green-50' 
+                : 'border-gray-200 hover:border-[var(--public-theme-primary)]'
             }`}
             onClick={() => onProfessionalSelect(professional.id)}
           >

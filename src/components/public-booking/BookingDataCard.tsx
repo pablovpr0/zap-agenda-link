@@ -37,7 +37,7 @@ const BookingDataCard = ({
   const selectedServiceData = services.find(s => s.id === selectedService);
 
   return (
-    <div className="mx-4 mb-6 bg-white public-surface rounded-xl shadow-md overflow-visible relative">
+    <div className="mx-4 mb-6 bg-white public-surface public-card-border rounded-xl shadow-md overflow-visible relative">
       {/* Header do card */}
       <div className="bg-[#19c662] dynamic-bg-primary px-6 py-4">
         <h3 className="text-white font-bold text-lg">Dados do Agendamento</h3>

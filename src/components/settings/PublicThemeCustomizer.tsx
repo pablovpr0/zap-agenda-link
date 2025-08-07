@@ -9,14 +9,32 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { savePublicThemeSettings, loadPublicThemeSettings } from '@/services/publicThemeService';
 
-// Cores disponíveis (simplificado)
+// Cores disponíveis (sistema original + 16 novas cores)
 const THEME_COLORS = [
   { id: 'green', name: 'Verde Principal', primary: '#19c662' },
   { id: 'blue', name: 'Azul Corporativo', primary: '#1e88e5' },
   { id: 'purple', name: 'Roxo Elegante', primary: '#8e24aa' },
   { id: 'orange', name: 'Laranja Vibrante', primary: '#f57c00' },
   { id: 'red', name: 'Vermelho Profissional', primary: '#d32f2f' },
-  { id: 'gray', name: 'Cinza Moderno', primary: '#616161' }
+  { id: 'gray', name: 'Cinza Moderno', primary: '#616161' },
+  // 6 cores anteriores
+  { id: 'teal', name: 'Verde Água', primary: '#0d9488' },
+  { id: 'indigo', name: 'Índigo Profundo', primary: '#4f46e5' },
+  { id: 'pink', name: 'Rosa Elegante', primary: '#ec4899' },
+  { id: 'emerald', name: 'Esmeralda', primary: '#059669' },
+  { id: 'amber', name: 'Âmbar Dourado', primary: '#f59e0b' },
+  { id: 'slate', name: 'Ardósia Moderna', primary: '#475569' },
+  // 10 novas cores
+  { id: 'brown', name: 'Marrom Café', primary: '#8C6651' },
+  { id: 'tan', name: 'Bege Elegante', primary: '#B88E66' },
+  { id: 'cream', name: 'Creme Suave', primary: '#DEBBA5' },
+  { id: 'sand', name: 'Areia Dourada', primary: '#D3B88B' },
+  { id: 'blush', name: 'Rosa Claro', primary: '#F5CCC6' },
+  { id: 'silver', name: 'Prata Moderna', primary: '#B2B1B6' },
+  { id: 'lime', name: 'Lima Vibrante', primary: '#F7F78F' },
+  { id: 'gold', name: 'Ouro Brilhante', primary: '#F9DB5C' },
+  { id: 'bronze', name: 'Bronze Antigo', primary: '#A87B05' },
+  { id: 'chocolate', name: 'Chocolate Escuro', primary: '#664300' }
 ];
 
 interface PublicThemeCustomizerProps {
@@ -185,12 +203,14 @@ const PublicThemeCustomizer = ({ onSave }: PublicThemeCustomizerProps) => {
         {/* Seletor de Cores */}
         <div className="space-y-3">
           <Label className="text-sm font-medium">Cor do Tema</Label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {THEME_COLORS.map((color) => (
               <Card
                 key={color.id}
                 className={`cursor-pointer transition-all hover:shadow-md ${
-                  selectedColorId === color.id ? 'ring-2 ring-blue-500' : ''
+                  selectedColorId === color.id 
+                    ? 'ring-2 ring-blue-500 shadow-md' 
+                    : 'hover:ring-1 hover:ring-gray-300'
                 }`}
                 onClick={() => handleColorSelect(color.id)}
               >

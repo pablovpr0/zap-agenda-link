@@ -20,7 +20,15 @@ export const usePublicThemeApplication = (companySlug?: string) => {
                         !location.pathname.startsWith('/timezone-test') &&
                         !location.pathname.startsWith('/theme-test') &&
                         !location.pathname.startsWith('/fix-') &&
+                        !location.pathname.startsWith('/cover-settings') &&
+                        !location.pathname.startsWith('/theme-customization') &&
                         location.pathname.length > 1); // Evitar paths vazios
+
+  console.log('🎨 usePublicThemeApplication:', {
+    pathname: location.pathname,
+    isPublicArea,
+    companySlug
+  });
 
   useEffect(() => {
     const applyThemeIfPublic = async () => {

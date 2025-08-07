@@ -3,7 +3,7 @@ import { Calendar, CheckCircle } from 'lucide-react';
 
 const BookingInfoSection = () => {
   return (
-    <div className="mb-8 bg-white rounded-2xl p-6 shadow-lg border border-green-100">
+    <div className="mb-8 bg-white public-surface public-card-border rounded-2xl p-6 shadow-lg">
       <div className="space-y-4">
         <div className="flex justify-center">
           <div className="bg-gradient-to-r from-green-100 to-blue-100 p-4 rounded-full">

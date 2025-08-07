@@ -15,6 +15,8 @@ const ModernPublicBooking = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
   const { toast } = useToast();
   
+  console.log('🔗 URL Slug extraído:', companySlug);
+  
   const {
     companyData,
     companySettings,
@@ -23,7 +25,7 @@ const ModernPublicBooking = () => {
     loading,
     error,
     submitting,
-    generateAvailableDates,
+    availableDates,
     generateAvailableTimes,
     submitBooking
   } = usePublicBooking(companySlug || '');
@@ -39,8 +41,7 @@ const ModernPublicBooking = () => {
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
 
-  // Gerar datas disponíveis
-  const availableDates = generateAvailableDates();
+  // As datas disponíveis vêm do hook usePublicBooking
 
   // Carregar horários quando data e serviço são selecionados
   useEffect(() => {

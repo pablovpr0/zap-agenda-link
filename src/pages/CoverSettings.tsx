@@ -3,23 +3,86 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Settings } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import CoverImageSettings from '@/components/settings/CoverImageSettings';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 const CoverSettings = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { companyBasicData } = useCompanySettings();
+  const [currentCoverUrl, setCurrentCoverUrl] = React.useState<string>('');
+
+  // Carregar foto de capa atual
+  React.useEffect(() => {
+    const loadCurrentCover = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('company_settings')
+          .select('cover_image_url')
+          .eq('company_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Erro ao carregar foto de capa atual:', error);
+          return;
+        }
+
+        if (data?.cover_image_url) {
+          setCurrentCoverUrl(data.cover_image_url);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar foto de capa:', error);
+      }
+    };
+
+    loadCurrentCover();
+  }, [user?.id]);
 
   if (!user) {
     navigate('/auth');
     return null;
   }
 
-  const handleSaveCover = (coverUrl: string) => {
+  const handleSaveCover = async (coverUrl: string) => {
     console.log('Salvando foto de capa:', coverUrl);
-    // Aqui você implementaria a lógica para salvar no banco
-    // Por exemplo, atualizar company_settings com cover_image_url
+    
+    try {
+      const { error } = await supabase
+        .from('company_settings')
+        .update({ cover_image_url: coverUrl })
+        .eq('company_id', user!.id);
+
+      if (error) {
+        console.error('Erro ao salvar foto de capa:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível salvar a foto de capa.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Foto de capa salva!",
+        description: "A foto de capa foi atualizada com sucesso.",
+      });
+
+      // Disparar evento para atualizar outros componentes
+      window.dispatchEvent(new CustomEvent('coverImageUpdated'));
+      
+    } catch (error: any) {
+      console.error('Erro ao salvar foto de capa:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar a foto de capa.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -55,7 +118,7 @@ const CoverSettings = () => {
           businessType=""
           address={companyBasicData.address}
           logoUrl=""
-          currentCoverUrl=""
+          currentCoverUrl={currentCoverUrl}
           onSave={handleSaveCover}
         />
 

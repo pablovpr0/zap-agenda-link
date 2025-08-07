@@ -90,7 +90,7 @@ const ModernBookingForm: React.FC<ModernBookingFormProps> = ({
 
   return (
     <div ref={formRef} className="max-w-2xl mx-auto px-4 py-8">
-      <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-0 shadow-2xl rounded-3xl overflow-hidden">
+      <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm public-card-border shadow-2xl rounded-3xl overflow-hidden">
         <CardHeader className="text-center pb-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             <Sparkles className="inline-block mr-2 h-6 w-6 text-blue-600" />
@@ -130,9 +130,9 @@ const ModernBookingForm: React.FC<ModernBookingFormProps> = ({
               {services.map((service) => (
                 <Card
                   key={service.id}
-                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
+                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg public-card-border ${
                     selectedService === service.id
-                      ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/50'
+                      ? 'ring-2 ring-[var(--public-theme-primary)] bg-blue-50 dark:bg-blue-950/50'
                       : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
                   onClick={() => handleServiceSelect(service.id)}
@@ -276,7 +276,7 @@ const ModernBookingForm: React.FC<ModernBookingFormProps> = ({
 
               {/* Summary */}
               {selectedService && selectedDate && selectedTime && (
-                <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-blue-200 dark:border-blue-800">
+                <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 public-card-border">
                   <CardContent className="p-4">
                     <h4 className="font-semibold mb-2 text-blue-800 dark:text-blue-200">Resumo do agendamento:</h4>
                     <div className="space-y-1 text-sm">

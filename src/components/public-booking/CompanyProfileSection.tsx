@@ -20,7 +20,7 @@ const CompanyProfileSection = ({
     <div className="flex flex-col items-center px-4 py-6 bg-[#FAFAFA] public-page">
       {/* Logo circular grande */}
       <div className="relative mb-4">
-        <div className="w-[120px] h-[120px] rounded-full border-4 border-white shadow-lg overflow-hidden bg-white">
+        <div className="w-[120px] h-[120px] rounded-full border-4 profile-border profile-shadow overflow-hidden bg-white">
           <img
             src={logoUrl || defaultLogo}
             alt={companyName}

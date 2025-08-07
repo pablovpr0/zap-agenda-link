@@ -125,7 +125,7 @@ const StandardCalendar = ({
                 ${!isCurrentMonth ? 'text-gray-300' : ''}
                 ${isAvailable && isCurrentMonth
                   ? 'hover:bg-gray-100 cursor-pointer text-black border border-gray-200 active:scale-95' 
-                  : 'text-gray-300 cursor-not-allowed border border-transparent'
+                  : 'text-gray-400 cursor-not-allowed border border-gray-100 bg-gray-50 opacity-60'
                 }
                 ${isSelected ? 'bg-[#19c662] dynamic-bg-primary text-white hover:bg-[#005c39] hover:dynamic-bg-secondary border-[#19c662] dynamic-border-primary shadow-md transform scale-105' : ''}
                 ${isTodayDate && !isSelected ? 'bg-gray-100 border-gray-300 font-bold' : ''}

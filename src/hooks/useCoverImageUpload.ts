@@ -50,25 +50,40 @@ export const useCoverImageUpload = ({
     setUploadProgress(0);
 
     try {
-      // Simular progresso de upload
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 100);
-
-      // Aqui você implementaria o upload real para seu storage
-      // Por enquanto, vamos simular com um delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Simular URL de retorno
-      const mockUrl = URL.createObjectURL(file);
+      // Importar supabase dinamicamente para evitar problemas de SSR
+      const { supabase } = await import('@/integrations/supabase/client');
       
-      clearInterval(progressInterval);
+      // Gerar nome único para o arquivo
+      const fileExt = file.name.split('.').pop();
+      const fileName = `cover-${Date.now()}.${fileExt}`;
+      const filePath = `covers/${fileName}`;
+
+      // Simular progresso inicial
+      setUploadProgress(20);
+
+      // Upload para o Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('company-covers')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      setUploadProgress(80);
+
+      // Obter URL pública
+      const { data: urlData } = supabase.storage
+        .from('company-covers')
+        .getPublicUrl(filePath);
+
+      if (!urlData?.publicUrl) {
+        throw new Error('Não foi possível obter URL da imagem');
+      }
+
       setUploadProgress(100);
 
       toast({
@@ -77,15 +92,15 @@ export const useCoverImageUpload = ({
       });
 
       if (onUploadSuccess) {
-        onUploadSuccess(mockUrl);
+        onUploadSuccess(urlData.publicUrl);
       }
 
-      return mockUrl;
-    } catch (error) {
+      return urlData.publicUrl;
+    } catch (error: any) {
       console.error('Erro no upload:', error);
       toast({
         title: "Erro no upload",
-        description: "Não foi possível fazer o upload da imagem. Tente novamente.",
+        description: error.message || "Não foi possível fazer o upload da imagem. Tente novamente.",
         variant: "destructive",
       });
       return null;

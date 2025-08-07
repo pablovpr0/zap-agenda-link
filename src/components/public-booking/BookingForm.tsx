@@ -86,7 +86,7 @@ const BookingForm = ({
   };
 
   return (
-    <Card className="shadow-2xl border-0 bg-white rounded-2xl overflow-hidden">
+    <Card className="shadow-2xl public-card-border bg-white public-surface rounded-2xl overflow-hidden">
       <CardHeader className="pb-6 bg-gradient-to-r from-green-500 to-blue-500 text-white">
         <CardTitle className="text-xl text-center flex items-center justify-center gap-3">
           <Clock className="w-6 h-6" />

@@ -8,7 +8,7 @@ interface ErrorStateProps {
 const ErrorState = ({ companySlug }: ErrorStateProps) => {
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FAFAFA' }}>
-      <div className="text-center bg-white p-8 rounded-2xl shadow-lg">
+      <div className="text-center bg-white public-surface public-card-border p-8 rounded-2xl shadow-lg">
         <div className="text-xl font-bold text-red-600 mb-2">Empresa não encontrada</div>
         <div className="text-gray-600 mb-4">
           Verifique se o link está correto: {companySlug}

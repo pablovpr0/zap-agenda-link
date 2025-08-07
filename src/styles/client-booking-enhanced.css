@@ -120,7 +120,7 @@ header {
 
 #mainProfilePhoto:hover {
   transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 32px 64px -12px rgba(37, 211, 102, 0.4);
+  box-shadow: 0 32px 64px -12px color-mix(in srgb, var(--public-theme-primary, #25d366) 40%, transparent);
 }
 
 /* Sticky Header Enhancement */

@@ -50,6 +50,21 @@ export const usePublicBooking = (companySlug: string) => {
   );
 
   const { generateAvailableDates, generateAvailableTimes } = useAvailableTimes(companySettings);
+  const [availableDates, setAvailableDates] = useState<Date[]>([]);
+
+  // Load available dates when companySettings is available
+  useEffect(() => {
+    const loadAvailableDates = async () => {
+      if (companySettings) {
+        console.log('📅 Carregando datas disponíveis...');
+        const dates = await generateAvailableDates();
+        setAvailableDates(dates);
+        console.log('✅ Datas disponíveis carregadas:', dates.length);
+      }
+    };
+    
+    loadAvailableDates();
+  }, [companySettings, generateAvailableDates]);
 
   // Fetch services and professionals when companyData is available
   useEffect(() => {
@@ -102,7 +117,7 @@ export const usePublicBooking = (companySlug: string) => {
     loading: companyLoading || servicesLoading,
     error,
     submitting,
-    generateAvailableDates,
+    availableDates,
     generateAvailableTimes,
     submitBooking
   };

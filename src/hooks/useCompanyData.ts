@@ -36,6 +36,7 @@ export const useCompanyData = (companySlug: string) => {
         phone: settings.phone,
         logo_url: settings.logo_url,
         profile_image_url: profileData?.profile_image_url,
+        cover_image_url: settings.cover_image_url, // Adicionando foto de capa
         welcome_message: settings.welcome_message,
         instagram_url: settings.instagram_url,
         working_hours_start: settings.working_hours_start,

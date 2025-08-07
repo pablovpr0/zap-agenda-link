@@ -38,7 +38,7 @@ const ClientDataCard = ({
   };
 
   return (
-    <div className="mx-4 mb-6 bg-white public-surface rounded-xl shadow-md p-6">
+    <div className="mx-4 mb-6 bg-white public-surface public-card-border rounded-xl shadow-md p-6">
       <h3 className="text-black public-text font-bold text-lg mb-6">SEUS DADOS</h3>
 
       <div className="space-y-4">

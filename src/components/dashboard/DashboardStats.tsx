@@ -13,51 +13,53 @@ interface DashboardStatsProps {
 
 const DashboardStats = ({ stats }: DashboardStatsProps) => {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-      <Card className="hover:shadow-md transition-shadow bg-white border-whatsapp">
-        <CardContent className="p-3 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs md:text-sm font-medium text-whatsapp-muted">Hoje</p>
-              <p className="text-lg md:text-2xl font-bold text-gray-800">{stats.todayAppointments}</p>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <Card className="hover:shadow-md transition-shadow bg-white border-whatsapp overflow-hidden">
+        <CardContent className="p-3 md:p-4">
+          <div className="flex items-center justify-between min-w-0">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs md:text-sm font-medium text-whatsapp-muted truncate">Hoje</p>
+              <p className="text-base md:text-xl lg:text-2xl font-bold text-gray-800 truncate">{stats.todayAppointments}</p>
             </div>
-            <Calendar className="w-6 md:w-8 h-6 md:h-8 text-whatsapp-green" />
+            <Calendar className="w-5 md:w-6 lg:w-8 h-5 md:h-6 lg:h-8 text-whatsapp-green flex-shrink-0 ml-2" />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="hover:shadow-md transition-shadow bg-white border-whatsapp">
-        <CardContent className="p-3 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs md:text-sm font-medium text-whatsapp-muted">Clientes</p>
-              <p className="text-lg md:text-2xl font-bold text-gray-800">{stats.totalClients}</p>
+      <Card className="hover:shadow-md transition-shadow bg-white border-whatsapp overflow-hidden">
+        <CardContent className="p-3 md:p-4">
+          <div className="flex items-center justify-between min-w-0">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs md:text-sm font-medium text-whatsapp-muted truncate">Clientes</p>
+              <p className="text-base md:text-xl lg:text-2xl font-bold text-gray-800 truncate">{stats.totalClients}</p>
             </div>
-            <Users className="w-6 md:w-8 h-6 md:h-8 text-whatsapp-green" />
+            <Users className="w-5 md:w-6 lg:w-8 h-5 md:h-6 lg:h-8 text-whatsapp-green flex-shrink-0 ml-2" />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="hover:shadow-md transition-shadow bg-white border-whatsapp">
-        <CardContent className="p-3 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs md:text-sm font-medium text-whatsapp-muted">Receita</p>
-              <p className="text-lg md:text-2xl font-bold text-gray-800">R$ {stats.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+      <Card className="hover:shadow-md transition-shadow bg-white border-whatsapp overflow-hidden">
+        <CardContent className="p-3 md:p-4">
+          <div className="flex items-center justify-between min-w-0">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs md:text-sm font-medium text-whatsapp-muted truncate">Receita</p>
+              <p className="text-sm md:text-lg lg:text-xl font-bold text-gray-800 truncate">
+                R$ {stats.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
             </div>
-            <DollarSign className="w-6 md:w-8 h-6 md:h-8 text-whatsapp-green" />
+            <DollarSign className="w-5 md:w-6 lg:w-8 h-5 md:h-6 lg:h-8 text-whatsapp-green flex-shrink-0 ml-2" />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="hover:shadow-md transition-shadow bg-white border-whatsapp">
-        <CardContent className="p-3 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs md:text-sm font-medium text-whatsapp-muted">Taxa</p>
-              <p className="text-lg md:text-2xl font-bold text-gray-800">{stats.completionRate}%</p>
+      <Card className="hover:shadow-md transition-shadow bg-white border-whatsapp overflow-hidden">
+        <CardContent className="p-3 md:p-4">
+          <div className="flex items-center justify-between min-w-0">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs md:text-sm font-medium text-whatsapp-muted truncate">Taxa</p>
+              <p className="text-base md:text-xl lg:text-2xl font-bold text-gray-800 truncate">{stats.completionRate}%</p>
             </div>
-            <TrendingUp className="w-6 md:w-8 h-6 md:h-8 text-whatsapp-green" />
+            <TrendingUp className="w-5 md:w-6 lg:w-8 h-5 md:h-6 lg:h-8 text-whatsapp-green flex-shrink-0 ml-2" />
           </div>
         </CardContent>
       </Card>

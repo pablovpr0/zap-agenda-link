@@ -223,6 +223,138 @@ export const themes: Theme[] = [
     description: 'Verde tradicional e atemporal'
   },
 
+  // NOVOS TEMAS MASCULINOS (10 adicionais)
+  {
+    id: 'royal-purple',
+    name: 'Roxo Real',
+    category: 'masculine',
+    colors: {
+      primary: '#581c87',
+      secondary: '#7c3aed',
+      accent: '#a855f7',
+      background: '#faf5ff',
+      gradient: 'linear-gradient(135deg, #581c87 0%, #7c3aed 100%)'
+    },
+    description: 'Majestoso e imponente roxo real'
+  },
+  {
+    id: 'ocean-blue',
+    name: 'Azul Oceano',
+    category: 'masculine',
+    colors: {
+      primary: '#0c4a6e',
+      secondary: '#0284c7',
+      accent: '#38bdf8',
+      background: '#f0f9ff',
+      gradient: 'linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%)'
+    },
+    description: 'Profundo e sereno como o oceano'
+  },
+  {
+    id: 'crimson-red',
+    name: 'Vermelho Carmesim',
+    category: 'masculine',
+    colors: {
+      primary: '#991b1b',
+      secondary: '#dc2626',
+      accent: '#f87171',
+      background: '#fef2f2',
+      gradient: 'linear-gradient(135deg, #991b1b 0%, #dc2626 100%)'
+    },
+    description: 'Intenso e poderoso vermelho carmesim'
+  },
+  {
+    id: 'amber-gold',
+    name: 'Âmbar Dourado',
+    category: 'masculine',
+    colors: {
+      primary: '#92400e',
+      secondary: '#f59e0b',
+      accent: '#fbbf24',
+      background: '#fffbeb',
+      gradient: 'linear-gradient(135deg, #92400e 0%, #f59e0b 100%)'
+    },
+    description: 'Caloroso e luxuoso âmbar dourado'
+  },
+  {
+    id: 'forest-hunter',
+    name: 'Verde Caçador',
+    category: 'masculine',
+    colors: {
+      primary: '#14532d',
+      secondary: '#16a34a',
+      accent: '#4ade80',
+      background: '#f0fdf4',
+      gradient: 'linear-gradient(135deg, #14532d 0%, #16a34a 100%)'
+    },
+    description: 'Verde intenso da floresta'
+  },
+  {
+    id: 'indigo-night',
+    name: 'Índigo Noturno',
+    category: 'masculine',
+    colors: {
+      primary: '#312e81',
+      secondary: '#4f46e5',
+      accent: '#818cf8',
+      background: '#f8fafc',
+      gradient: 'linear-gradient(135deg, #312e81 0%, #4f46e5 100%)'
+    },
+    description: 'Misterioso índigo da noite'
+  },
+  {
+    id: 'copper-rust',
+    name: 'Cobre Ferrugem',
+    category: 'masculine',
+    colors: {
+      primary: '#9a3412',
+      secondary: '#ea580c',
+      accent: '#fb923c',
+      background: '#fff7ed',
+      gradient: 'linear-gradient(135deg, #9a3412 0%, #ea580c 100%)'
+    },
+    description: 'Rústico e autêntico cobre ferrugem'
+  },
+  {
+    id: 'storm-gray',
+    name: 'Cinza Tempestade',
+    category: 'masculine',
+    colors: {
+      primary: '#1f2937',
+      secondary: '#4b5563',
+      accent: '#9ca3af',
+      background: '#f9fafb',
+      gradient: 'linear-gradient(135deg, #1f2937 0%, #4b5563 100%)'
+    },
+    description: 'Dramático cinza de tempestade'
+  },
+  {
+    id: 'jade-green',
+    name: 'Verde Jade',
+    category: 'masculine',
+    colors: {
+      primary: '#064e3b',
+      secondary: '#047857',
+      accent: '#10b981',
+      background: '#ecfdf5',
+      gradient: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)'
+    },
+    description: 'Precioso e elegante verde jade'
+  },
+  {
+    id: 'mahogany-brown',
+    name: 'Marrom Mogno',
+    category: 'masculine',
+    colors: {
+      primary: '#7c2d12',
+      secondary: '#c2410c',
+      accent: '#ea580c',
+      background: '#fff7ed',
+      gradient: 'linear-gradient(135deg, #7c2d12 0%, #c2410c 100%)'
+    },
+    description: 'Nobre e sofisticado marrom mogno'
+  },
+
   // TEMAS FEMININOS (10)
   {
     id: 'rose-gold',
@@ -353,6 +485,138 @@ export const themes: Theme[] = [
       gradient: 'linear-gradient(135deg, #c2410c 0%, #fb923c 100%)'
     },
     description: 'Suave e acolhedor pêssego'
+  },
+
+  // NOVOS TEMAS FEMININOS (10 adicionais)
+  {
+    id: 'cherry-blossom',
+    name: 'Flor de Cerejeira',
+    category: 'feminine',
+    colors: {
+      primary: '#be185d',
+      secondary: '#f472b6',
+      accent: '#fbcfe8',
+      background: '#fdf2f8',
+      gradient: 'linear-gradient(135deg, #be185d 0%, #f472b6 100%)'
+    },
+    description: 'Delicada como flor de cerejeira'
+  },
+  {
+    id: 'turquoise-dream',
+    name: 'Sonho Turquesa',
+    category: 'feminine',
+    colors: {
+      primary: '#0891b2',
+      secondary: '#06b6d4',
+      accent: '#67e8f9',
+      background: '#f0fdff',
+      gradient: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)'
+    },
+    description: 'Refrescante e sonhador turquesa'
+  },
+  {
+    id: 'lilac-mist',
+    name: 'Névoa Lilás',
+    category: 'feminine',
+    colors: {
+      primary: '#9333ea',
+      secondary: '#c084fc',
+      accent: '#e9d5ff',
+      background: '#faf5ff',
+      gradient: 'linear-gradient(135deg, #9333ea 0%, #c084fc 100%)'
+    },
+    description: 'Suave névoa lilás'
+  },
+  {
+    id: 'rose-quartz',
+    name: 'Quartzo Rosa',
+    category: 'feminine',
+    colors: {
+      primary: '#e11d48',
+      secondary: '#fb7185',
+      accent: '#fda4af',
+      background: '#fff1f2',
+      gradient: 'linear-gradient(135deg, #e11d48 0%, #fb7185 100%)'
+    },
+    description: 'Cristalino quartzo rosa'
+  },
+  {
+    id: 'seafoam-green',
+    name: 'Verde Espuma do Mar',
+    category: 'feminine',
+    colors: {
+      primary: '#059669',
+      secondary: '#34d399',
+      accent: '#a7f3d0',
+      background: '#ecfdf5',
+      gradient: 'linear-gradient(135deg, #059669 0%, #34d399 100%)'
+    },
+    description: 'Fresco verde espuma do mar'
+  },
+  {
+    id: 'butterfly-blue',
+    name: 'Azul Borboleta',
+    category: 'feminine',
+    colors: {
+      primary: '#1d4ed8',
+      secondary: '#60a5fa',
+      accent: '#bfdbfe',
+      background: '#eff6ff',
+      gradient: 'linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)'
+    },
+    description: 'Leve como asa de borboleta'
+  },
+  {
+    id: 'sunset-coral',
+    name: 'Coral do Pôr do Sol',
+    category: 'feminine',
+    colors: {
+      primary: '#ea580c',
+      secondary: '#fb923c',
+      accent: '#fed7aa',
+      background: '#fff7ed',
+      gradient: 'linear-gradient(135deg, #ea580c 0%, #fb923c 100%)'
+    },
+    description: 'Caloroso coral do pôr do sol'
+  },
+  {
+    id: 'amethyst-purple',
+    name: 'Roxo Ametista',
+    category: 'feminine',
+    colors: {
+      primary: '#7c2d12',
+      secondary: '#a855f7',
+      accent: '#d8b4fe',
+      background: '#faf5ff',
+      gradient: 'linear-gradient(135deg, #7c2d12 0%, #a855f7 100%)'
+    },
+    description: 'Precioso roxo ametista'
+  },
+  {
+    id: 'cotton-candy',
+    name: 'Algodão Doce',
+    category: 'feminine',
+    colors: {
+      primary: '#db2777',
+      secondary: '#f472b6',
+      accent: '#fbcfe8',
+      background: '#fdf2f8',
+      gradient: 'linear-gradient(135deg, #db2777 0%, #f472b6 100%)'
+    },
+    description: 'Doce como algodão doce'
+  },
+  {
+    id: 'pearl-white',
+    name: 'Branco Pérola',
+    category: 'feminine',
+    colors: {
+      primary: '#6b7280',
+      secondary: '#9ca3af',
+      accent: '#e5e7eb',
+      background: '#ffffff',
+      gradient: 'linear-gradient(135deg, #6b7280 0%, #9ca3af 100%)'
+    },
+    description: 'Elegante branco pérola'
   }
 ];
 
@@ -366,14 +630,14 @@ export const getThemesByCategory = (category: 'masculine' | 'feminine'): Theme[]
 
 export const applyTheme = (theme: Theme) => {
   const root = document.documentElement;
-  
+
   // Aplicar variáveis CSS customizadas
   root.style.setProperty('--theme-primary', theme.colors.primary);
   root.style.setProperty('--theme-secondary', theme.colors.secondary);
   root.style.setProperty('--theme-accent', theme.colors.accent);
   root.style.setProperty('--theme-background', theme.colors.background);
   root.style.setProperty('--theme-gradient', theme.colors.gradient);
-  
+
   // Salvar tema no localStorage
   localStorage.setItem('zapagenda-theme', theme.id);
 };
@@ -386,7 +650,7 @@ export const loadSavedTheme = (): Theme => {
       return theme;
     }
   }
-  
+
   // Retornar tema padrão (WhatsApp Green)
   return {
     id: 'whatsapp-green',

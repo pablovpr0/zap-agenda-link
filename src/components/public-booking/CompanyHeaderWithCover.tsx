@@ -138,7 +138,7 @@ const CompanyHeaderWithCover = ({
       <div className="relative -mt-16 flex flex-col items-center px-4 pb-6">
         {/* Logo circular com efeito 3D */}
         <div className="relative mb-4">
-          <div className="w-[120px] h-[120px] rounded-full border-4 border-white shadow-lg overflow-hidden bg-white company-profile-shadow">
+          <div className="w-[120px] h-[120px] rounded-full border-4 profile-border profile-shadow overflow-hidden bg-white">
             <img
               src={logoUrl || defaultLogo}
               alt={companyName}

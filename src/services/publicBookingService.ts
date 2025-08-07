@@ -160,18 +160,22 @@ export const checkAvailableTimes = async (
       .select('*')
       .eq('company_id', companyId)
       .eq('day_of_week', dayOfWeek)
-      .eq('is_active', true)
       .maybeSingle();
 
-    console.log('📋 Daily schedule query result:', { dailySchedule, scheduleError });
+    console.log('📋 Daily schedule query result:', { dailySchedule, scheduleError, dayOfWeek });
 
     if (scheduleError) {
       console.error('❌ Error fetching daily schedule:', scheduleError);
       return [];
     }
 
-    if (!dailySchedule) {
-      console.log('📅 No schedule configured for this day or day is closed');
+    // Check if day exists and is active
+    if (!dailySchedule || !dailySchedule.is_active) {
+      console.log('📅 Day is not active or not configured:', { 
+        exists: !!dailySchedule, 
+        isActive: dailySchedule?.is_active,
+        dayOfWeek 
+      });
       
       // Fallback: try to get from company_settings
       console.log('🔄 Trying fallback to company_settings...');
@@ -243,7 +247,8 @@ export const checkAvailableTimes = async (
         bookedTimeRanges,
         fallbackSchedule.has_lunch_break,
         fallbackSchedule.lunch_start,
-        fallbackSchedule.lunch_end
+        fallbackSchedule.lunch_end,
+        selectedDate
       );
 
       console.log('⏰ Available times generated (fallback):', {
@@ -251,7 +256,7 @@ export const checkAvailableTimes = async (
         dayOfWeek,
         schedule: `${fallbackSchedule.start_time}-${fallbackSchedule.end_time}`,
         lunchBreak: fallbackSchedule.has_lunch_break ? `${fallbackSchedule.lunch_start}-${fallbackSchedule.lunch_end}` : 'none',
-        bookedCount: bookedTimes.length,
+        bookedCount: bookedTimeRanges.length,
         availableCount: availableTimes.length,
         availableTimes
       });
@@ -311,7 +316,8 @@ export const checkAvailableTimes = async (
       bookedTimeRanges,
       dailySchedule.has_lunch_break,
       dailySchedule.lunch_start,
-      dailySchedule.lunch_end
+      dailySchedule.lunch_end,
+      selectedDate
     );
 
     console.log('⏰ Available times generated:', {
@@ -319,7 +325,7 @@ export const checkAvailableTimes = async (
       dayOfWeek,
       schedule: `${dailySchedule.start_time}-${dailySchedule.end_time}`,
       lunchBreak: dailySchedule.has_lunch_break ? `${dailySchedule.lunch_start}-${dailySchedule.lunch_end}` : 'none',
-      bookedCount: bookedTimes.length,
+      bookedCount: bookedTimeRanges.length,
       availableCount: availableTimes.length,
       availableTimes
     });
@@ -341,17 +347,19 @@ const generateTimeSlots = (
   bookedTimeRanges: Array<{start: string, end: string, duration: number, status: string}>,
   hasLunchBreak: boolean,
   lunchStart?: string,
-  lunchEnd?: string
+  lunchEnd?: string,
+  selectedDate?: string
 ): string[] => {
   console.log('🕐 Generating time slots with params:', {
     startTime,
     endTime,
     interval,
     serviceDuration,
-    bookedTimeRanges,
+    bookedTimeRanges: bookedTimeRanges.length,
     hasLunchBreak,
     lunchStart,
-    lunchEnd
+    lunchEnd,
+    selectedDate
   });
 
   const slots: string[] = [];
@@ -371,7 +379,18 @@ const generateTimeSlots = (
   const start = new Date(`2000-01-01T${normalizedStartTime}:00`);
   const end = new Date(`2000-01-01T${normalizedEndTime}:00`);
   
-  console.log('🕐 Time range:', { start: start.toTimeString(), end: end.toTimeString() });
+  // Check if this is today and filter past times
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const isToday = selectedDate === today;
+  const currentTime = isToday ? now.toTimeString().substring(0, 5) : null;
+  
+  console.log('🕐 Time range:', { 
+    start: start.toTimeString(), 
+    end: end.toTimeString(),
+    isToday,
+    currentTime
+  });
   
   let current = new Date(start);
   let slotCount = 0;
@@ -379,10 +398,23 @@ const generateTimeSlots = (
   while (current < end && slotCount < 50) { // Safety limit
     const timeStr = current.toTimeString().substring(0, 5);
     
+    // Skip past times if this is today
+    if (isToday && currentTime && timeStr <= currentTime) {
+      console.log('⏰ Skipping past time:', timeStr);
+      current = new Date(current.getTime() + interval * 60000);
+      slotCount++;
+      continue;
+    }
+    
     // Check if service would end before closing time
     const serviceEnd = new Date(current.getTime() + serviceDuration * 60000);
     if (serviceEnd > end) {
-      console.log('⏰ Service would end after closing time:', { timeStr, serviceEnd: serviceEnd.toTimeString() });
+      console.log('⏰ Service would end after closing time:', { 
+        timeStr, 
+        serviceDuration: `${serviceDuration}min`,
+        serviceEnd: serviceEnd.toTimeString().substring(0, 5),
+        closingTime: end.toTimeString().substring(0, 5)
+      });
       break;
     }
     
@@ -413,15 +445,20 @@ const generateTimeSlots = (
         const bookedEnd = new Date(`2000-01-01T${bookedRange.end}:00`);
         
         // Check if the new service would overlap with existing appointment
-        if (
-          (current >= bookedStart && current < bookedEnd) || // Starts during existing appointment
-          (serviceEnd > bookedStart && serviceEnd <= bookedEnd) || // Ends during existing appointment
-          (current <= bookedStart && serviceEnd >= bookedEnd) // Completely overlaps existing appointment
-        ) {
+        // More precise overlap detection
+        const hasOverlap = (
+          (current >= bookedStart && current < bookedEnd) || // New service starts during existing appointment
+          (serviceEnd > bookedStart && serviceEnd <= bookedEnd) || // New service ends during existing appointment
+          (current <= bookedStart && serviceEnd >= bookedEnd) || // New service completely overlaps existing appointment
+          (current < bookedEnd && serviceEnd > bookedStart) // Any overlap at all
+        );
+        
+        if (hasOverlap) {
           console.log('❌ Time conflicts with existing appointment:', {
-            timeStr,
-            serviceEnd: serviceEnd.toTimeString().substring(0, 5),
-            bookedRange: `${bookedRange.start}-${bookedRange.end}`,
+            proposedSlot: `${timeStr}-${serviceEnd.toTimeString().substring(0, 5)}`,
+            serviceDuration: `${serviceDuration}min`,
+            existingBooking: `${bookedRange.start}-${bookedRange.end}`,
+            existingDuration: `${bookedRange.duration}min`,
             status: bookedRange.status
           });
           isTimeSlotAvailable = false;
@@ -430,11 +467,22 @@ const generateTimeSlots = (
       }
       
       // Additional check for buffer time between appointments
-      if (isTimeSlotAvailable && hasEnoughBufferTime(current, serviceEnd, bookedTimeRanges)) {
-        slots.push(timeStr);
-        console.log('✅ Added available slot:', timeStr);
-      } else if (isTimeSlotAvailable) {
-        console.log('⚠️ Time slot available but insufficient buffer time:', timeStr);
+      if (isTimeSlotAvailable) {
+        const hasBuffer = hasEnoughBufferTime(current, serviceEnd, bookedTimeRanges);
+        if (hasBuffer) {
+          slots.push(timeStr);
+          console.log('✅ Added available slot:', {
+            time: timeStr,
+            duration: `${serviceDuration}min`,
+            endTime: serviceEnd.toTimeString().substring(0, 5)
+          });
+        } else {
+          console.log('⚠️ Time slot available but insufficient buffer time:', {
+            time: timeStr,
+            duration: `${serviceDuration}min`,
+            endTime: serviceEnd.toTimeString().substring(0, 5)
+          });
+        }
       }
     }
     
