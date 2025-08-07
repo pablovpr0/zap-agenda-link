@@ -84,7 +84,14 @@ const SettingsPanel = () => {
 
       <Tabs defaultValue="general" className="space-y-4">
         <div className="overflow-x-auto pb-2">
-          
+          <TabsList className="grid w-full grid-cols-2 min-w-[300px] md:min-w-0 bg-gray-100 h-auto">
+            <TabsTrigger value="general" className="text-xs md:text-sm data-[state=active]:bg-white data-[state=active]:text-whatsapp-green px-3 py-2">
+              ⚙️ Configurações Gerais
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="text-xs md:text-sm data-[state=active]:bg-white data-[state=active]:text-whatsapp-green px-3 py-2">
+              ⏰ Horários de Funcionamento
+            </TabsTrigger>
+          </TabsList>
         </div>
 
         <TabsContent value="general" className="space-y-4">
