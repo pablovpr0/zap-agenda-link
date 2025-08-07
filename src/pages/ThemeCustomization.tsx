@@ -52,27 +52,7 @@ const ThemeCustomization = () => {
         
 
         {/* Dicas importantes */}
-        <div className="mt-6 bg-amber-50 border border-amber-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4 text-amber-800">💡 Dicas Importantes</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 className="font-medium text-amber-800 mb-2">🎯 Escolha da Cor</h4>
-              <ul className="text-sm text-amber-700 space-y-1">
-                <li>• Use cores que representem sua marca</li>
-                <li>• Considere o tipo de negócio</li>
-                <li>• Teste em diferentes dispositivos</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-medium text-amber-800 mb-2">🌓 Modo Escuro</h4>
-              <ul className="text-sm text-amber-700 space-y-1">
-                <li>• Ideal para salões noturnos</li>
-                <li>• Reduz cansaço visual</li>
-                <li>• Aparência mais moderna</li>
-              </ul>
-            </div>
-          </div>
-        </div>
+        
       </div>
     </div>;
 };
