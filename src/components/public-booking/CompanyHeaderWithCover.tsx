@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, X } from 'lucide-react';
+import { Camera, Upload, X, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface CompanyHeaderWithCoverProps {
@@ -167,9 +167,10 @@ const CompanyHeaderWithCover = ({
           )}
           
           {address && (
-            <p className="text-gray-500 public-text-secondary text-sm">
-              {address}
-            </p>
+            <div className="flex items-center justify-center gap-2 text-gray-500 public-text-secondary text-sm">
+              <MapPin className="w-4 h-4 text-[var(--public-theme-primary)] dynamic-primary" />
+              <span>{address}</span>
+            </div>
           )}
         </div>
       </div>

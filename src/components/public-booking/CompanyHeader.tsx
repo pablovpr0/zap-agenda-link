@@ -50,7 +50,7 @@ const CompanyHeader = ({ companySettings, profile }: CompanyHeaderProps) => {
         {/* Endereço */}
         {companySettings?.address && (
           <div className="flex items-center justify-center gap-2 text-gray-600 text-sm mb-4">
-            <MapPin className="w-4 h-4 text-green-500" />
+            <MapPin className="w-4 h-4 text-[var(--public-theme-primary)] dynamic-primary" />
             <span>{companySettings.address}</span>
           </div>
         )}

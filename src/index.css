@@ -323,6 +323,20 @@
   border-color: color-mix(in srgb, var(--public-theme-primary, #19c662) 50%, transparent);
 }
 
+/* Ícone de localização com cor do tema */
+.dynamic-primary {
+  color: var(--public-theme-primary, #19c662) !important;
+}
+
+/* Garantir que o ícone de localização sempre use a cor do tema */
+.public-area .dynamic-primary {
+  color: var(--public-theme-primary, #19c662) !important;
+}
+
+.public-area.dark-mode .dynamic-primary {
+  color: var(--public-theme-primary, #19c662) !important;
+}
+
 /* ========================================
    SEPARAÇÃO DE ESTILOS: PÚBLICO vs ADMIN
    ======================================== */

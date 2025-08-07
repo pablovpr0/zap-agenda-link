@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { MapPin } from 'lucide-react';
 
 interface CompanyProfileSectionProps {
   companyName: string;
@@ -46,9 +47,10 @@ const CompanyProfileSection = ({
         )}
         
         {address && (
-          <p className="text-gray-500 public-text-secondary text-sm">
-            {address}
-          </p>
+          <div className="flex items-center justify-center gap-2 text-gray-500 public-text-secondary text-sm">
+            <MapPin className="w-4 h-4 text-[var(--public-theme-primary)] dynamic-primary" />
+            <span>{address}</span>
+          </div>
         )}
       </div>
     </div>
