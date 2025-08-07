@@ -256,13 +256,7 @@ const PublicThemeCustomizer = ({
                     <div className="w-6 h-6 rounded-full flex-shrink-0" style={{
                   backgroundColor: color.primary
                 }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{color.name}</p>
-                      {selectedColorId === color.id && <Badge variant="secondary" className="mt-1">
-                          <Check className="w-3 h-3 mr-1" />
-                          Selecionado
-                        </Badge>}
-                    </div>
+                    
                   </div>
                 </CardContent>
               </Card>)}
