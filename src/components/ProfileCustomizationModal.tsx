@@ -155,8 +155,7 @@ const ProfileCustomizationModal = ({
       setSubmitting(false);
     }
   };
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+  return <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -273,21 +272,9 @@ const ProfileCustomizationModal = ({
                     <h4 className="text-lg font-semibold text-blue-900 mb-2">
                       Personalização Completa da Página Pública
                     </h4>
-                    <p className="text-sm text-blue-800 mb-4">
-                      Configure cores dinâmicas, modo escuro/claro e foto de capa profissional 
-                      para impressionar seus clientes.
-                    </p>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                      <div className="bg-white/60 rounded-lg p-3">
-                        <h5 className="font-medium text-blue-900 text-sm mb-1">🎨 Tema Avançado</h5>
-                        <p className="text-xs text-blue-700">6 cores • Modo escuro • Preview</p>
-                      </div>
-                      <div className="bg-white/60 rounded-lg p-3">
-                        <h5 className="font-medium text-blue-900 text-sm mb-1">📸 Foto de Capa</h5>
-                        <p className="text-xs text-blue-700">Upload • Efeito 3D • Sombras</p>
-                      </div>
-                    </div>
+                    
+                    
                     
                     <div className="flex gap-2 justify-center">
                       <Button type="button" variant="outline" size="sm" onClick={() => window.open('/theme-customization', '_blank')} className="border-blue-300 text-blue-700 hover:bg-blue-100">
@@ -315,7 +302,6 @@ const ProfileCustomizationModal = ({
             </div>
           </form>}
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>;
 };
 export default ProfileCustomizationModal;
