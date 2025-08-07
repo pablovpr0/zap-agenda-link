@@ -4,6 +4,7 @@ import { ChevronDown } from 'lucide-react';
 import { Service } from '@/types/publicBooking';
 import StandardCalendar from '@/components/StandardCalendar';
 import TimeSelection from '@/components/public-booking/TimeSelection';
+import { formatToBrasilia } from '@/utils/timezone';
 
 interface BookingDataCardProps {
   services: Service[];
@@ -100,11 +101,7 @@ const BookingDataCard = ({
               Escolha a data
               {selectedDate && (
                 <span className="ml-2 text-sm text-[#19c662] dynamic-primary font-normal">
-                  ✓ {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR', { 
-                    weekday: 'long', 
-                    day: 'numeric', 
-                    month: 'long' 
-                  })}
+                  ✓ {formatToBrasilia(selectedDate + 'T12:00:00', "EEEE, dd 'de' MMMM")}
                 </span>
               )}
             </label>

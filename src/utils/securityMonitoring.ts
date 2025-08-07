@@ -1,5 +1,6 @@
 
 // Security monitoring and logging utilities
+import { getNowInBrazil } from '@/utils/timezone';
 
 export const logSecurityEvent = (event: {
   type: 'rate_limit_exceeded' | 'invalid_input' | 'unauthorized_access' | 'booking_attempt';
@@ -7,7 +8,7 @@ export const logSecurityEvent = (event: {
   details?: any;
   severity?: 'low' | 'medium' | 'high';
 }) => {
-  const timestamp = new Date().toISOString();
+  const timestamp = getNowInBrazil().toISOString();
   const logEntry = {
     timestamp,
     ...event,

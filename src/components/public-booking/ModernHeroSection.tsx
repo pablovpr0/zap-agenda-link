@@ -32,9 +32,9 @@ const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
       </Button>
 
       {/* Cover Image */}
-      <div className="relative h-64 md:h-80 overflow-hidden">
+      <div className="relative h-64 md:h-80 overflow-hidden cover-image-container">
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat cover-image-container"
           style={{ backgroundImage: `url(${coverImage})` }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/30 to-black/60" />

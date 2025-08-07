@@ -32,6 +32,36 @@ export const formatUtcToBrazilTime = (
 };
 
 /**
+ * Função utilitária principal para formatação de datas no Brasil
+ * Esta deve ser usada em todo o frontend para exibir datas
+ */
+export const formatToBrasilia = (
+  date: Date | string,
+  formatString: string = 'dd/MM/yyyy HH:mm'
+): string => {
+  return formatUtcToBrazilTime(date, formatString);
+};
+
+/**
+ * Converte dados do banco (UTC) para exibição no Brasil
+ * Usar esta função ao receber dados de appointments, etc.
+ */
+export const convertDatabaseDateToBrasilia = (
+  utcDate: string,
+  formatString: string = 'dd/MM/yyyy HH:mm'
+): string => {
+  return formatUtcToBrazilTime(utcDate, formatString);
+};
+
+/**
+ * Converte entrada do usuário (Brasil) para UTC antes de salvar no banco
+ */
+export const convertBrasiliaToDatabase = (dateStr: string, timeStr: string): string => {
+  const utcDate = brazilDateTimeToUtc(dateStr, timeStr);
+  return utcDate.toISOString();
+};
+
+/**
  * Obtém a data atual no horário de Brasília
  */
 export const getNowInBrazil = (): Date => {

@@ -1,4 +1,5 @@
 import { getTodayInBrazil, getCurrentTimeInBrazil, isDateTimePastInBrazil } from './timezone';
+import { format } from 'date-fns-tz';
 
 export interface TimeSlotConfig {
   workingHoursStart: string; // HH:mm
@@ -136,7 +137,8 @@ export const getNextAvailableSlots = (
   for (let i = 0; i < daysToCheck; i++) {
     const checkDate = new Date(startDate);
     checkDate.setDate(checkDate.getDate() + i);
-    const dateStr = checkDate.toISOString().split('T')[0];
+    // Usar formatação com timezone brasileiro
+    const dateStr = format(checkDate, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' });
     
     // Pular datas passadas
     if (dateStr < today) continue;

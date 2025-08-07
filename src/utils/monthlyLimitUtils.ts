@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { getNowInBrazil } from '@/utils/timezone';
 
 export const checkMonthlyLimit = async (
   companyId: string,
@@ -12,7 +13,7 @@ export const checkMonthlyLimit = async (
   }
 
   try {
-    const currentDate = new Date();
+    const currentDate = getNowInBrazil();
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
     

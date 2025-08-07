@@ -76,7 +76,7 @@ const CompanyHeaderWithCover = ({
   return (
     <div className="relative bg-[#FAFAFA] public-page overflow-hidden">
       {/* Foto de Capa */}
-      <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300 public-surface">
+      <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300 cover-image-container">
         {currentCover ? (
           <img
             src={currentCover}

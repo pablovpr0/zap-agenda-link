@@ -284,6 +284,15 @@
   background: linear-gradient(to top, var(--public-theme-background), transparent);
 }
 
+/* Remover contorno da foto de capa */
+.cover-image-container {
+  border: none !important;
+}
+
+.cover-image-container img {
+  border: none !important;
+}
+
 /* Contornos médios nos cards seguindo a cor do tema */
 .public-card-border {
   border: 1.5px solid color-mix(in srgb, var(--public-theme-primary, #19c662) 25%, transparent);

@@ -1,12 +1,19 @@
 
 import { addDays, format, setHours, setMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getNowInBrazil } from '@/utils/timezone';
 
 export const generateAvailableDates = (workingDays: number[], advanceBookingLimit: number) => {
   console.log('📅 Gerando datas disponíveis:', { workingDays, advanceBookingLimit });
   
   const dates = [];
-  const today = new Date();
+  const today = getNowInBrazil(); // Usar horário de São Paulo
+  
+  console.log('🇧🇷 Data atual no Brasil:', {
+    date: format(today, 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+    dayOfWeek: today.getDay(),
+    dayName: ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][today.getDay()]
+  });
   
   // Mapear os dias da semana para debug
   const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -49,8 +56,10 @@ export const generateTimeSlots = (
   const [startHour, startMinute] = workingHoursStart.split(':').map(Number);
   const [endHour, endMinute] = workingHoursEnd.split(':').map(Number);
   
-  let currentTime = setMinutes(setHours(new Date(), startHour), startMinute);
-  const endTime = setMinutes(setHours(new Date(), endHour), endMinute);
+  // Usar data base fixa para evitar problemas de timezone
+  const baseDate = new Date('2000-01-01T00:00:00');
+  let currentTime = setMinutes(setHours(baseDate, startHour), startMinute);
+  const endTime = setMinutes(setHours(baseDate, endHour), endMinute);
   
   while (currentTime < endTime) {
     const timeString = format(currentTime, 'HH:mm');
@@ -108,6 +117,10 @@ export const isTimeDuringLunch = (
 };
 
 export const formatAppointmentDate = (date: string) => {
-  const appointmentDate = new Date(date + 'T00:00:00');
-  return format(appointmentDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  // Usar timezone brasileiro para formatação
+  const appointmentDate = new Date(date + 'T12:00:00'); // Meio-dia para evitar problemas de timezone
+  return format(appointmentDate, "dd 'de' MMMM 'de' yyyy", { 
+    locale: ptBR,
+    timeZone: 'America/Sao_Paulo'
+  });
 };

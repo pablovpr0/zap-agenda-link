@@ -3,6 +3,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, Calendar, MessageCircle, Sparkles, Copy, Check } from 'lucide-react';
+import { formatToBrasilia } from '@/utils/timezone';
 
 interface SuccessModalProps {
   isOpen: boolean;
@@ -34,13 +35,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
   }, [isOpen]);
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('pt-BR', { 
-      weekday: 'long', 
-      day: 'numeric', 
-      month: 'long',
-      year: 'numeric'
-    });
+    return formatToBrasilia(dateStr + 'T12:00:00', "EEEE, dd 'de' MMMM 'de' yyyy");
   };
 
   const generateCalendarEvent = () => {

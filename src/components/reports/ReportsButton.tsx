@@ -42,8 +42,8 @@ const ReportsButton = () => {
         `)
         .eq('company_id', user.id)
         .eq('status', 'completed')
-        .gte('appointment_date', format(startDate, 'yyyy-MM-dd'))
-        .lte('appointment_date', format(endDate, 'yyyy-MM-dd'))
+        .gte('appointment_date', format(startDate, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' }))
+        .lte('appointment_date', format(endDate, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' }))
         .order('appointment_date');
 
       if (error) throw error;
@@ -63,7 +63,7 @@ const ReportsButton = () => {
       // Gerar texto do relatório profissional sem emojis
       const reportText = `RELATÓRIO DE ATENDIMENTOS
 
-Período: ${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}
+Período: ${format(startDate, 'dd/MM/yyyy', { timeZone: 'America/Sao_Paulo' })} a ${format(endDate, 'dd/MM/yyyy', { timeZone: 'America/Sao_Paulo' })}
 
 Total de Clientes Atendidos: ${totalClients}
 
@@ -97,7 +97,7 @@ Total de Atendimentos: ${appointments?.length || 0}`;
     const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `relatorio_${format(startDate!, 'yyyy-MM-dd')}_${format(endDate!, 'yyyy-MM-dd')}.txt`;
+    link.download = `relatorio_${format(startDate!, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' })}_${format(endDate!, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' })}.txt`;
     link.click();
 
     toast({

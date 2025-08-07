@@ -7,7 +7,7 @@ export async function debugAvailableTimesGeneration(
 ) {
   console.log('🔍 DEBUG: Available Times Generation');
   console.log('📅 Date selected:', selectedDate);
-  const date = new Date(selectedDate + 'T00:00:00');
+  const date = new Date(selectedDate + 'T12:00:00'); // Meio-dia para evitar problemas de timezone
   const dayOfWeek = date.getDay();
   console.log('📅 Day of week:', dayOfWeek);
 

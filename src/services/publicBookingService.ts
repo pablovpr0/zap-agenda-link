@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { CompanySettings, Profile, Service } from '@/types/publicBooking';
 import { Professional } from '@/services/professionalsService';
+import { getNowInBrazil, getTodayInBrazil, getCurrentTimeInBrazil } from '@/utils/timezone';
 
 export const loadCompanyDataBySlug = async (companySlug: string) => {
   console.log('🔍 Loading company data with secure policies:', companySlug);
@@ -51,8 +52,8 @@ export const loadCompanyDataBySlug = async (companySlug: string) => {
         company_name: 'Empresa',
         business_type: 'Serviços',
         profile_image_url: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        created_at: getNowInBrazil().toISOString(),
+        updated_at: getNowInBrazil().toISOString()
       };
     }
 
@@ -148,11 +149,11 @@ export const checkAvailableTimes = async (
   });
 
   try {
-    // Get day of week (0=Sunday, 1=Monday, etc.)
-    const date = new Date(selectedDate + 'T00:00:00');
+    // Get day of week (0=Sunday, 1=Monday, etc.) using Brazil timezone
+    const date = new Date(selectedDate + 'T12:00:00'); // Use meio-dia para evitar problemas de timezone
     const dayOfWeek = date.getDay();
     
-    console.log('📅 Day of week calculated:', { selectedDate, dayOfWeek });
+    console.log('📅 Day of week calculated (Brazil timezone):', { selectedDate, dayOfWeek });
 
     // Get daily schedule for this day
     const { data: dailySchedule, error: scheduleError } = await supabase
@@ -379,17 +380,18 @@ const generateTimeSlots = (
   const start = new Date(`2000-01-01T${normalizedStartTime}:00`);
   const end = new Date(`2000-01-01T${normalizedEndTime}:00`);
   
-  // Check if this is today and filter past times
-  const now = new Date();
-  const today = now.toISOString().split('T')[0];
+  // Check if this is today and filter past times (using Brazil timezone)
+  const today = getTodayInBrazil(); // YYYY-MM-DD no horário de São Paulo
   const isToday = selectedDate === today;
-  const currentTime = isToday ? now.toTimeString().substring(0, 5) : null;
+  const currentTime = isToday ? getCurrentTimeInBrazil() : null; // HH:mm no horário de São Paulo
   
-  console.log('🕐 Time range:', { 
+  console.log('🕐 Time range (Brazil timezone):', { 
     start: start.toTimeString(), 
     end: end.toTimeString(),
+    selectedDate,
+    todayInBrazil: today,
     isToday,
-    currentTime
+    currentTimeInBrazil: currentTime
   });
   
   let current = new Date(start);

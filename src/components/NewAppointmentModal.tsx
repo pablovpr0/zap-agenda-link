@@ -182,7 +182,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
 
     setLoadingTimes(true);
     try {
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' });
       
       // Import the updated checkAvailableTimes function
       const { checkAvailableTimes } = await import('@/services/publicBookingService');
@@ -255,7 +255,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       }
 
       // Create appointment
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' });
       const { error: appointmentError } = await supabase
         .from('appointments')
         .insert({

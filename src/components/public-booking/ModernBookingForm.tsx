@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, User, Phone, CheckCircle, Sparkles, ArrowRight } from 'lucide-react';
 import { Service } from '@/types/publicBooking';
+import { formatToBrasilia } from '@/utils/timezone';
 
 interface ModernBookingFormProps {
   services: Service[];
@@ -70,12 +71,7 @@ const ModernBookingForm: React.FC<ModernBookingFormProps> = ({
   };
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('pt-BR', { 
-      weekday: 'long', 
-      day: 'numeric', 
-      month: 'long' 
-    });
+    return formatToBrasilia(dateStr + 'T12:00:00', "EEEE, dd 'de' MMMM");
   };
 
   const isStepComplete = (step: number) => {

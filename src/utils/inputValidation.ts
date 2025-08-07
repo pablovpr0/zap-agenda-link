@@ -1,5 +1,6 @@
 
 // Comprehensive input validation and sanitization utilities
+import { getNowInBrazil } from '@/utils/timezone';
 
 export const sanitizeText = (input: string): string => {
   if (!input) return '';
@@ -78,8 +79,8 @@ export const validateDate = (date: string): { isValid: boolean; error?: string }
     return { isValid: false, error: 'Data é obrigatória' };
   }
   
-  const selectedDate = new Date(date);
-  const today = new Date();
+  const selectedDate = new Date(date + 'T12:00:00'); // Meio-dia para evitar problemas de timezone
+  const today = getNowInBrazil();
   today.setHours(0, 0, 0, 0);
   
   if (selectedDate < today) {
@@ -87,7 +88,7 @@ export const validateDate = (date: string): { isValid: boolean; error?: string }
   }
   
   // Don't allow scheduling too far in the future (1 year)
-  const oneYearFromNow = new Date();
+  const oneYearFromNow = getNowInBrazil();
   oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
   
   if (selectedDate > oneYearFromNow) {
