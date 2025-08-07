@@ -328,10 +328,7 @@ const PublicThemeCustomizer = ({
 
         {/* Controles */}
         <div className="flex gap-3">
-          <Button variant="outline" onClick={togglePreview} className="flex-1">
-            <Eye className="w-4 h-4 mr-2" />
-            {isPreviewMode ? 'Desativar Preview' : 'Ativar Preview'}
-          </Button>
+          
           
           <Button onClick={handleSave} disabled={isSaving} className="flex-1">
             <Save className="w-4 h-4 mr-2" />
