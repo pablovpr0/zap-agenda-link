@@ -242,18 +242,7 @@ const PublicThemeCustomizer = ({
         </p>
         
         {/* Aviso importante */}
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-medium text-amber-800">Importante:</p>
-              <p className="text-amber-700">
-                Estas configurações afetam APENAS a área pública onde seus clientes fazem agendamentos. 
-                Seu dashboard administrativo permanecerá com o tema padrão.
-              </p>
-            </div>
-          </div>
-        </div>
+        
       </CardHeader>
       
       <CardContent className="space-y-6">
