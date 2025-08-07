@@ -110,31 +110,69 @@ export const fetchActiveProfessionals = async (companyId: string): Promise<Profe
   }
 };
 
-// Helper function to check if there's enough buffer time between appointments
-const hasEnoughBufferTime = (
-  proposedStart: Date,
-  proposedEnd: Date,
-  bookedTimeRanges: Array<{start: string, end: string, duration: number, status: string}>,
-  bufferMinutes: number = 5
-): boolean => {
-  for (const bookedRange of bookedTimeRanges) {
-    const bookedStart = new Date(`2000-01-01T${bookedRange.start}:00`);
-    const bookedEnd = new Date(`2000-01-01T${bookedRange.end}:00`);
+// Helper function to generate blocked time slots based on service duration
+const generateBlockedTimeSlots = (
+  bookedAppointments: Array<{
+    appointment_time: string, 
+    duration?: number, 
+    status: string,
+    services?: {duration: number}
+  }>
+): Set<string> => {
+  const blockedSlots = new Set<string>();
+  
+  for (const appointment of bookedAppointments) {
+    const startTime = appointment.appointment_time.substring(0, 5); // HH:mm
+    // Use service duration from services table, fallback to appointment duration, then default to 60
+    const duration = appointment.services?.duration || appointment.duration || 60;
     
-    // Check if there's enough buffer before the booked appointment
-    const timeBefore = (bookedStart.getTime() - proposedEnd.getTime()) / (1000 * 60);
-    if (timeBefore >= 0 && timeBefore < bufferMinutes) {
-      return false;
-    }
+    console.log('🚫 Processing booked appointment:', {
+      startTime,
+      duration: `${duration}min`,
+      status: appointment.status,
+      source: appointment.services?.duration ? 'services table' : 'appointment table'
+    });
     
-    // Check if there's enough buffer after the booked appointment
-    const timeAfter = (proposedStart.getTime() - bookedEnd.getTime()) / (1000 * 60);
-    if (timeAfter >= 0 && timeAfter < bufferMinutes) {
-      return false;
+    // Convert start time to minutes for easier calculation
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const startMinutes = hours * 60 + minutes;
+    
+    // Block slots based on service duration rules
+    if (duration <= 30) {
+      // For 30-minute services: block only the selected slot
+      blockedSlots.add(startTime);
+      console.log(`🚫 Blocked slot for 30min service: ${startTime}`);
+    } else if (duration <= 60) {
+      // For 60-minute services: block the selected slot + next 30min slot
+      blockedSlots.add(startTime);
+      
+      // Calculate next 30-minute slot
+      const nextSlotMinutes = startMinutes + 30;
+      const nextHours = Math.floor(nextSlotMinutes / 60);
+      const nextMins = nextSlotMinutes % 60;
+      const nextSlot = `${nextHours.toString().padStart(2, '0')}:${nextMins.toString().padStart(2, '0')}`;
+      
+      blockedSlots.add(nextSlot);
+      console.log(`🚫 Blocked slots for 60min service: ${startTime}, ${nextSlot}`);
+    } else {
+      // For services longer than 60 minutes: block all 30-minute intervals
+      const slotsToBlock = Math.ceil(duration / 30);
+      
+      for (let i = 0; i < slotsToBlock; i++) {
+        const slotMinutes = startMinutes + (i * 30);
+        const slotHours = Math.floor(slotMinutes / 60);
+        const slotMins = slotMinutes % 60;
+        const slot = `${slotHours.toString().padStart(2, '0')}:${slotMins.toString().padStart(2, '0')}`;
+        
+        blockedSlots.add(slot);
+      }
+      
+      console.log(`🚫 Blocked ${slotsToBlock} slots for ${duration}min service starting at ${startTime}`);
     }
   }
   
-  return true;
+  console.log('🚫 Total blocked slots:', Array.from(blockedSlots).sort());
+  return blockedSlots;
 };
 
 export const checkAvailableTimes = async (
@@ -209,9 +247,15 @@ export const checkAvailableTimes = async (
       console.log('🔄 Using fallback schedule:', fallbackSchedule);
 
       // Get booked appointments for the date (exclude cancelled appointments)
+      // Include service duration from the services table
       const { data: bookedAppointments, error: appointmentsError } = await supabase
         .from('appointments')
-        .select('appointment_time, duration, status')
+        .select(`
+          appointment_time, 
+          appointments.duration,
+          status,
+          services!inner(duration)
+        `)
         .eq('company_id', companyId)
         .eq('appointment_date', selectedDate)
         .in('status', ['confirmed', 'completed']); // Only consider confirmed and completed appointments
@@ -221,31 +265,16 @@ export const checkAvailableTimes = async (
         return [];
       }
 
-      // Extract booked times and calculate blocked time ranges
-      const bookedTimeRanges = (bookedAppointments || []).map(apt => {
-        const startTime = apt.appointment_time.substring(0, 5); // HH:mm
-        const duration = apt.duration || 60; // Default 60 minutes
-        const startDate = new Date(`2000-01-01T${startTime}:00`);
-        const endDate = new Date(startDate.getTime() + duration * 60000);
-        const endTime = endDate.toTimeString().substring(0, 5);
-        
-        return {
-          start: startTime,
-          end: endTime,
-          duration: duration,
-          status: apt.status
-        };
-      });
-
-      console.log('📋 Booked time ranges (fallback):', bookedTimeRanges);
+      // Generate blocked time slots using new logic (fallback)
+      const blockedSlots = generateBlockedTimeSlots(bookedAppointments || []);
 
       // Generate available time slots using fallback
-      const availableTimes = generateTimeSlots(
+      const availableTimes = generateAvailableTimeSlots(
         fallbackSchedule.start_time,
         fallbackSchedule.end_time,
         companySettings.appointment_interval || 30,
         serviceDuration || 60,
-        bookedTimeRanges,
+        blockedSlots,
         fallbackSchedule.has_lunch_break,
         fallbackSchedule.lunch_start,
         fallbackSchedule.lunch_end,
@@ -257,7 +286,8 @@ export const checkAvailableTimes = async (
         dayOfWeek,
         schedule: `${fallbackSchedule.start_time}-${fallbackSchedule.end_time}`,
         lunchBreak: fallbackSchedule.has_lunch_break ? `${fallbackSchedule.lunch_start}-${fallbackSchedule.lunch_end}` : 'none',
-        bookedCount: bookedTimeRanges.length,
+        bookedCount: (bookedAppointments || []).length,
+        blockedSlotsCount: blockedSlots.size,
         availableCount: availableTimes.length,
         availableTimes
       });
@@ -278,9 +308,15 @@ export const checkAvailableTimes = async (
     }
 
     // Get booked appointments for the date (exclude cancelled appointments)
+    // Include service duration from the services table
     const { data: bookedAppointments, error: appointmentsError } = await supabase
       .from('appointments')
-      .select('appointment_time, duration, status')
+      .select(`
+        appointment_time, 
+        appointments.duration,
+        status,
+        services!inner(duration)
+      `)
       .eq('company_id', companyId)
       .eq('appointment_date', selectedDate)
       .in('status', ['confirmed', 'completed']); // Only consider confirmed and completed appointments
@@ -290,31 +326,16 @@ export const checkAvailableTimes = async (
       return [];
     }
 
-    // Extract booked times and calculate blocked time ranges
-    const bookedTimeRanges = (bookedAppointments || []).map(apt => {
-      const startTime = apt.appointment_time.substring(0, 5); // HH:mm
-      const duration = apt.duration || 60; // Default 60 minutes
-      const startDate = new Date(`2000-01-01T${startTime}:00`);
-      const endDate = new Date(startDate.getTime() + duration * 60000);
-      const endTime = endDate.toTimeString().substring(0, 5);
-      
-      return {
-        start: startTime,
-        end: endTime,
-        duration: duration,
-        status: apt.status
-      };
-    });
+    // Generate blocked time slots based on new logic
+    const blockedSlots = generateBlockedTimeSlots(bookedAppointments || []);
 
-    console.log('📋 Booked time ranges:', bookedTimeRanges);
-
-    // Generate available time slots
-    const availableTimes = generateTimeSlots(
+    // Generate available time slots using new logic
+    const availableTimes = generateAvailableTimeSlots(
       dailySchedule.start_time,
       dailySchedule.end_time,
       companySettings.appointment_interval || 30,
       serviceDuration || 60,
-      bookedTimeRanges,
+      blockedSlots,
       dailySchedule.has_lunch_break,
       dailySchedule.lunch_start,
       dailySchedule.lunch_end,
@@ -326,7 +347,8 @@ export const checkAvailableTimes = async (
       dayOfWeek,
       schedule: `${dailySchedule.start_time}-${dailySchedule.end_time}`,
       lunchBreak: dailySchedule.has_lunch_break ? `${dailySchedule.lunch_start}-${dailySchedule.lunch_end}` : 'none',
-      bookedCount: bookedTimeRanges.length,
+      bookedCount: (bookedAppointments || []).length,
+      blockedSlotsCount: blockedSlots.size,
       availableCount: availableTimes.length,
       availableTimes
     });
@@ -339,31 +361,31 @@ export const checkAvailableTimes = async (
   }
 };
 
-// Helper function to generate time slots
-const generateTimeSlots = (
+// New function to generate available time slots with improved logic
+const generateAvailableTimeSlots = (
   startTime: string,
   endTime: string,
   interval: number,
   serviceDuration: number,
-  bookedTimeRanges: Array<{start: string, end: string, duration: number, status: string}>,
+  blockedSlots: Set<string>,
   hasLunchBreak: boolean,
   lunchStart?: string,
   lunchEnd?: string,
   selectedDate?: string
 ): string[] => {
-  console.log('🕐 Generating time slots with params:', {
+  console.log('🕐 Generating available time slots with new logic:', {
     startTime,
     endTime,
     interval,
     serviceDuration,
-    bookedTimeRanges: bookedTimeRanges.length,
+    blockedSlotsCount: blockedSlots.size,
     hasLunchBreak,
     lunchStart,
     lunchEnd,
     selectedDate
   });
 
-  const slots: string[] = [];
+  const availableSlots: string[] = [];
   
   // Handle time format - ensure we have HH:mm format
   const normalizeTime = (time: string) => {
@@ -381,9 +403,17 @@ const generateTimeSlots = (
   const end = new Date(`2000-01-01T${normalizedEndTime}:00`);
   
   // Check if this is today and filter past times (using Brazil timezone)
-  const today = getTodayInBrazil(); // YYYY-MM-DD no horário de São Paulo
+  const today = getTodayInBrazil();
   const isToday = selectedDate === today;
-  const currentTime = isToday ? getCurrentTimeInBrazil() : null; // HH:mm no horário de São Paulo
+  const currentTime = isToday ? getCurrentTimeInBrazil() : null;
+  
+  console.log('🕐 Time check debug:', {
+    today,
+    selectedDate,
+    isToday,
+    currentTime,
+    comparison: selectedDate === today ? 'SAME DAY' : 'DIFFERENT DAY'
+  });
   
   console.log('🕐 Time range (Brazil timezone):', { 
     start: start.toTimeString(), 
@@ -391,21 +421,32 @@ const generateTimeSlots = (
     selectedDate,
     todayInBrazil: today,
     isToday,
-    currentTimeInBrazil: currentTime
+    currentTimeInBrazil: currentTime,
+    blockedSlotsArray: Array.from(blockedSlots).sort()
   });
   
   let current = new Date(start);
   let slotCount = 0;
   
-  while (current < end && slotCount < 50) { // Safety limit
+  // Generate all possible 30-minute slots (fixed interval)
+  while (current < end && slotCount < 50) {
     const timeStr = current.toTimeString().substring(0, 5);
     
     // Skip past times if this is today
-    if (isToday && currentTime && timeStr <= currentTime) {
-      console.log('⏰ Skipping past time:', timeStr);
-      current = new Date(current.getTime() + interval * 60000);
-      slotCount++;
-      continue;
+    if (isToday && currentTime) {
+      // Convert times to minutes for better comparison
+      const [currentHours, currentMinutes] = currentTime.split(':').map(Number);
+      const [slotHours, slotMinutes] = timeStr.split(':').map(Number);
+      
+      const currentTotalMinutes = currentHours * 60 + currentMinutes;
+      const slotTotalMinutes = slotHours * 60 + slotMinutes;
+      
+      if (slotTotalMinutes <= currentTotalMinutes) {
+        console.log('⏰ Skipping past time:', { timeStr, currentTime, slotTotalMinutes, currentTotalMinutes });
+        current = new Date(current.getTime() + 30 * 60000); // Always 30-minute intervals
+        slotCount++;
+        continue;
+      }
     }
     
     // Check if service would end before closing time
@@ -439,47 +480,32 @@ const generateTimeSlots = (
     }
     
     if (!skipDueToLunch) {
-      // Check if this time slot conflicts with any booked appointments
-      let isTimeSlotAvailable = true;
-      
-      for (const bookedRange of bookedTimeRanges) {
-        const bookedStart = new Date(`2000-01-01T${bookedRange.start}:00`);
-        const bookedEnd = new Date(`2000-01-01T${bookedRange.end}:00`);
+      // Check if this slot is blocked by existing appointments
+      if (blockedSlots.has(timeStr)) {
+        console.log('🚫 Slot is blocked by existing appointment:', timeStr);
+      } else {
+        // Check if the service would require additional slots that are blocked
+        let canBookService = true;
         
-        // Check if the new service would overlap with existing appointment
-        // More precise overlap detection
-        const hasOverlap = (
-          (current >= bookedStart && current < bookedEnd) || // New service starts during existing appointment
-          (serviceEnd > bookedStart && serviceEnd <= bookedEnd) || // New service ends during existing appointment
-          (current <= bookedStart && serviceEnd >= bookedEnd) || // New service completely overlaps existing appointment
-          (current < bookedEnd && serviceEnd > bookedStart) // Any overlap at all
-        );
-        
-        if (hasOverlap) {
-          console.log('❌ Time conflicts with existing appointment:', {
-            proposedSlot: `${timeStr}-${serviceEnd.toTimeString().substring(0, 5)}`,
-            serviceDuration: `${serviceDuration}min`,
-            existingBooking: `${bookedRange.start}-${bookedRange.end}`,
-            existingDuration: `${bookedRange.duration}min`,
-            status: bookedRange.status
-          });
-          isTimeSlotAvailable = false;
-          break;
+        if (serviceDuration > 30) {
+          // For services longer than 30 minutes, check if subsequent slots are available
+          const slotsNeeded = Math.ceil(serviceDuration / 30);
+          
+          for (let i = 1; i < slotsNeeded; i++) {
+            const nextSlotTime = new Date(current.getTime() + (i * 30 * 60000));
+            const nextSlotStr = nextSlotTime.toTimeString().substring(0, 5);
+            
+            if (blockedSlots.has(nextSlotStr)) {
+              console.log(`🚫 Cannot book ${serviceDuration}min service at ${timeStr} - slot ${nextSlotStr} is blocked`);
+              canBookService = false;
+              break;
+            }
+          }
         }
-      }
-      
-      // Additional check for buffer time between appointments
-      if (isTimeSlotAvailable) {
-        const hasBuffer = hasEnoughBufferTime(current, serviceEnd, bookedTimeRanges);
-        if (hasBuffer) {
-          slots.push(timeStr);
+        
+        if (canBookService) {
+          availableSlots.push(timeStr);
           console.log('✅ Added available slot:', {
-            time: timeStr,
-            duration: `${serviceDuration}min`,
-            endTime: serviceEnd.toTimeString().substring(0, 5)
-          });
-        } else {
-          console.log('⚠️ Time slot available but insufficient buffer time:', {
             time: timeStr,
             duration: `${serviceDuration}min`,
             endTime: serviceEnd.toTimeString().substring(0, 5)
@@ -488,10 +514,27 @@ const generateTimeSlots = (
       }
     }
     
-    current = new Date(current.getTime() + interval * 60000);
+    current = new Date(current.getTime() + 30 * 60000); // Always 30-minute intervals
     slotCount++;
   }
   
-  console.log('🕐 Generated slots:', { totalSlots: slots.length, slots });
-  return slots;
+  console.log('🕐 Generated available slots:', { 
+    totalSlots: availableSlots.length, 
+    slots: availableSlots,
+    blockedSlots: Array.from(blockedSlots).sort(),
+    params: {
+      startTime,
+      endTime,
+      serviceDuration,
+      selectedDate,
+      isToday,
+      currentTime
+    }
+  });
+  
+  if (availableSlots.length === 0) {
+    console.warn('⚠️ NO AVAILABLE SLOTS GENERATED! Check the logic above.');
+  }
+  
+  return availableSlots;
 };

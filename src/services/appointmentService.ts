@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { brazilDateTimeToUtc, formatDatabaseTimestamp, getNowInBrazil } from '@/utils/timezone';
+import { formatAppointmentDateWithWeekday } from '@/utils/dateUtils';
 
 export interface AppointmentData {
   id?: string;
@@ -12,7 +13,7 @@ export interface AppointmentData {
   professional_id?: string;
   appointment_date: string; // YYYY-MM-DD no horário do Brasil
   appointment_time: string; // HH:mm no horário do Brasil
-  status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+  status?: 'confirmed' | 'completed' | 'cancelled';
   notes?: string;
   created_at?: string;
   updated_at?: string;
@@ -197,21 +198,15 @@ export const createAppointment = async (
       professional_id: formData.selectedProfessional,
       appointment_date: formData.selectedDate,
       appointment_time: formData.selectedTime,
-      status: 'scheduled',
+      status: 'confirmed',
       notes: formData.notes
     };
 
     // Criar o agendamento
     const appointment = await createAppointmentOriginal(appointmentData);
 
-    // Formatar data para exibição
-    const appointmentDate = new Date(formData.selectedDate);
-    const formattedDate = appointmentDate.toLocaleDateString('pt-BR', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    // Formatar data para exibição usando função utilitária
+    const formattedDate = formatAppointmentDateWithWeekday(formData.selectedDate);
 
     // Retornar resultado no formato esperado pelo useBookingSubmission
     return {
@@ -237,22 +232,60 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
       time: appointmentData.appointment_time
     });
 
-    // Converter data/hora do Brasil para UTC para salvar no banco
-    const utcDateTime = brazilDateTimeToUtc(
-      appointmentData.appointment_date, 
-      appointmentData.appointment_time
-    );
+    let clientId = appointmentData.client_id;
+
+    // Se não tem client_id, criar ou buscar cliente
+    if (!clientId && appointmentData.client_name && appointmentData.client_phone) {
+      console.log('👤 Creating/finding client for appointment...');
+      
+      // Primeiro, tentar encontrar cliente existente pelo telefone
+      const { data: existingClient } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('company_id', appointmentData.company_id)
+        .eq('phone', appointmentData.client_phone)
+        .maybeSingle();
+
+      if (existingClient) {
+        console.log('✅ Found existing client:', existingClient.id);
+        clientId = existingClient.id;
+      } else {
+        // Criar novo cliente
+        const { data: newClient, error: clientError } = await supabase
+          .from('clients')
+          .insert({
+            company_id: appointmentData.company_id,
+            name: appointmentData.client_name,
+            phone: appointmentData.client_phone,
+            email: appointmentData.client_email || null
+          })
+          .select('id')
+          .single();
+
+        if (clientError) {
+          console.error('❌ Error creating client:', clientError);
+          throw new Error(`Erro ao criar cliente: ${clientError.message}`);
+        }
+
+        console.log('✅ Created new client:', newClient.id);
+        clientId = newClient.id;
+      }
+    }
+
+    if (!clientId) {
+      throw new Error('Client ID é obrigatório para criar agendamento');
+    }
 
     const { data, error } = await supabase
       .from('appointments')
       .insert({
         company_id: appointmentData.company_id,
-        client_id: appointmentData.client_id || '00000000-0000-0000-0000-000000000000',
+        client_id: clientId,
         service_id: appointmentData.service_id,
         professional_id: appointmentData.professional_id,
         appointment_date: appointmentData.appointment_date, // Manter data local
         appointment_time: appointmentData.appointment_time, // Manter horário local
-        status: appointmentData.status || 'scheduled',
+        status: appointmentData.status || 'confirmed',
         notes: appointmentData.notes,
         created_at: new Date().toISOString(), // UTC para metadados
         updated_at: new Date().toISOString()

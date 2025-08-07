@@ -124,3 +124,19 @@ export const formatAppointmentDate = (date: string) => {
     timeZone: 'America/Sao_Paulo'
   });
 };
+
+export const formatAppointmentDateWithWeekday = (date: string) => {
+  // Usar timezone brasileiro para formatação com dia da semana
+  const appointmentDate = new Date(date + 'T12:00:00'); // Meio-dia para evitar problemas de timezone
+  
+  // Usar toLocaleDateString com timezone brasileiro
+  const formattedDate = appointmentDate.toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'America/Sao_Paulo'
+  });
+  
+  return formattedDate;
+};

@@ -854,6 +854,21 @@ All colors MUST be HSL.
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
+/* Toast personalizado - fundo #fafafa e texto preto */
+[data-radix-toast-viewport] [data-radix-toast-root] {
+  background-color: #fafafa !important;
+  color: #000000 !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+[data-radix-toast-viewport] [data-radix-toast-title] {
+  color: #000000 !important;
+}
+
+[data-radix-toast-viewport] [data-radix-toast-description] {
+  color: #000000 !important;
+}
+
 /* Efeitos de loading skeleton */
 .skeleton {
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
@@ -1016,4 +1031,25 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+}
+
+/* Toast personalizado - fundo #fafafa e texto preto */
+.toast-custom {
+  background-color: #fafafa !important;
+  color: #000000 !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.toast-custom * {
+  color: #000000 !important;
+}
+
+.toast-title-custom {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+.toast-description-custom {
+  color: #000000 !important;
+  opacity: 0.9 !important;
 }
