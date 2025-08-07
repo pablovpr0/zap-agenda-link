@@ -120,24 +120,45 @@ export const useTimeSlotGeneration = () => {
           reason = 'Tempo insuficiente';
         }
 
-        // Verificar conflitos com agendamentos existentes
+        // Verificar conflitos com agendamentos existentes - LÓGICA OTIMIZADA
         if (available && existingAppointments && existingAppointments.length > 0) {
           const conflict = existingAppointments.some(apt => {
-            const aptTime = parseISO(`${selectedDate}T${apt.appointment_time}`);
-            const aptEndTime = addMinutes(aptTime, apt.duration);
-            const slotEndTime = addMinutes(currentTime, serviceDuration);
+            const aptTimeString = apt.appointment_time.substring(0, 5); // HH:mm
+            const aptDuration = apt.duration || 60;
             
-            // Verifica sobreposição
-            const hasConflict = (
-              (isBefore(currentTime, aptEndTime) && isAfter(slotEndTime, aptTime)) ||
-              (isBefore(aptTime, slotEndTime) && isAfter(aptEndTime, currentTime))
-            );
-
-            if (hasConflict) {
-              console.log(`⚠️ Conflito detectado: slot ${timeString} vs agendamento ${apt.appointment_time}`);
+            // Converter horários para minutos para facilitar comparação
+            const [aptHours, aptMinutes] = aptTimeString.split(':').map(Number);
+            const aptStartMinutes = aptHours * 60 + aptMinutes;
+            
+            const [slotHours, slotMinutes] = timeString.split(':').map(Number);
+            const slotStartMinutes = slotHours * 60 + slotMinutes;
+            
+            // LÓGICA DEFINITIVA: Bloquear slots baseado na duração do serviço
+            if (aptDuration === 30) {
+              // Serviço de 30min: bloqueia apenas o horário exato do agendamento
+              if (slotStartMinutes === aptStartMinutes) {
+                console.log(`⚠️ Conflito 30min: slot ${timeString} bloqueado por agendamento ${aptTimeString}`);
+                return true;
+              }
+            } else if (aptDuration === 60) {
+              // Serviço de 60min: bloqueia o horário do agendamento + próximo slot (30min depois)
+              if (slotStartMinutes === aptStartMinutes || slotStartMinutes === aptStartMinutes + 30) {
+                console.log(`⚠️ Conflito 60min: slot ${timeString} bloqueado por agendamento ${aptTimeString}`);
+                return true;
+              }
+            } else {
+              // Para durações diferentes, calcular quantos slots de 30min bloquear
+              const slotsToBlock = Math.ceil(aptDuration / 30);
+              for (let i = 0; i < slotsToBlock; i++) {
+                const blockedSlotMinutes = aptStartMinutes + (i * 30);
+                if (slotStartMinutes === blockedSlotMinutes) {
+                  console.log(`⚠️ Conflito ${aptDuration}min: slot ${timeString} bloqueado por agendamento ${aptTimeString}`);
+                  return true;
+                }
+              }
             }
-
-            return hasConflict;
+            
+            return false;
           });
 
           if (conflict) {

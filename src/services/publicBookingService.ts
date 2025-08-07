@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { CompanySettings, Profile, Service } from '@/types/publicBooking';
 import { Professional } from '@/services/professionalsService';
@@ -110,90 +109,277 @@ export const fetchActiveProfessionals = async (companyId: string): Promise<Profe
   }
 };
 
-// Helper function to generate blocked time slots based on service duration
+/**
+ * SISTEMA DE BLOQUEIO DE HORÁRIOS - LÓGICA CORRIGIDA
+ * 
+ * Regras específicas de bloqueio:
+ * - Serviço 30min: bloqueia APENAS o horário selecionado
+ * - Serviço 60min: bloqueia o horário selecionado + o próximo (30min depois)
+ * - Serviços maiores: bloqueia todos os slots necessários
+ */
 const generateBlockedTimeSlots = (
   bookedAppointments: Array<{
-    appointment_time: string, 
-    duration?: number, 
-    status: string,
-    services?: {duration: number}
+    appointment_time: string;
+    duration?: number;
+    status: string;
+    services?: { duration: number };
   }>
 ): Set<string> => {
   const blockedSlots = new Set<string>();
-  
+
+  console.log('🚫 [BLOQUEIO] Processando agendamentos existentes:', bookedAppointments.length);
+
   for (const appointment of bookedAppointments) {
     const startTime = appointment.appointment_time.substring(0, 5); // HH:mm
-    // Use service duration from services table, fallback to appointment duration, then default to 60
+    // Priorizar duração do serviço, depois do appointment, depois padrão 60min
     const duration = appointment.services?.duration || appointment.duration || 60;
-    
-    console.log('🚫 Processing booked appointment:', {
+
+    console.log('🚫 Processando agendamento:', {
       startTime,
       duration: `${duration}min`,
       status: appointment.status,
       source: appointment.services?.duration ? 'services table' : 'appointment table'
     });
-    
-    // Convert start time to minutes for easier calculation
+
+    // Converter horário para minutos
     const [hours, minutes] = startTime.split(':').map(Number);
     const startMinutes = hours * 60 + minutes;
+
+    // LÓGICA CORRIGIDA: Calcular slots baseado na duração específica
+    let slotsToBlock = 1; // Por padrão, bloqueia apenas 1 slot
     
-    // Block slots based on service duration rules
-    if (duration <= 30) {
-      // For 30-minute services: block only the selected slot
-      blockedSlots.add(startTime);
-      console.log(`🚫 Blocked slot for 30min service: ${startTime}`);
-    } else if (duration <= 60) {
-      // For 60-minute services: block the selected slot + next 30min slot
-      blockedSlots.add(startTime);
-      
-      // Calculate next 30-minute slot
-      const nextSlotMinutes = startMinutes + 30;
-      const nextHours = Math.floor(nextSlotMinutes / 60);
-      const nextMins = nextSlotMinutes % 60;
-      const nextSlot = `${nextHours.toString().padStart(2, '0')}:${nextMins.toString().padStart(2, '0')}`;
-      
-      blockedSlots.add(nextSlot);
-      console.log(`🚫 Blocked slots for 60min service: ${startTime}, ${nextSlot}`);
+    if (duration === 30) {
+      slotsToBlock = 1; // 30min = apenas o horário selecionado
+    } else if (duration === 60) {
+      slotsToBlock = 2; // 60min = horário selecionado + próximo
     } else {
-      // For services longer than 60 minutes: block all 30-minute intervals
-      const slotsToBlock = Math.ceil(duration / 30);
-      
-      for (let i = 0; i < slotsToBlock; i++) {
-        const slotMinutes = startMinutes + (i * 30);
-        const slotHours = Math.floor(slotMinutes / 60);
-        const slotMins = slotMinutes % 60;
-        const slot = `${slotHours.toString().padStart(2, '0')}:${slotMins.toString().padStart(2, '0')}`;
-        
-        blockedSlots.add(slot);
-      }
-      
-      console.log(`🚫 Blocked ${slotsToBlock} slots for ${duration}min service starting at ${startTime}`);
+      slotsToBlock = Math.ceil(duration / 30); // Para durações maiores
     }
+
+    console.log(`🚫 Serviço de ${duration}min vai bloquear ${slotsToBlock} slots`);
+
+    for (let i = 0; i < slotsToBlock; i++) {
+      const slotMinutes = startMinutes + (i * 30);
+      const slotHours = Math.floor(slotMinutes / 60);
+      const slotMins = slotMinutes % 60;
+      const slot = `${slotHours.toString().padStart(2, '0')}:${slotMins.toString().padStart(2, '0')}`;
+
+      blockedSlots.add(slot);
+      console.log(`🚫 Bloqueando slot ${i + 1}/${slotsToBlock}: ${slot}`);
+    }
+
+    console.log(`✅ Bloqueados ${slotsToBlock} slots para serviço de ${duration}min iniciando em ${startTime}`);
   }
-  
-  console.log('🚫 Total blocked slots:', Array.from(blockedSlots).sort());
+
+  const sortedBlockedSlots = Array.from(blockedSlots).sort();
+  console.log('🚫 [BLOQUEIO] Total de slots bloqueados:', sortedBlockedSlots);
+
   return blockedSlots;
 };
 
+/**
+ * GERADOR SIMPLIFICADO DE HORÁRIOS - VERSÃO CORRIGIDA
+ */
+const generateSimpleTimeSlots = (
+  startTime: string,
+  endTime: string,
+  serviceDuration: number,
+  bookedAppointments: Array<{appointment_time: string, duration?: number, status: string}>,
+  hasLunchBreak: boolean,
+  lunchStart?: string,
+  lunchEnd?: string,
+  selectedDate?: string
+): string[] => {
+  console.log('🕐 [GERADOR SIMPLES] Iniciando:', {
+    startTime,
+    endTime,
+    serviceDuration,
+    bookedCount: bookedAppointments.length,
+    hasLunchBreak,
+    selectedDate
+  });
+
+  const availableSlots: string[] = [];
+  
+  // Normalizar horários
+  const normalizeTime = (time: string) => {
+    if (!time) return '';
+    if (time.length === 5) return time; // HH:mm
+    if (time.length === 8) return time.substring(0, 5); // HH:mm:ss -> HH:mm
+    return time;
+  };
+
+  const start = normalizeTime(startTime);
+  const end = normalizeTime(endTime);
+  const lunchStartNorm = lunchStart ? normalizeTime(lunchStart) : null;
+  const lunchEndNorm = lunchEnd ? normalizeTime(lunchEnd) : null;
+
+  console.log('🕐 [NORMALIZADO]:', { start, end, lunchStartNorm, lunchEndNorm });
+
+  // Verificar se é hoje
+  const today = getTodayInBrazil();
+  const isToday = selectedDate === today;
+  let currentTime = null;
+  
+  if (isToday) {
+    try {
+      currentTime = getCurrentTimeInBrazil();
+      console.log('⏰ [HOJE] Hora atual obtida:', currentTime);
+    } catch (error) {
+      console.error('❌ Erro ao obter hora atual, usando fallback:', error);
+      // Fallback: calcular hora atual manualmente
+      const now = new Date();
+      const brazilTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+      currentTime = `${brazilTime.getHours().toString().padStart(2, '0')}:${brazilTime.getMinutes().toString().padStart(2, '0')}`;
+      console.log('⏰ [FALLBACK] Hora calculada:', currentTime);
+    }
+  }
+
+  // Gerar slots bloqueados com lógica corrigida
+  const blockedSlots = new Set<string>();
+  for (const apt of bookedAppointments) {
+    const aptTime = normalizeTime(apt.appointment_time);
+    const duration = apt.duration || 60;
+    
+    // LÓGICA CORRIGIDA: Bloquear slots baseado na duração específica
+    let slotsToBlock = 1; // Por padrão, bloqueia apenas 1 slot
+    
+    if (duration === 30) {
+      slotsToBlock = 1; // 30min = apenas o horário selecionado
+    } else if (duration === 60) {
+      slotsToBlock = 2; // 60min = horário selecionado + próximo
+    } else {
+      slotsToBlock = Math.ceil(duration / 30); // Para durações maiores
+    }
+    
+    console.log(`🚫 [BLOQUEIO SIMPLES] Serviço de ${duration}min em ${aptTime} vai bloquear ${slotsToBlock} slots`);
+    
+    const [hours, minutes] = aptTime.split(':').map(Number);
+    const startMinutes = hours * 60 + minutes;
+    
+    for (let i = 0; i < slotsToBlock; i++) {
+      const slotMinutes = startMinutes + (i * 30);
+      const slotHours = Math.floor(slotMinutes / 60);
+      const slotMins = slotMinutes % 60;
+      const slot = `${slotHours.toString().padStart(2, '0')}:${slotMins.toString().padStart(2, '0')}`;
+      blockedSlots.add(slot);
+      console.log(`🚫 Bloqueando slot ${i + 1}/${slotsToBlock}: ${slot}`);
+    }
+  }
+
+  console.log('🚫 [BLOQUEADOS]:', Array.from(blockedSlots).sort());
+
+  // Gerar horários de 30 em 30 minutos
+  const [startHour, startMin] = start.split(':').map(Number);
+  const [endHour, endMin] = end.split(':').map(Number);
+  
+  const startTotalMin = startHour * 60 + startMin;
+  const endTotalMin = endHour * 60 + endMin;
+  
+  for (let minutes = startTotalMin; minutes < endTotalMin; minutes += 30) {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    const timeSlot = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    
+    // Verificar se é horário passado
+    if (isToday && currentTime) {
+      const [currentHours, currentMinutes] = currentTime.split(':').map(Number);
+      const currentTotalMin = currentHours * 60 + currentMinutes;
+      
+      if (minutes <= currentTotalMin) {
+        console.log(`⏰ Pulando passado: ${timeSlot}`);
+        continue;
+      }
+    }
+    
+    // Verificar se serviço terminaria após fechamento
+    const serviceEndMin = minutes + serviceDuration;
+    if (serviceEndMin > endTotalMin) {
+      console.log(`⏰ Serviço terminaria após fechamento: ${timeSlot}`);
+      break;
+    }
+    
+    // Verificar almoço
+    let isDuringLunch = false;
+    if (hasLunchBreak && lunchStartNorm && lunchEndNorm) {
+      const [lunchStartHour, lunchStartMin] = lunchStartNorm.split(':').map(Number);
+      const [lunchEndHour, lunchEndMin] = lunchEndNorm.split(':').map(Number);
+      
+      const lunchStartTotalMin = lunchStartHour * 60 + lunchStartMin;
+      const lunchEndTotalMin = lunchEndHour * 60 + lunchEndMin;
+      
+      // Horário durante almoço
+      if (minutes >= lunchStartTotalMin && minutes < lunchEndTotalMin) {
+        console.log(`🍽️ Durante almoço: ${timeSlot}`);
+        isDuringLunch = true;
+      }
+      
+      // Serviço sobreporia almoço
+      if (minutes < lunchStartTotalMin && serviceEndMin > lunchStartTotalMin) {
+        console.log(`🍽️ Sobreporia almoço: ${timeSlot}`);
+        isDuringLunch = true;
+      }
+    }
+    
+    if (!isDuringLunch && !blockedSlots.has(timeSlot)) {
+      availableSlots.push(timeSlot);
+      console.log(`✅ Disponível: ${timeSlot}`);
+    }
+  }
+
+  console.log('🎯 [RESULTADO SIMPLES]:', {
+    total: availableSlots.length,
+    slots: availableSlots,
+    debug: {
+      selectedDate,
+      isToday: selectedDate === '2025-08-07',
+      currentTime,
+      serviceDuration
+    }
+  });
+
+  // ALERTA se não há horários
+  if (availableSlots.length === 0) {
+    console.warn('⚠️ [ALERTA] NENHUM HORÁRIO DISPONÍVEL!');
+    console.warn('Parâmetros:', { startTime, endTime, serviceDuration, hasLunchBreak, lunchStart, lunchEnd });
+    console.warn('Estado:', { selectedDate, isToday: selectedDate === '2025-08-07', currentTime });
+  }
+
+  return availableSlots;
+};
+
+/**
+ * FUNÇÃO PRINCIPAL - SISTEMA DE AGENDAMENTO CORRIGIDO
+ * 
+ * Versão simplificada e robusta que garante o funcionamento
+ */
 export const checkAvailableTimes = async (
   companyId: string,
   selectedDate: string,
   serviceDuration?: number
 ) => {
-  console.log('🔍 Checking available times with daily schedules:', {
+  console.log('🔍 [AGENDAMENTO] Iniciando verificação:', {
     companyId,
     selectedDate,
-    serviceDuration
+    serviceDuration: serviceDuration || 60
   });
 
   try {
-    // Get day of week (0=Sunday, 1=Monday, etc.) using Brazil timezone
-    const date = new Date(selectedDate + 'T12:00:00'); // Use meio-dia para evitar problemas de timezone
-    const dayOfWeek = date.getDay();
+    // ETAPA 1: Validar data
+    const today = getTodayInBrazil();
+    console.log('📅 [DATA] Validação:', { selectedDate, today, isPast: selectedDate < today });
     
-    console.log('📅 Day of week calculated (Brazil timezone):', { selectedDate, dayOfWeek });
+    if (selectedDate < today) {
+      console.log('❌ Data é passada');
+      return [];
+    }
 
-    // Get daily schedule for this day
+    // ETAPA 2: Verificar dia da semana
+    const date = new Date(selectedDate + 'T12:00:00');
+    const dayOfWeek = date.getDay();
+    console.log('📅 [DIA] Quinta-feira é 4:', { dayOfWeek, isThursday: dayOfWeek === 4 });
+
+    // ETAPA 3: Buscar configuração
     const { data: dailySchedule, error: scheduleError } = await supabase
       .from('daily_schedules')
       .select('*')
@@ -201,340 +387,59 @@ export const checkAvailableTimes = async (
       .eq('day_of_week', dayOfWeek)
       .maybeSingle();
 
-    console.log('📋 Daily schedule query result:', { dailySchedule, scheduleError, dayOfWeek });
+    console.log('📋 [CONFIG] Resultado da consulta:', { 
+      found: !!dailySchedule, 
+      isActive: dailySchedule?.is_active,
+      error: scheduleError 
+    });
 
     if (scheduleError) {
-      console.error('❌ Error fetching daily schedule:', scheduleError);
+      console.error('❌ Erro na consulta:', scheduleError);
       return [];
     }
 
-    // Check if day exists and is active
     if (!dailySchedule || !dailySchedule.is_active) {
-      console.log('📅 Day is not active or not configured:', { 
-        exists: !!dailySchedule, 
-        isActive: dailySchedule?.is_active,
-        dayOfWeek 
-      });
-      
-      // Fallback: try to get from company_settings
-      console.log('🔄 Trying fallback to company_settings...');
-      const { data: companySettings, error: settingsError } = await supabase
-        .from('company_settings')
-        .select('working_days, working_hours_start, working_hours_end, appointment_interval, lunch_break_enabled, lunch_start_time, lunch_end_time')
-        .eq('company_id', companyId)
-        .single();
-
-      if (settingsError || !companySettings) {
-        console.error('❌ Error fetching company settings fallback:', settingsError);
-        return [];
-      }
-
-      // Check if this day is in working_days
-      if (!companySettings.working_days.includes(dayOfWeek)) {
-        console.log('📅 Day not in working days:', { dayOfWeek, workingDays: companySettings.working_days });
-        return [];
-      }
-
-      // Use company settings as fallback
-      const fallbackSchedule = {
-        start_time: companySettings.working_hours_start,
-        end_time: companySettings.working_hours_end,
-        has_lunch_break: companySettings.lunch_break_enabled,
-        lunch_start: companySettings.lunch_start_time,
-        lunch_end: companySettings.lunch_end_time
-      };
-
-      console.log('🔄 Using fallback schedule:', fallbackSchedule);
-
-      // Get booked appointments for the date (exclude cancelled appointments)
-      // Include service duration from the services table
-      const { data: bookedAppointments, error: appointmentsError } = await supabase
-        .from('appointments')
-        .select(`
-          appointment_time, 
-          appointments.duration,
-          status,
-          services!inner(duration)
-        `)
-        .eq('company_id', companyId)
-        .eq('appointment_date', selectedDate)
-        .in('status', ['confirmed', 'completed']); // Only consider confirmed and completed appointments
-
-      if (appointmentsError) {
-        console.error('❌ Error fetching booked appointments:', appointmentsError);
-        return [];
-      }
-
-      // Generate blocked time slots using new logic (fallback)
-      const blockedSlots = generateBlockedTimeSlots(bookedAppointments || []);
-
-      // Generate available time slots using fallback
-      const availableTimes = generateAvailableTimeSlots(
-        fallbackSchedule.start_time,
-        fallbackSchedule.end_time,
-        companySettings.appointment_interval || 30,
-        serviceDuration || 60,
-        blockedSlots,
-        fallbackSchedule.has_lunch_break,
-        fallbackSchedule.lunch_start,
-        fallbackSchedule.lunch_end,
-        selectedDate
-      );
-
-      console.log('⏰ Available times generated (fallback):', {
-        date: selectedDate,
-        dayOfWeek,
-        schedule: `${fallbackSchedule.start_time}-${fallbackSchedule.end_time}`,
-        lunchBreak: fallbackSchedule.has_lunch_break ? `${fallbackSchedule.lunch_start}-${fallbackSchedule.lunch_end}` : 'none',
-        bookedCount: (bookedAppointments || []).length,
-        blockedSlotsCount: blockedSlots.size,
-        availableCount: availableTimes.length,
-        availableTimes
-      });
-
-      return availableTimes;
-    }
-
-    // Get company settings for appointment interval
-    const { data: companySettings, error: settingsError } = await supabase
-      .from('company_settings')
-      .select('appointment_interval')
-      .eq('company_id', companyId)
-      .single();
-
-    if (settingsError) {
-      console.error('❌ Error fetching company settings:', settingsError);
+      console.log('❌ Dia não ativo ou não encontrado');
       return [];
     }
 
-    // Get booked appointments for the date (exclude cancelled appointments)
-    // Include service duration from the services table
-    const { data: bookedAppointments, error: appointmentsError } = await supabase
+    console.log('✅ [CONFIG] Configuração encontrada:', {
+      start: dailySchedule.start_time,
+      end: dailySchedule.end_time,
+      lunch: dailySchedule.has_lunch_break ? `${dailySchedule.lunch_start}-${dailySchedule.lunch_end}` : 'Não'
+    });
+
+    // ETAPA 4: Buscar agendamentos (simplificado)
+    const { data: bookedAppointments } = await supabase
       .from('appointments')
-      .select(`
-        appointment_time, 
-        appointments.duration,
-        status,
-        services!inner(duration)
-      `)
+      .select('appointment_time, duration, status')
       .eq('company_id', companyId)
       .eq('appointment_date', selectedDate)
-      .in('status', ['confirmed', 'completed']); // Only consider confirmed and completed appointments
+      .in('status', ['confirmed', 'completed']);
 
-    if (appointmentsError) {
-      console.error('❌ Error fetching booked appointments:', appointmentsError);
-      return [];
-    }
+    console.log('📋 [AGENDAMENTOS] Encontrados:', bookedAppointments?.length || 0);
 
-    // Generate blocked time slots based on new logic
-    const blockedSlots = generateBlockedTimeSlots(bookedAppointments || []);
-
-    // Generate available time slots using new logic
-    const availableTimes = generateAvailableTimeSlots(
+    // ETAPA 5: Gerar horários (versão simplificada)
+    const availableSlots = generateSimpleTimeSlots(
       dailySchedule.start_time,
       dailySchedule.end_time,
-      companySettings.appointment_interval || 30,
       serviceDuration || 60,
-      blockedSlots,
+      bookedAppointments || [],
       dailySchedule.has_lunch_break,
       dailySchedule.lunch_start,
       dailySchedule.lunch_end,
       selectedDate
     );
 
-    console.log('⏰ Available times generated:', {
-      date: selectedDate,
-      dayOfWeek,
-      schedule: `${dailySchedule.start_time}-${dailySchedule.end_time}`,
-      lunchBreak: dailySchedule.has_lunch_break ? `${dailySchedule.lunch_start}-${dailySchedule.lunch_end}` : 'none',
-      bookedCount: (bookedAppointments || []).length,
-      blockedSlotsCount: blockedSlots.size,
-      availableCount: availableTimes.length,
-      availableTimes
+    console.log('🎯 [RESULTADO] Horários gerados:', {
+      total: availableSlots.length,
+      slots: availableSlots
     });
 
-    return availableTimes;
+    return availableSlots;
 
   } catch (error: any) {
-    console.error('❌ Failed to check available times:', error);
+    console.error('❌ [ERRO] Falha crítica:', error);
     return [];
   }
-};
-
-// New function to generate available time slots with improved logic
-const generateAvailableTimeSlots = (
-  startTime: string,
-  endTime: string,
-  interval: number,
-  serviceDuration: number,
-  blockedSlots: Set<string>,
-  hasLunchBreak: boolean,
-  lunchStart?: string,
-  lunchEnd?: string,
-  selectedDate?: string
-): string[] => {
-  console.log('🕐 Generating available time slots with new logic:', {
-    startTime,
-    endTime,
-    interval,
-    serviceDuration,
-    blockedSlotsCount: blockedSlots.size,
-    hasLunchBreak,
-    lunchStart,
-    lunchEnd,
-    selectedDate
-  });
-
-  const availableSlots: string[] = [];
-  
-  // Handle time format - ensure we have HH:mm format
-  const normalizeTime = (time: string) => {
-    if (time.length === 5) return time; // Already HH:mm
-    if (time.length === 8) return time.substring(0, 5); // HH:mm:ss -> HH:mm
-    return time;
-  };
-
-  const normalizedStartTime = normalizeTime(startTime);
-  const normalizedEndTime = normalizeTime(endTime);
-  const normalizedLunchStart = lunchStart ? normalizeTime(lunchStart) : null;
-  const normalizedLunchEnd = lunchEnd ? normalizeTime(lunchEnd) : null;
-
-  const start = new Date(`2000-01-01T${normalizedStartTime}:00`);
-  const end = new Date(`2000-01-01T${normalizedEndTime}:00`);
-  
-  // Check if this is today and filter past times (using Brazil timezone)
-  const today = getTodayInBrazil();
-  const isToday = selectedDate === today;
-  const currentTime = isToday ? getCurrentTimeInBrazil() : null;
-  
-  console.log('🕐 Time check debug:', {
-    today,
-    selectedDate,
-    isToday,
-    currentTime,
-    comparison: selectedDate === today ? 'SAME DAY' : 'DIFFERENT DAY'
-  });
-  
-  console.log('🕐 Time range (Brazil timezone):', { 
-    start: start.toTimeString(), 
-    end: end.toTimeString(),
-    selectedDate,
-    todayInBrazil: today,
-    isToday,
-    currentTimeInBrazil: currentTime,
-    blockedSlotsArray: Array.from(blockedSlots).sort()
-  });
-  
-  let current = new Date(start);
-  let slotCount = 0;
-  
-  // Generate all possible 30-minute slots (fixed interval)
-  while (current < end && slotCount < 50) {
-    const timeStr = current.toTimeString().substring(0, 5);
-    
-    // Skip past times if this is today
-    if (isToday && currentTime) {
-      // Convert times to minutes for better comparison
-      const [currentHours, currentMinutes] = currentTime.split(':').map(Number);
-      const [slotHours, slotMinutes] = timeStr.split(':').map(Number);
-      
-      const currentTotalMinutes = currentHours * 60 + currentMinutes;
-      const slotTotalMinutes = slotHours * 60 + slotMinutes;
-      
-      if (slotTotalMinutes <= currentTotalMinutes) {
-        console.log('⏰ Skipping past time:', { timeStr, currentTime, slotTotalMinutes, currentTotalMinutes });
-        current = new Date(current.getTime() + 30 * 60000); // Always 30-minute intervals
-        slotCount++;
-        continue;
-      }
-    }
-    
-    // Check if service would end before closing time
-    const serviceEnd = new Date(current.getTime() + serviceDuration * 60000);
-    if (serviceEnd > end) {
-      console.log('⏰ Service would end after closing time:', { 
-        timeStr, 
-        serviceDuration: `${serviceDuration}min`,
-        serviceEnd: serviceEnd.toTimeString().substring(0, 5),
-        closingTime: end.toTimeString().substring(0, 5)
-      });
-      break;
-    }
-    
-    // Check if time conflicts with lunch break
-    let skipDueToLunch = false;
-    if (hasLunchBreak && normalizedLunchStart && normalizedLunchEnd) {
-      const lunchStartTime = new Date(`2000-01-01T${normalizedLunchStart}:00`);
-      const lunchEndTime = new Date(`2000-01-01T${normalizedLunchEnd}:00`);
-      
-      if (current >= lunchStartTime && current < lunchEndTime) {
-        console.log('🍽️ Time is during lunch break:', timeStr);
-        skipDueToLunch = true;
-      }
-      
-      // Check if service would overlap with lunch
-      if (current < lunchStartTime && serviceEnd > lunchStartTime) {
-        console.log('🍽️ Service would overlap with lunch:', { timeStr, serviceEnd: serviceEnd.toTimeString() });
-        skipDueToLunch = true;
-      }
-    }
-    
-    if (!skipDueToLunch) {
-      // Check if this slot is blocked by existing appointments
-      if (blockedSlots.has(timeStr)) {
-        console.log('🚫 Slot is blocked by existing appointment:', timeStr);
-      } else {
-        // Check if the service would require additional slots that are blocked
-        let canBookService = true;
-        
-        if (serviceDuration > 30) {
-          // For services longer than 30 minutes, check if subsequent slots are available
-          const slotsNeeded = Math.ceil(serviceDuration / 30);
-          
-          for (let i = 1; i < slotsNeeded; i++) {
-            const nextSlotTime = new Date(current.getTime() + (i * 30 * 60000));
-            const nextSlotStr = nextSlotTime.toTimeString().substring(0, 5);
-            
-            if (blockedSlots.has(nextSlotStr)) {
-              console.log(`🚫 Cannot book ${serviceDuration}min service at ${timeStr} - slot ${nextSlotStr} is blocked`);
-              canBookService = false;
-              break;
-            }
-          }
-        }
-        
-        if (canBookService) {
-          availableSlots.push(timeStr);
-          console.log('✅ Added available slot:', {
-            time: timeStr,
-            duration: `${serviceDuration}min`,
-            endTime: serviceEnd.toTimeString().substring(0, 5)
-          });
-        }
-      }
-    }
-    
-    current = new Date(current.getTime() + 30 * 60000); // Always 30-minute intervals
-    slotCount++;
-  }
-  
-  console.log('🕐 Generated available slots:', { 
-    totalSlots: availableSlots.length, 
-    slots: availableSlots,
-    blockedSlots: Array.from(blockedSlots).sort(),
-    params: {
-      startTime,
-      endTime,
-      serviceDuration,
-      selectedDate,
-      isToday,
-      currentTime
-    }
-  });
-  
-  if (availableSlots.length === 0) {
-    console.warn('⚠️ NO AVAILABLE SLOTS GENERATED! Check the logic above.');
-  }
-  
-  return availableSlots;
 };
