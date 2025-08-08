@@ -23,8 +23,6 @@ class BookingEventManager {
       this.listeners[type] = [];
     }
     this.listeners[type].push(listener);
-    
-    console.log(`📡 Listener adicionado para evento: ${type}`);
   }
 
   /**
@@ -40,14 +38,12 @@ class BookingEventManager {
    * Dispara um evento para todos os listeners
    */
   dispatchEvent(event: BookingEvent) {
-    console.log('📡 Disparando evento de agendamento:', event);
-    
     if (this.listeners[event.type]) {
       this.listeners[event.type].forEach(listener => {
         try {
           listener(event);
         } catch (error) {
-          console.error('❌ Erro ao executar listener de evento:', error);
+          // Error handling
         }
       });
     }
@@ -58,7 +54,6 @@ class BookingEventManager {
    */
   removeAllListeners() {
     this.listeners = {};
-    console.log('🗑️ Todos os listeners removidos');
   }
 }
 

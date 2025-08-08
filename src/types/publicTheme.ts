@@ -179,11 +179,8 @@ export const getPublicThemeColorById = (id: string): PublicThemeColor | undefine
 };
 
 export const applyPublicTheme = (colorId: string, darkMode: boolean = false) => {
-  console.log('🎨 Applying public theme:', { colorId, darkMode });
-  
   const themeColor = getPublicThemeColorById(colorId);
   if (!themeColor) {
-    console.error('❌ Theme color not found:', colorId);
     return;
   }
 
@@ -219,10 +216,4 @@ export const applyPublicTheme = (colorId: string, darkMode: boolean = false) => 
   // Criar gradiente baseado na cor primária
   const gradient = `linear-gradient(135deg, ${themeColor.primary} 0%, ${themeColor.secondary} 100%)`;
   root.style.setProperty('--public-theme-gradient', gradient);
-  
-  console.log('✅ Theme applied successfully:', {
-    primary: themeColor.primary,
-    secondary: themeColor.secondary,
-    darkMode
-  });
 };

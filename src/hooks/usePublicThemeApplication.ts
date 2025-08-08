@@ -24,42 +24,32 @@ export const usePublicThemeApplication = (companySlug?: string) => {
                         !location.pathname.startsWith('/theme-customization') &&
                         location.pathname.length > 1); // Evitar paths vazios
 
-  console.log('🎨 usePublicThemeApplication:', {
-    pathname: location.pathname,
-    isPublicArea,
-    companySlug
-  });
+
 
   useEffect(() => {
     const applyThemeIfPublic = async () => {
       // Só aplicar tema se estiver na área pública
       if (!isPublicArea || !companySlug) {
-        console.log('🎨 Not in public area or no slug, skipping theme application');
         return;
       }
 
       try {
-        console.log('🎨 Loading public theme for company:', companySlug);
-        
         // Carregar configurações de tema da empresa
         const themeSettings = await loadPublicThemeBySlug(companySlug);
         
         if (themeSettings) {
-          console.log('🎨 Applying custom theme:', themeSettings);
           applyPublicTheme(themeSettings.theme_color, themeSettings.dark_mode);
           
           // Adicionar classe para identificar área pública
           document.body.classList.add('public-area');
           document.body.classList.remove('admin-area');
         } else {
-          console.log('🎨 No custom theme found, applying default');
           // Aplicar tema padrão para área pública
           applyPublicTheme('green', false);
           document.body.classList.add('public-area');
           document.body.classList.remove('admin-area');
         }
       } catch (error) {
-        console.error('❌ Error loading public theme:', error);
         // Em caso de erro, aplicar tema padrão
         applyPublicTheme('green', false);
         document.body.classList.add('public-area');
@@ -70,7 +60,6 @@ export const usePublicThemeApplication = (companySlug?: string) => {
     // Cleanup: remover tema público se não estiver na área pública
     const cleanupTheme = () => {
       if (!isPublicArea) {
-        console.log('🎨 Not in public area, removing public theme');
         document.body.classList.remove('public-area');
         document.body.classList.add('admin-area');
         
