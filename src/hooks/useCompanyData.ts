@@ -13,10 +13,7 @@ export const useCompanyData = (companySlug: string) => {
   const [error, setError] = useState<string | null>(null);
 
   const loadCompanyData = async () => {
-    console.log('🚀 useCompanyData: Iniciando carregamento para slug:', companySlug);
-    
     if (!companySlug || companySlug.trim() === '') {
-      console.error('❌ useCompanyData: Slug vazio ou inválido');
       setError('Slug da empresa é obrigatório');
       setLoading(false);
       return;
@@ -25,8 +22,6 @@ export const useCompanyData = (companySlug: string) => {
     try {
       setError(null);
       const { settings, profileData, servicesData } = await loadCompanyDataBySlug(companySlug);
-      
-      console.log('✅ useCompanyData: Dados carregados com sucesso:', { settings, profileData, servicesData });
       
       // Criar objeto companyData compatível com usePublicBooking
       const companyDataObject = {
@@ -56,7 +51,6 @@ export const useCompanyData = (companySlug: string) => {
       setCompanyData(companyDataObject);
       
     } catch (error: any) {
-      console.error('❌ useCompanyData: Erro ao carregar dados da empresa:', error);
       setError(error.message);
       toast({
         title: "Erro",

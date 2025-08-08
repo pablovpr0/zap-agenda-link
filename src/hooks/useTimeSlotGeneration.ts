@@ -16,7 +16,6 @@ export const useTimeSlotGeneration = () => {
     excludeAppointmentId?: string
   ) => {
     setLoading(true);
-    console.log('🔧 Gerando slots de horário para:', { selectedDate, companyId, serviceId });
     
     try {
       // Buscar configurações da empresa com cache otimizado
@@ -27,17 +26,9 @@ export const useTimeSlotGeneration = () => {
         .maybeSingle();
 
       if (settingsError || !settings) {
-        console.error('Configurações da empresa não encontradas:', settingsError);
         setTimeSlots([]);
         return;
       }
-
-      console.log('⚙️ Configurações carregadas:', {
-        working_hours_start: settings.working_hours_start,
-        working_hours_end: settings.working_hours_end,
-        appointment_interval: settings.appointment_interval,
-        lunch_break_enabled: settings.lunch_break_enabled
-      });
 
       // Buscar duração do serviço selecionado
       let serviceDuration = 60; // duração padrão
@@ -51,7 +42,6 @@ export const useTimeSlotGeneration = () => {
         
         if (!serviceError && service) {
           serviceDuration = service.duration;
-          console.log('🛠️ Serviço encontrado:', service.name, 'Duração:', serviceDuration, 'min');
         }
       }
 
@@ -64,12 +54,6 @@ export const useTimeSlotGeneration = () => {
         .neq('status', 'cancelled')
         .not('id', 'eq', excludeAppointmentId || '');
 
-      if (appointmentsError) {
-        console.error('Erro ao buscar agendamentos existentes:', appointmentsError);
-      } else {
-        console.log('📋 Agendamentos existentes encontrados:', existingAppointments?.length || 0);
-      }
-
       // Gerar slots de horário baseado nas configurações
       const slots: TimeSlot[] = [];
       const selectedDateObj = new Date(selectedDate + 'T00:00:00');
@@ -77,7 +61,6 @@ export const useTimeSlotGeneration = () => {
       
       // Verificar se é um dia de trabalho
       if (!settings.working_days.includes(dayOfWeek === 0 ? 7 : dayOfWeek)) {
-        console.log('📅 Não é um dia de trabalho:', dayOfWeek);
         setTimeSlots([]);
         return;
       }
@@ -88,8 +71,6 @@ export const useTimeSlotGeneration = () => {
       
       let currentTime = set(selectedDateObj, { hours: startHour, minutes: startMinute });
       const endTime = set(selectedDateObj, { hours: endHour, minutes: endMinute });
-
-      console.log('⏰ Gerando slots de', format(currentTime, 'HH:mm'), 'até', format(endTime, 'HH:mm'));
 
       while (isBefore(currentTime, endTime)) {
         const timeString = format(currentTime, 'HH:mm');
@@ -110,7 +91,6 @@ export const useTimeSlotGeneration = () => {
             isTimeDuringLunch(timeString, settings.lunch_start_time, settings.lunch_end_time)) {
           available = false;
           reason = 'Horário de almoço';
-          console.log(`🍽️ Slot ${timeString} - horário de almoço`);
         }
 
         // Verificar se há tempo suficiente até o fim do expediente
@@ -137,13 +117,11 @@ export const useTimeSlotGeneration = () => {
             if (aptDuration === 30) {
               // Serviço de 30min: bloqueia apenas o horário exato do agendamento
               if (slotStartMinutes === aptStartMinutes) {
-                console.log(`⚠️ Conflito 30min: slot ${timeString} bloqueado por agendamento ${aptTimeString}`);
                 return true;
               }
             } else if (aptDuration === 60) {
               // Serviço de 60min: bloqueia o horário do agendamento + próximo slot (30min depois)
               if (slotStartMinutes === aptStartMinutes || slotStartMinutes === aptStartMinutes + 30) {
-                console.log(`⚠️ Conflito 60min: slot ${timeString} bloqueado por agendamento ${aptTimeString}`);
                 return true;
               }
             } else {
@@ -152,7 +130,6 @@ export const useTimeSlotGeneration = () => {
               for (let i = 0; i < slotsToBlock; i++) {
                 const blockedSlotMinutes = aptStartMinutes + (i * 30);
                 if (slotStartMinutes === blockedSlotMinutes) {
-                  console.log(`⚠️ Conflito ${aptDuration}min: slot ${timeString} bloqueado por agendamento ${aptTimeString}`);
                   return true;
                 }
               }
@@ -167,12 +144,6 @@ export const useTimeSlotGeneration = () => {
           }
         }
 
-        if (available) {
-          console.log(`✅ Slot ${timeString} disponível`);
-        } else {
-          console.log(`❌ Slot ${timeString} indisponível - ${reason}`);
-        }
-
         slots.push({
           time: timeString,
           available,
@@ -182,10 +153,8 @@ export const useTimeSlotGeneration = () => {
         currentTime = addMinutes(currentTime, settings.appointment_interval);
       }
 
-      console.log(`🎯 Total de slots gerados: ${slots.length} (${slots.filter(s => s.available).length} disponíveis)`);
       setTimeSlots(slots);
     } catch (error) {
-      console.error('Erro ao gerar slots de horário:', error);
       setTimeSlots([]);
     } finally {
       setLoading(false);

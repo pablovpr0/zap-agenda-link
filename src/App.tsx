@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CompanySetup from "./pages/CompanySetup";
 import PublicBooking from "./pages/PublicBooking";
+import PublicBookingRedirect from "./components/PublicBookingRedirect";
 import CreateTestCompany from "./pages/CreateTestCompany";
 import DebugPublicBooking from "./pages/DebugPublicBooking";
 import FixPabloLink from "./pages/FixPabloLink";
@@ -43,6 +44,7 @@ const App: React.FC = () => {
         <AuthProvider>
           <BrowserRouter>
             <Routes>
+              {/* Rotas administrativas e de sistema */}
               <Route path="/auth" element={<Auth />} />
               <Route path="/company-setup" element={<CompanySetup />} />
               <Route path="/create-test-company" element={<CreateTestCompany />} />
@@ -58,11 +60,18 @@ const App: React.FC = () => {
               <Route path="/quick-schedule-test" element={<QuickScheduleTest />} />
               <Route path="/public-booking-test" element={<PublicBookingTest />} />
               <Route path="/timeslot-debug" element={<TimeSlotDebug />} />
-              <Route path="/public/:companySlug" element={<PublicBooking />} />
               <Route path="/timezone-final-test" element={<FinalTimezoneDebug />} />
+              
+              {/* Redirecionamento para compatibilidade com links antigos */}
+              <Route path="/public/:companySlug" element={<PublicBookingRedirect />} />
+              
+              {/* Página inicial */}
               <Route path="/" element={<Index />} />
-              {/* Rota para capturar slugs diretamente na raiz (ex: zapagenda.site/pablo) */}
+              
+              {/* Nova rota principal para booking público (dominio.com/{slug}) */}
               <Route path="/:companySlug" element={<PublicBooking />} />
+              
+              {/* Página 404 */}
               <Route path="*" element={<NotFound />} />
             </Routes>
             <PWAInstallPrompt />

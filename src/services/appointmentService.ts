@@ -99,15 +99,12 @@ export const updateAppointment = async (appointmentId: string, updates: Partial<
       .single();
 
     if (error) {
-      console.error('❌ Error updating appointment:', error);
       throw error;
     }
 
-    console.log('✅ Appointment updated successfully:', data);
     return data;
 
   } catch (error) {
-    console.error('❌ Failed to update appointment:', error);
     throw error;
   }
 };
@@ -182,8 +179,6 @@ export const createAppointment = async (
   const formData = formDataOrAppointment;
   
   try {
-    console.log('📅 Creating appointment from booking form:', formData);
-
     // Encontrar o serviço selecionado
     const selectedService = services?.find(s => s.id === formData.selectedService);
     const selectedProfessional = professionals?.find(p => p.id === formData.selectedProfessional);
@@ -217,7 +212,6 @@ export const createAppointment = async (
     };
 
   } catch (error) {
-    console.error('❌ Failed to create appointment from booking form:', error);
     throw error;
   }
 };
@@ -232,8 +226,6 @@ const checkTimeSlotAvailability = async (
   serviceDuration: number
 ): Promise<{ available: boolean; reason?: string }> => {
   try {
-    console.log('🔍 Verificando disponibilidade do horário:', { date, time, serviceDuration });
-
     // Buscar todos os agendamentos do dia
     const { data: existingAppointments, error } = await supabase
       .from('appointments')
@@ -243,20 +235,16 @@ const checkTimeSlotAvailability = async (
       .neq('status', 'cancelled');
 
     if (error) {
-      console.error('❌ Erro ao verificar agendamentos existentes:', error);
       throw error;
     }
 
     if (!existingAppointments || existingAppointments.length === 0) {
-      console.log('✅ Nenhum agendamento existente, horário disponível');
       return { available: true };
     }
 
     // Converter horário solicitado para minutos
     const [requestHours, requestMinutes] = time.split(':').map(Number);
     const requestStartMinutes = requestHours * 60 + requestMinutes;
-
-    console.log('🔍 Verificando conflitos com agendamentos existentes:', existingAppointments.length);
 
     // Verificar conflitos com cada agendamento existente
     for (const apt of existingAppointments) {
@@ -294,7 +282,6 @@ const checkTimeSlotAvailability = async (
       const hasOverlap = (requestStartMinutes < existingEndMinutes) && (newEndMinutes > aptStartMinutes);
 
       if (hasOverlap) {
-        console.log(`❌ Conflito detectado: novo agendamento ${time}-${Math.floor(newEndMinutes/60).toString().padStart(2,'0')}:${(newEndMinutes%60).toString().padStart(2,'0')} sobrepõe com existente ${aptTime}-${Math.floor(existingEndMinutes/60).toString().padStart(2,'0')}:${(existingEndMinutes%60).toString().padStart(2,'0')}`);
         return { 
           available: false, 
           reason: `Horário não disponível. Conflito com agendamento às ${aptTime}` 
@@ -302,11 +289,9 @@ const checkTimeSlotAvailability = async (
       }
     }
 
-    console.log('✅ Horário disponível, nenhum conflito encontrado');
     return { available: true };
 
   } catch (error) {
-    console.error('❌ Erro ao verificar disponibilidade:', error);
     throw error;
   }
 };
@@ -316,14 +301,7 @@ const checkTimeSlotAvailability = async (
  */
 const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
   try {
-    console.log('📅 Creating appointment with Brazil timezone:', {
-      date: appointmentData.appointment_date,
-      time: appointmentData.appointment_time
-    });
-
     // CONTROLE DE CONCORRÊNCIA: Verificar disponibilidade antes de criar
-    console.log('🔒 Verificando disponibilidade do horário antes de criar agendamento...');
-    
     // Buscar duração do serviço
     const { data: serviceData, error: serviceError } = await supabase
       .from('services')
@@ -333,12 +311,10 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
       .single();
 
     if (serviceError || !serviceData) {
-      console.error('❌ Erro ao buscar serviço:', serviceError);
       throw new Error('Serviço não encontrado');
     }
 
     const serviceDuration = serviceData.duration;
-    console.log('🛠️ Duração do serviço:', serviceDuration, 'minutos');
 
     // Verificar disponibilidade do horário
     const availability = await checkTimeSlotAvailability(
@@ -349,18 +325,13 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
     );
 
     if (!availability.available) {
-      console.log('❌ Horário não disponível:', availability.reason);
       throw new Error(availability.reason || 'Este horário não está mais disponível. Por favor, escolha outro horário.');
     }
-
-    console.log('✅ Horário confirmado como disponível, prosseguindo com criação...');
 
     let clientId = appointmentData.client_id;
 
     // Se não tem client_id, criar ou buscar cliente
     if (!clientId && appointmentData.client_name && appointmentData.client_phone) {
-      console.log('👤 Creating/finding client for appointment...');
-      
       // Primeiro, tentar encontrar cliente existente pelo telefone
       const { data: existingClient } = await supabase
         .from('clients')
@@ -370,7 +341,6 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
         .maybeSingle();
 
       if (existingClient) {
-        console.log('✅ Found existing client:', existingClient.id);
         clientId = existingClient.id;
       } else {
         // Criar novo cliente
@@ -386,11 +356,9 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
           .single();
 
         if (clientError) {
-          console.error('❌ Error creating client:', clientError);
           throw new Error(`Erro ao criar cliente: ${clientError.message}`);
         }
 
-        console.log('✅ Created new client:', newClient.id);
         clientId = newClient.id;
       }
     }
@@ -419,8 +387,6 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
       .single();
 
     if (error) {
-      console.error('❌ Error creating appointment:', error);
-      
       // Verificar se é erro de conflito de horário
       if (error.message?.includes('duplicate') || error.message?.includes('conflict')) {
         throw new Error('Este horário não está mais disponível. Por favor, escolha outro horário.');
@@ -428,16 +394,13 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
       
       throw error;
     }
-
-    console.log('✅ Appointment created successfully:', data);
     
     // Invalidar cache de horários disponíveis
     try {
       const { invalidateTimeSlotsCache } = await import('@/services/publicBookingService');
       invalidateTimeSlotsCache(appointmentData.company_id, appointmentData.appointment_date);
-      console.log('🗑️ Cache de horários invalidado após criação do agendamento');
     } catch (error) {
-      console.warn('⚠️ Erro ao invalidar cache (não crítico):', error);
+      // Erro não crítico
     }
     
     // Disparar evento de agendamento criado
@@ -450,15 +413,13 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
         time: appointmentData.appointment_time,
         appointmentId: data.id
       });
-      console.log('📡 Evento de agendamento criado disparado');
     } catch (error) {
-      console.warn('⚠️ Erro ao disparar evento (não crítico):', error);
+      // Erro não crítico
     }
     
     return data;
 
   } catch (error) {
-    console.error('❌ Failed to create appointment:', error);
     throw error;
   }
 };

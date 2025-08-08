@@ -9,11 +9,6 @@ import ModernPublicBooking from '@/components/public-booking/ModernPublicBooking
 const PublicBooking = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
 
-  console.log('🌐 PublicBooking: Slug capturado da URL:', companySlug);
-  console.log('🌐 PublicBooking: window.location.pathname:', window.location.pathname);
-  console.log('🌐 PublicBooking: window.location.href:', window.location.href);
-  console.log('🌐 PublicBooking: useParams result:', { companySlug });
-
   const {
     companyData,
     companySettings,
@@ -31,11 +26,6 @@ const PublicBooking = () => {
   }
 
   if (error || !companyData || !companySettings || !profile) {
-    console.error('❌ PublicBooking: Empresa não encontrada para slug:', companySlug);
-    console.error('❌ PublicBooking: error:', error);
-    console.error('❌ PublicBooking: companyData:', companyData);
-    console.error('❌ PublicBooking: companySettings:', companySettings);
-    console.error('❌ PublicBooking: profile:', profile);
     return <ErrorState companySlug={companySlug} />;
   }
 

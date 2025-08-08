@@ -16,6 +16,6 @@ export const getDomainConfig = () => {
 };
 
 export const generatePublicBookingUrl = (slug: string): string => {
-  // Always use custom domain for public booking URLs
-  return `${CUSTOM_DOMAIN}/public/${slug}`;
+  // Always use custom domain for public booking URLs - novo formato sem /public/
+  return `${CUSTOM_DOMAIN}/${slug}`;
 };

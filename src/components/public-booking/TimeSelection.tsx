@@ -18,13 +18,6 @@ const TimeSelection = ({
   isLoading = false,
   onRefresh 
 }: TimeSelectionProps) => {
-  // Debug log
-  console.log('🕐 TimeSelection render:', { 
-    availableTimesCount: availableTimes.length, 
-    availableTimes, 
-    selectedTime, 
-    isLoading 
-  });
 
   if (isLoading) {
     return (

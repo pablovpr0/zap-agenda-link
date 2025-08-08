@@ -16,7 +16,7 @@ const ModernPublicBooking = () => {
   const { toast } = useToast();
   const { addEventListener, removeEventListener } = useBookingEvents();
   
-  console.log('🔗 URL Slug extraído:', companySlug);
+
   
   const {
     companyData,
@@ -49,11 +49,8 @@ const ModernPublicBooking = () => {
     if (!companyData?.id) return;
 
     const handleAppointmentCreated = (event: any) => {
-      console.log('📡 Evento de agendamento recebido:', event);
-      
       // Se o agendamento é da mesma empresa e data selecionada, atualizar horários
       if (event.companyId === companyData.id && event.date === selectedDate) {
-        console.log('🔄 Atualizando horários devido a novo agendamento...');
         refreshTimes();
         
         // Se o horário agendado era o selecionado, limpar seleção
@@ -79,22 +76,12 @@ const ModernPublicBooking = () => {
   useEffect(() => {
     const loadTimes = async () => {
       if (selectedDate && selectedService) {
-        console.log('📅 Data selecionada:', selectedDate, '- Carregando horários...');
-        console.log('🏢 Company data:', { companyId: companyData?.id, companySlug });
         setIsLoadingTimes(true);
         setSelectedTime(''); // Reset time when loading new times
         
         try {
           const selectedServiceData = services.find(s => s.id === selectedService);
           const serviceDuration = selectedServiceData?.duration || 30;
-          
-          console.log('🔄 Carregando horários para:', { 
-            selectedDate, 
-            selectedService, 
-            serviceDuration,
-            companyId: companyData?.id,
-            servicesCount: services.length
-          });
           
           // Carregamento otimizado dos horários
           const times = await generateAvailableTimes(selectedDate, serviceDuration);
@@ -113,7 +100,6 @@ const ModernPublicBooking = () => {
           setIsLoadingTimes(false);
         }
       } else {
-        console.log('⚠️ Condições não atendidas para carregar horários:', { selectedDate, selectedService });
         setAvailableTimes([]);
         setSelectedTime('');
       }
@@ -152,11 +138,9 @@ const ModernPublicBooking = () => {
         setSelectedTime('');
         setAvailableTimes([]);
         
-        // Atualizar horários disponíveis para outros usuários
-        console.log('🔄 Agendamento realizado, limpando cache de horários...');
       }
     } catch (error) {
-      console.error('Erro no agendamento:', error);
+      // Erro já tratado no hook
     }
   };
 
@@ -179,7 +163,6 @@ const ModernPublicBooking = () => {
           });
         }
       } catch (error) {
-        console.error('Erro ao atualizar horários:', error);
         toast({
           title: "Erro ao atualizar",
           description: "Não foi possível atualizar os horários. Tente novamente.",

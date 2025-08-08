@@ -45,12 +45,10 @@ export const usePublicBooking = (companySlug: string) => {
 
   // Callback para atualizar horários após agendamento
   const handleBookingSuccess = () => {
-    console.log('🔄 Agendamento realizado com sucesso, atualizando dados...');
     // Forçar recarregamento das datas disponíveis
     if (companySettings) {
       generateAvailableDates().then(dates => {
         setAvailableDates(dates);
-        console.log('✅ Datas disponíveis atualizadas após agendamento');
       });
     }
   };
@@ -69,10 +67,8 @@ export const usePublicBooking = (companySlug: string) => {
   useEffect(() => {
     const loadAvailableDates = async () => {
       if (companySettings) {
-        console.log('📅 Carregando datas disponíveis...');
         const dates = await generateAvailableDates();
         setAvailableDates(dates);
-        console.log('✅ Datas disponíveis carregadas:', dates.length);
       }
     };
     
@@ -93,9 +89,7 @@ export const usePublicBooking = (companySlug: string) => {
           .eq('company_id', companyData.id)
           .eq('is_active', true);
 
-        if (servicesError) {
-          console.error('Error fetching services:', servicesError);
-        } else {
+        if (!servicesError) {
           setServices(servicesData || []);
         }
 
@@ -106,13 +100,11 @@ export const usePublicBooking = (companySlug: string) => {
           .eq('company_id', companyData.id)
           .eq('is_active', true);
 
-        if (professionalsError) {
-          console.error('Error fetching professionals:', professionalsError);
-        } else {
+        if (!professionalsError) {
           setProfessionals(professionalsData || []);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        // Error handling
       } finally {
         setServicesLoading(false);
       }

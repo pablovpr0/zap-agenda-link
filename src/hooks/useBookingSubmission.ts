@@ -16,8 +16,6 @@ export const useBookingSubmission = (
   const [submitting, setSubmitting] = useState(false);
 
   const submitBooking = async (formData: BookingFormData) => {
-    console.log('🔒 Starting secure booking submission...');
-    
     setSubmitting(true);
     
     try {
@@ -33,7 +31,6 @@ export const useBookingSubmission = (
       });
       
       if (!validation.isValid) {
-        console.error('❌ Validation failed:', validation.errors);
         toast({
           title: "Dados inválidos",
           description: validation.errors.join(', '),
@@ -42,8 +39,6 @@ export const useBookingSubmission = (
         return false;
       }
       
-      console.log('✅ Input validation passed');
-      
       // Use sanitized data
       const sanitizedFormData = {
         ...formData,
@@ -51,7 +46,6 @@ export const useBookingSubmission = (
       };
       
       if (!companySettings) {
-        console.error('❌ Company settings not found');
         toast({
           title: "Erro",
           description: "Configurações da empresa não encontradas.",
@@ -60,10 +54,7 @@ export const useBookingSubmission = (
         return false;
       }
 
-      console.log('🏢 Company settings validated');
-
       // Check monthly limit with sanitized phone
-      console.log('📊 Checking monthly limit...');
       const canBook = await checkMonthlyLimit(
         companySettings.company_id,
         sanitizedFormData.clientPhone,
@@ -71,7 +62,6 @@ export const useBookingSubmission = (
       );
       
       if (!canBook) {
-        console.log('❌ Monthly limit reached');
         toast({
           title: "Limite de agendamentos atingido",
           description: `Este cliente já atingiu o limite de ${companySettings.monthly_appointments_limit} agendamentos por mês.`,
@@ -79,14 +69,9 @@ export const useBookingSubmission = (
         });
         return false;
       }
-
-      console.log('✅ Monthly limit check passed');
       
       // Create appointment with sanitized data
-      console.log('🔧 Creating secure appointment...');
       const result = await createAppointment(sanitizedFormData, companySettings, services, professionals);
-      
-      console.log('✅ Appointment created successfully:', result.appointment?.id);
       
       toast({
         title: "Agendamento realizado com sucesso!",
@@ -95,13 +80,11 @@ export const useBookingSubmission = (
 
       // Callback para atualizar horários disponíveis
       if (onBookingSuccess) {
-        console.log('🔄 Executando callback de atualização após agendamento...');
         onBookingSuccess();
       }
 
       // Send WhatsApp message with sanitized data
       if (companySettings.phone) {
-        console.log('📱 Preparing WhatsApp message...');
         
         const message = generateWhatsAppMessage(
           sanitizedFormData.clientName,
@@ -116,7 +99,6 @@ export const useBookingSubmission = (
         const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
         
         setTimeout(() => {
-          console.log('📲 Opening WhatsApp...');
           window.open(whatsappUrl, '_blank');
         }, 1000);
       }
@@ -124,7 +106,6 @@ export const useBookingSubmission = (
       return true;
       
     } catch (error: any) {
-      console.error('❌ Secure booking submission failed:', error);
       
       let errorMessage = "Não foi possível realizar o agendamento. Tente novamente.";
       
