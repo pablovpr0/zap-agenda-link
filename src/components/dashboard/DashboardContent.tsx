@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import WelcomeSection from '@/components/dashboard/WelcomeSection';
 import DashboardStats from '@/components/dashboard/DashboardStats';
@@ -9,7 +9,6 @@ import TodayAppointmentsList from '@/components/dashboard/TodayAppointmentsList'
 import PublicBookingLink from '@/components/dashboard/PublicBookingLink';
 import RecentAppointments from '@/components/dashboard/RecentAppointments';
 import ReportsButton from '@/components/reports/ReportsButton';
-import NewAppointmentModal from '@/components/NewAppointmentModal';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
 
@@ -32,26 +31,7 @@ const DashboardContent = () => {
     handleWhatsAppClick,
     handleCreateAppointment,
     isCreatingAppointment
-  } = useDashboardActions(refreshData);
-
-  const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
-  
-  // Mock data for services and professionals - in a real app, these would come from hooks
-  const services = [
-    { id: '1', name: 'Corte de Cabelo', duration: 30, price: 35 },
-    { id: '2', name: 'Barba', duration: 20, price: 20 },
-    { id: '3', name: 'Corte + Barba', duration: 50, price: 50 }
-  ];
-  
-  const professionals = [
-    { id: '1', name: 'João Silva' },
-    { id: '2', name: 'Maria Santos' }
-  ];
-
-  const handleNewAppointmentSuccess = () => {
-    refreshData();
-    setShowNewAppointmentModal(false);
-  };
+  } = useDashboardActions();
 
   if (loading) {
     return (
@@ -88,7 +68,7 @@ const DashboardContent = () => {
 
       {/* Quick Actions */}
       <QuickActions 
-        onNewAppointment={() => setShowNewAppointmentModal(true)}
+        onNewAppointment={() => {}}
         onViewPublicPage={handleViewPublicPage}
         onManageClients={() => {}}
         onShowSettings={() => {}}
@@ -122,18 +102,6 @@ const DashboardContent = () => {
           )}
         </div>
       </div>
-
-      {/* New Appointment Modal */}
-      {user && (
-        <NewAppointmentModal
-          isOpen={showNewAppointmentModal}
-          onClose={() => setShowNewAppointmentModal(false)}
-          companyId={user.id}
-          services={services}
-          professionals={professionals}
-          onAppointmentCreated={handleNewAppointmentSuccess}
-        />
-      )}
     </div>
   );
 };
