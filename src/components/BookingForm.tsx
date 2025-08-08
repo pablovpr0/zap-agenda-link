@@ -1,141 +1,234 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon, Clock } from 'lucide-react';
-import { format } from 'date-fns';
-import PublicCalendar from './PublicCalendar';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-interface BookingFormData {
-  clientName: string;
-  clientPhone: string;
-  selectedDate: string;
-  selectedTime: string;
-}
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import StandardCalendar from './StandardCalendar';
+import TimePicker from './TimePicker';
+import { ArrowLeft, User, Phone, MessageSquare, Calendar, Clock } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { addDays } from 'date-fns';
 
 interface BookingFormProps {
-  selectedDate: Date | null;
-  onDateSelect: (date: string) => void;
-  availableDates: Date[];
-  selectedTime: string;
-  onTimeSelect: (time: string) => void;
-  availableTimes: string[];
-  onSubmit: (data: BookingFormData) => void;
-  loading: boolean;
-  companyData: any;
+  onComplete: (data: any) => void;
+  onBack: () => void;
 }
 
-const BookingForm: React.FC<BookingFormProps> = ({
-  selectedDate,
-  onDateSelect,
-  availableDates,
-  selectedTime,
-  onTimeSelect,
-  availableTimes,
-  onSubmit,
-  loading,
-  companyData
-}) => {
-  const [formData, setFormData] = useState<BookingFormData>({
-    clientName: '',
-    clientPhone: '',
-    selectedDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '',
-    selectedTime: '',
+const BookingForm = ({ onComplete, onBack }: BookingFormProps) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    service: '',
+    date: '',
+    time: '',
+    notes: ''
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+  const services = [
+    "Corte Feminino",
+    "Corte Masculino", 
+    "Escova",
+    "Coloração",
+    "Manicure",
+    "Pedicure"
+  ];
+
+  // Gerar datas disponíveis (próximos 30 dias)
+  const generateAvailableDates = () => {
+    const dates = [];
+    const today = new Date();
+    
+    for (let i = 0; i < 30; i++) {
+      const date = addDays(today, i);
+      // Excluir domingos (exemplo)
+      if (date.getDay() !== 0) {
+        dates.push(date);
+      }
+    }
+    
+    return dates;
   };
+
+  const availableDates = generateAvailableDates();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    if (!formData.name || !formData.phone || !formData.service || !formData.date || !formData.time) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Simular envio do agendamento
+    toast({
+      title: "Agendamento realizado!",
+      description: "Seu agendamento foi confirmado com sucesso.",
+    });
+
+    onComplete(formData);
+  };
+
+  const handleDateSelect = (date: string) => {
+    setFormData(prev => ({ ...prev, date }));
   };
 
   const handleTimeSelect = (time: string) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedTime: time,
-    }));
-    onTimeSelect(time);
-  };
-
-  const handleDateSelect = (dateString: string) => {
-    onDateSelect(dateString);
-    setFormData(prev => ({
-      ...prev,
-      selectedDate: dateString,
-    }));
+    setFormData(prev => ({ ...prev, time }));
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">Agendamento Online</CardTitle>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Step 1: Date Selection */}
-        <div className="space-y-3">
-          <Label className="text-base font-medium">1. Escolha uma data</Label>
-          <PublicCalendar
-            availableDates={availableDates}
-            selectedDate={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
-            onDateSelect={handleDateSelect}
-          />
-        </div>
+    <div className="p-4 space-y-6 fade-in">
+      {/* Header */}
+      <div className="flex items-center gap-3 pb-2 border-b">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onBack}
+          className="p-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
+        <h2 className="text-xl font-bold text-gray-800">Fazer Agendamento</h2>
+      </div>
 
-        {/* Step 2: Time Selection */}
-        <div className="space-y-3">
-          <Label className="text-base font-medium">2. Escolha um horário</Label>
-          <Select value={selectedTime} onValueChange={handleTimeSelect} disabled={!selectedDate || loading}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={selectedDate ? "Selecione um horário" : "Selecione uma data primeiro"} />
-            </SelectTrigger>
-            <SelectContent>
-              {availableTimes.map((time) => (
-                <SelectItem key={time} value={time}>
-                  {time}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Personal Info */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <User className="w-5 h-5 text-primary" />
+              Seus Dados
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+                Nome Completo *
+              </Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Digite seu nome completo"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="mt-1"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                WhatsApp *
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="(11) 99999-9999"
+                value={formData.phone}
+                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                className="mt-1"
+                required
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Step 3: Personal Information */}
-        <div className="space-y-4">
-          <Label className="text-base font-medium">3. Dados Pessoais</Label>
-          <Input
-            type="text"
-            name="clientName"
-            placeholder="Nome Completo"
-            value={formData.clientName}
-            onChange={handleInputChange}
-            required
-          />
-          <Input
-            type="tel"
-            name="clientPhone"
-            placeholder="Telefone"
-            value={formData.clientPhone}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
+        {/* Service Selection */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-primary" />
+              Serviço
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div>
+              <Label className="text-sm font-medium text-gray-700">
+                Escolha o serviço *
+              </Label>
+              <Select 
+                value={formData.service} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, service: value }))}
+                required
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecione um serviço" />
+                </SelectTrigger>
+                <SelectContent>
+                  {services.map((service) => (
+                    <SelectItem key={service} value={service}>
+                      {service}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Date and Time */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-primary" />
+              Data e Horário
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                Data *
+              </Label>
+              <StandardCalendar
+                availableDates={availableDates}
+                selectedDate={formData.date}
+                onDateSelect={handleDateSelect}
+                showNavigation={true}
+                highlightToday={true}
+              />
+            </div>
+            {formData.date && (
+              <TimePicker onTimeSelect={handleTimeSelect} selectedTime={formData.time} />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Notes */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-primary" />
+              Observações
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              placeholder="Alguma observação especial? (opcional)"
+              value={formData.notes}
+              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              className="min-h-[80px]"
+            />
+          </CardContent>
+        </Card>
 
         {/* Submit Button */}
-        <Button onClick={handleSubmit} className="w-full" disabled={loading || !formData.clientName || !formData.clientPhone || !selectedDate || !selectedTime}>
-          {loading ? "Carregando..." : "Agendar"}
+        <Button 
+          type="submit" 
+          className="w-full bg-primary hover:bg-primary/90 text-white py-3 text-lg font-medium"
+          size="lg"
+        >
+          <Clock className="w-5 h-5 mr-2" />
+          Confirmar Agendamento
         </Button>
-      </CardContent>
-    </Card>
+      </form>
+    </div>
   );
 };
 

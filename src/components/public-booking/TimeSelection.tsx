@@ -1,8 +1,7 @@
 
-import React from 'react';
+import { Label } from '@/components/ui/label';
+import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Clock, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface TimeSelectionProps {
   availableTimes: string[];
@@ -10,74 +9,107 @@ interface TimeSelectionProps {
   onTimeSelect: (time: string) => void;
   isLoading?: boolean;
   onRefresh?: () => void;
-  disabled?: boolean;
 }
 
-const TimeSelection: React.FC<TimeSelectionProps> = ({
-  availableTimes,
-  selectedTime,
-  onTimeSelect,
+const TimeSelection = ({ 
+  availableTimes, 
+  selectedTime, 
+  onTimeSelect, 
   isLoading = false,
-  onRefresh,
-  disabled = false
-}) => {
+  onRefresh 
+}: TimeSelectionProps) => {
+  // Debug log
+  console.log('🕐 TimeSelection render:', { 
+    availableTimesCount: availableTimes.length, 
+    availableTimes, 
+    selectedTime, 
+    isLoading 
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <Label className="text-black public-text font-medium">Horários Disponíveis</Label>
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#19c662] dynamic-border-primary"></div>
+          <span className="ml-2 text-gray-600 public-text-secondary">Carregando horários...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (availableTimes.length === 0) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-black public-text font-medium">Horários Disponíveis</Label>
+          {onRefresh && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onRefresh}
+              className="text-xs neutral-button"
+            >
+              <RefreshCw className="w-3 h-3 mr-1" />
+              Atualizar
+            </Button>
+          )}
+        </div>
+        <div className="text-center py-8 text-gray-500 public-text-secondary">
+          <p className="text-sm">Não há horários disponíveis para esta data</p>
+          <p className="text-xs mt-1">Tente selecionar outro dia ou serviço</p>
+          <p className="text-xs mt-2 text-blue-600">
+            Debug: {availableTimes.length} horários encontrados
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Selecione o Horário
-        </h3>
+        <Label className="text-black public-text font-medium">Horários Disponíveis</Label>
         {onRefresh && (
           <Button
+            type="button"
             variant="outline"
             size="sm"
             onClick={onRefresh}
-            disabled={isLoading}
-            className="gap-2"
+            className="text-xs neutral-button"
           >
-            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+            <RefreshCw className="w-3 h-3 mr-1" />
             Atualizar
           </Button>
         )}
       </div>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span>Carregando horários disponíveis...</span>
-          </div>
-        </div>
-      ) : availableTimes.length === 0 ? (
-        <div className="text-center py-8">
-          <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-          <p className="text-muted-foreground">
-            Nenhum horário disponível para esta data e serviço.
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Tente selecionar uma data ou serviço diferente.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+      
+      {/* Layout carrossel horizontal com scrollbar melhorada */}
+      <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-[#19c662]">
+        <div className="flex gap-3 min-w-max">
           {availableTimes.map((time) => (
-            <Button
+            <button
               key={time}
-              variant={selectedTime === time ? "default" : "outline"}
-              className={cn(
-                "h-10 text-sm font-medium transition-all duration-200",
-                selectedTime === time && "ring-2 ring-primary ring-offset-2",
-                disabled && "opacity-50 cursor-not-allowed"
-              )}
-              onClick={() => !disabled && onTimeSelect(time)}
-              disabled={disabled}
+              type="button"
+              onClick={() => onTimeSelect(time)}
+              className={`
+                px-4 py-3 text-sm font-medium rounded-lg border-2 whitespace-nowrap min-w-[80px] transition-all duration-200
+                ${selectedTime === time 
+                  ? 'bg-[#19c662] dynamic-bg-primary text-white border-[#19c662] dynamic-border-primary shadow-md' 
+                  : 'bg-white public-surface text-black public-text border-gray-300 public-border hover:border-[#19c662] hover:dynamic-border-primary hover:bg-gray-50'
+                }
+              `}
             >
               {time}
-            </Button>
+            </button>
           ))}
         </div>
-      )}
+      </div>
+      
+      <div className="text-xs text-[#19c662] dynamic-primary text-center mt-2">
+        ✅ Apenas horários realmente disponíveis são exibidos
+      </div>
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -88,7 +89,7 @@ const Index = () => {
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard':
-        return <MerchantDashboard />;
+        return <MerchantDashboard companyName={companyName} onViewChange={setCurrentView} />;
       case 'agenda':
         return <MonthlyAgenda />;
       case 'settings':
@@ -98,7 +99,7 @@ const Index = () => {
       case 'services':
         return <ServiceManagement />;
       default:
-        return <MerchantDashboard />;
+        return <MerchantDashboard companyName={companyName} onViewChange={setCurrentView} />;
     }
   };
 

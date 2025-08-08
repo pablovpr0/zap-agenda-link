@@ -1,109 +1,92 @@
-
-import React from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import WelcomeSection from '@/components/dashboard/WelcomeSection';
-import DashboardStats from '@/components/dashboard/DashboardStats';
-import RevenueCard from '@/components/dashboard/RevenueCard';
-import QuickActions from '@/components/dashboard/QuickActions';
-import TodayAppointmentsList from '@/components/dashboard/TodayAppointmentsList';
-import PublicBookingLink from '@/components/dashboard/PublicBookingLink';
-import RecentAppointments from '@/components/dashboard/RecentAppointments';
-import ReportsButton from '@/components/reports/ReportsButton';
+import DashboardStats from './DashboardStats';
+import QuickActions from './QuickActions';
+import PublicBookingLink from './PublicBookingLink';
+import WelcomeSection from './WelcomeSection';
+import TodayAppointmentsList from './TodayAppointmentsList';
+import RevenueCard from './RevenueCard';
+import MonthlyAgenda from '../MonthlyAgenda';
+import ReportsButton from '../reports/ReportsButton';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
-
-const DashboardContent = () => {
-  const { user } = useAuth();
-  const { 
+import { Settings } from 'lucide-react';
+interface DashboardContentProps {
+  companyName: string;
+  onShowAppointments: () => void;
+  onShowClients: () => void;
+  onShowServices: () => void;
+  onShowSettings: () => void;
+  onShowMonthlyAgenda: () => void;
+  onRefreshData: () => void;
+}
+const DashboardContent = ({
+  companyName,
+  onShowAppointments,
+  onShowClients,
+  onShowServices,
+  onShowSettings,
+  onShowMonthlyAgenda,
+  onRefreshData
+}: DashboardContentProps) => {
+  const {
     data,
-    loading, 
-    refreshData,
-    bookingLink,
+    loading
+  } = useDashboardData();
+  const {
     linkCopied,
     handleCopyLink,
     handleViewPublicPage,
     handleShareWhatsApp
-  } = useDashboardData();
-
-  const {
-    handleStatusChange,
-    handleDeleteAppointment,
-    handleWhatsAppClick,
-    handleCreateAppointment,
-    isCreatingAppointment
-  } = useDashboardActions();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
+  } = useDashboardActions(data.bookingLink);
   return (
-    <div className="space-y-6">
-      {/* Welcome Section */}
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in max-w-7xl mx-auto">
       <WelcomeSection />
       
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <DashboardStats
-          stats={{
-            todayAppointments: data.todayAppointments,
-            totalClients: data.totalClients,
-            monthlyRevenue: data.monthlyRevenue,
-            completionRate: data.completionRate
-          }}
-        />
-        <RevenueCard 
-          stats={{
-            monthlyRevenue: data.monthlyRevenue
-          }}
-        />
+      <DashboardStats stats={{
+        todayAppointments: data.todayAppointments,
+        totalClients: data.totalClients,
+        monthlyRevenue: data.monthlyRevenue,
+        completionRate: data.completionRate
+      }} />
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
+        <div className="space-y-4 md:space-y-6 min-w-0">
+          <QuickActions 
+            onNewAppointment={onShowAppointments} 
+            onViewPublicPage={handleViewPublicPage} 
+            onManageClients={onShowClients} 
+            onShowSettings={onShowSettings} 
+          />
+          
+          <PublicBookingLink 
+            bookingLink={data.bookingLink} 
+            linkCopied={linkCopied} 
+            onViewPublicPage={handleViewPublicPage} 
+            onCopyLink={handleCopyLink} 
+            onShareWhatsApp={handleShareWhatsApp} 
+          />
+
+          {/* Agenda Mensal - Responsiva */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <MonthlyAgenda />
+          </div>
+        </div>
+
+        <div className="space-y-4 md:space-y-6 min-w-0">
+          <RevenueCard />
+          
+          <TodayAppointmentsList 
+            appointments={data.todayAppointmentsList} 
+            loading={loading} 
+            onRefresh={onRefreshData} 
+          />
+        </div>
       </div>
 
-      {/* Quick Actions */}
-      <QuickActions 
-        onNewAppointment={() => {}}
-        onViewPublicPage={handleViewPublicPage}
-        onManageClients={() => {}}
-        onShowSettings={() => {}}
-      />
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Today's Appointments */}
-        <div className="lg:col-span-2">
-          <TodayAppointmentsList
-            appointments={data.todayAppointmentsList}
-            loading={loading}
-            onRefresh={refreshData}
-          />
-        </div>
-
-        {/* Right Column - Actions and Links */}
-        <div className="space-y-6">
-          <PublicBookingLink
-            bookingLink={bookingLink}
-            linkCopied={linkCopied}
-            onViewPublicPage={handleViewPublicPage}
-            onCopyLink={handleCopyLink}
-            onShareWhatsApp={handleShareWhatsApp}
-          />
-          <RecentAppointments 
-            appointments={data.recentAppointments} 
-          />
-          {user && (
-            <ReportsButton companyId={user.id} />
-          )}
-        </div>
+      {/* Botão de Relatórios no final da página */}
+      <div className="flex justify-center pt-6">
+        <ReportsButton />
       </div>
     </div>
   );
 };
-
 export default DashboardContent;

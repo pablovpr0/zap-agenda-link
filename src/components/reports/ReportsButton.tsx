@@ -1,212 +1,210 @@
-import React, { useState, useEffect } from 'react';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Calendar } from '@/components/ui/calendar';
+import { Label } from '@/components/ui/label';
+import { FileText, Download, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Calendar } from 'lucide-react';
-import { Download, TrendingUp, Users } from 'lucide-react';
-import { generateReport } from '@/services/reportsService';
-import { saveAs } from 'file-saver';
-import { format, subMonths } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from 'recharts';
 
-interface ReportStats {
-  totalAppointments: number;
-  totalRevenue: number;
-  completionRate: number;
-  appointmentsGrowth: number;
-}
-
-interface MonthlyRevenue {
-  month: string;
-  revenue: number;
-}
-
-interface ReportsButtonProps {
-  companyId: string;
-}
-
-const ReportsButton: React.FC<ReportsButtonProps> = ({ companyId }) => {
+const ReportsButton = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState<ReportStats>({
-    totalAppointments: 0,
-    totalRevenue: 0,
-    completionRate: 0,
-    appointmentsGrowth: 0,
-  });
-  const [chartData, setChartData] = useState<MonthlyRevenue[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [generating, setGenerating] = useState(false);
 
-  useEffect(() => {
-    const loadReportData = async () => {
-      if (!companyId) return;
-
-      setLoading(true);
-      try {
-        const report = await generateReport(companyId);
-        setStats({
-          totalAppointments: report.totalAppointments,
-          totalRevenue: report.totalRevenue,
-          completionRate: report.completionRate,
-          appointmentsGrowth: report.appointmentsGrowth,
-        });
-
-        // Generate chart data for the last 6 months
-        const monthlyData: MonthlyRevenue[] = [];
-        for (let i = 5; i >= 0; i--) {
-          const date = subMonths(new Date(), i);
-          const monthName = format(date, 'MMMM', { locale: ptBR });
-          const revenue = report.monthlyRevenue[monthName] || 0;
-          monthlyData.push({ month: monthName, revenue: revenue });
-        }
-        setChartData(monthlyData);
-
-      } catch (error: any) {
-        console.error('Error generating report:', error);
-        toast({
-          title: "Erro ao gerar relatório",
-          description: error.message || "Não foi possível gerar o relatório.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadReportData();
-  }, [companyId, toast]);
-
-  const handleDownloadReport = async () => {
-    if (!user?.id) return;
-
-    setLoading(true);
-    try {
-      const report = await generateReport(user.id);
-      const json = JSON.stringify(report);
-      const blob = new Blob([json], { type: 'application/json' });
-      saveAs(blob, `relatorio-${format(new Date(), 'yyyy-MM-dd')}.json`);
-
+  const generateReport = async () => {
+    if (!startDate || !endDate || !user) {
       toast({
-        title: "Relatório gerado!",
-        description: "O relatório foi baixado com sucesso.",
-      });
-    } catch (error: any) {
-      console.error('Error downloading report:', error);
-      toast({
-        title: "Erro ao baixar relatório",
-        description: error.message || "Não foi possível baixar o relatório.",
+        title: "Selecione o período",
+        description: "Por favor, selecione as datas de início e fim.",
         variant: "destructive",
       });
+      return;
+    }
+
+    setGenerating(true);
+
+    try {
+      // Buscar dados do relatório
+      const { data: appointments, error } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          clients(name, phone),
+          services(name, price)
+        `)
+        .eq('company_id', user.id)
+        .eq('status', 'completed')
+        .gte('appointment_date', format(startDate, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' }))
+        .lte('appointment_date', format(endDate, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' }))
+        .order('appointment_date');
+
+      if (error) throw error;
+
+      // Processar dados
+      const totalClients = new Set((appointments || []).map(apt => apt.clients?.name)).size;
+      const serviceStats = (appointments || []).reduce((acc: any, apt: any) => {
+        const serviceName = apt.services?.name || 'Serviço não especificado';
+        acc[serviceName] = (acc[serviceName] || 0) + 1;
+        return acc;
+      }, {});
+
+      const totalRevenue = (appointments || []).reduce((total, apt: any) => {
+        return total + (apt.services?.price || 0);
+      }, 0);
+
+      // Gerar texto do relatório profissional sem emojis
+      const reportText = `RELATÓRIO DE ATENDIMENTOS
+
+Período: ${format(startDate, 'dd/MM/yyyy', { timeZone: 'America/Sao_Paulo' })} a ${format(endDate, 'dd/MM/yyyy', { timeZone: 'America/Sao_Paulo' })}
+
+Total de Clientes Atendidos: ${totalClients}
+
+Procedimentos Realizados:
+${Object.entries(serviceStats).map(([service, count]) => `${service}: ${count}x`).join('\n')}
+
+Faturamento Total: R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+
+Total de Atendimentos: ${appointments?.length || 0}`;
+
+      return reportText;
+
+    } catch (error) {
+      console.error('Erro ao gerar relatório:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível gerar o relatório.",
+        variant: "destructive",
+      });
+      return null;
     } finally {
-      setLoading(false);
+      setGenerating(false);
     }
   };
 
+  const handleDownloadPDF = async () => {
+    const reportText = await generateReport();
+    if (!reportText) return;
+
+    // Criar e baixar arquivo de texto
+    const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `relatorio_${format(startDate!, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' })}_${format(endDate!, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' })}.txt`;
+    link.click();
+
+    toast({
+      title: "Relatório baixado",
+      description: "O relatório foi salvo em seu dispositivo.",
+    });
+  };
+
+  const handleSendWhatsApp = async () => {
+    const reportText = await generateReport();
+    if (!reportText) return;
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(reportText)}`;
+    window.open(whatsappUrl, '_blank');
+
+    toast({
+      title: "WhatsApp aberto",
+      description: "O relatório foi enviado para o WhatsApp.",
+    });
+  };
+
+  // Função para determinar se uma data está no range selecionado
+  const isDateInRange = (date: Date) => {
+    if (!startDate || !endDate) return false;
+    return date >= startDate && date <= endDate;
+  };
+
   return (
-    <div>
-      <Button onClick={handleDownloadReport} disabled={loading}>
-        {loading ? (
-          <>
-            Gerando...
-          </>
-        ) : (
-          <>
-            <Download className="w-4 h-4 mr-2" />
-            Gerar Relatório
-          </>
-        )}
-      </Button>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button className="bg-whatsapp-green hover:bg-green-600">
+          <FileText className="w-4 h-4 mr-2" />
+          Gerar Relatório
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Gerar Relatório de Atendimentos
+          </DialogTitle>
+        </DialogHeader>
 
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Agendamentos</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalAppointments}</div>
-              <p className="text-xs text-muted-foreground">
-                +{Number(stats.appointmentsGrowth) || 0}% desde o mês passado
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">R$ {Number(stats.totalRevenue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Taxa de Conclusão</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{Number(stats.completionRate).toFixed(1)}%</div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Revenue Chart */}
-      {chartData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Receita Mensal</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="month" 
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) => `R$ ${value}`}
-                  />
-                  <Tooltip 
-                    formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Receita']}
-                    labelFormatter={(label) => `Mês: ${label}`}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={2}
-                    dot={{ fill: "hsl(var(--primary))" }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+        <div className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label>Data de Início</Label>
+              <Calendar
+                mode="single"
+                selected={startDate}
+                onSelect={setStartDate}
+                disabled={(date) => date > new Date()}
+                locale={ptBR}
+                className="rounded-md border"
+                modifiers={{
+                  selected: (date) => isDateInRange(date)
+                }}
+                modifiersStyles={{
+                  selected: { backgroundColor: '#D0FFCF' }
+                }}
+              />
             </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+
+            <div className="space-y-2">
+              <Label>Data de Fim</Label>
+              <Calendar
+                mode="single"
+                selected={endDate}
+                onSelect={setEndDate}
+                disabled={(date) => date > new Date() || (startDate && date < startDate)}
+                locale={ptBR}
+                className="rounded-md border"
+                modifiers={{
+                  selected: (date) => isDateInRange(date)
+                }}
+                modifiersStyles={{
+                  selected: { backgroundColor: '#D0FFCF' }
+                }}
+              />
+            </div>
+          </div>
+
+          {startDate && endDate && (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                onClick={handleDownloadPDF}
+                disabled={generating}
+                className="flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                {generating ? 'Gerando...' : 'Baixar Relatório'}
+              </Button>
+              
+              <Button 
+                onClick={handleSendWhatsApp}
+                disabled={generating}
+                variant="outline"
+                className="flex items-center gap-2 border-green-200 text-green-600 hover:bg-green-50"
+              >
+                <MessageCircle className="w-4 h-4" />
+                {generating ? 'Gerando...' : 'Enviar WhatsApp'}
+              </Button>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -1,34 +1,66 @@
 
-import React from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
-import DashboardContent from '@/components/dashboard/DashboardContent';
+import { useState, useEffect } from 'react';
+import { useDashboardData } from '@/hooks/useDashboardData';
+import { useDashboardActions } from '@/hooks/useDashboardActions';
+import DashboardContent from './dashboard/DashboardContent';
+import NewAppointmentModal from './NewAppointmentModal';
 
-const MerchantDashboard = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+interface MerchantDashboardProps {
+  companyName: string;
+  onViewChange: (view: 'dashboard' | 'agenda' | 'settings' | 'clients' | 'services') => void;
+}
 
-  if (!user) {
-    navigate('/auth');
-    return null;
+const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps) => {
+  const { data, loading, refreshData } = useDashboardData();
+  const { linkCopied, handleCopyLink, handleViewPublicPage, handleShareWhatsApp } = useDashboardActions(data.bookingLink);
+  const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
+
+  const handleNewAppointmentSuccess = () => {
+    console.log('Novo agendamento criado, atualizando dashboard...');
+    refreshData(); // Recarregar dados após criar agendamento
+  };
+
+  // Aumentar refresh automático para 60 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!loading) {
+        refreshData();
+      }
+    }, 60000); // Mudado de 30000ms para 60000ms (60 segundos)
+
+    return () => clearInterval(interval);
+  }, [refreshData, loading]);
+
+  if (loading) {
+    return (
+      <div className="p-4 md:p-6 space-y-6">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-whatsapp-green mx-auto"></div>
+          <p className="mt-2 text-gray-500">Carregando dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200 p-4 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-800">
-            Dashboard
-          </h1>
-        </div>
-      </div>
+    <>
+      <DashboardContent
+        companyName={companyName}
+        onShowAppointments={() => setShowNewAppointmentModal(true)}
+        onShowClients={() => onViewChange('clients')}
+        onShowServices={() => onViewChange('services')}
+        onShowSettings={() => onViewChange('settings')}
+        onShowMonthlyAgenda={() => onViewChange('agenda')}
+        onRefreshData={refreshData}
+      />
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto p-6">
-        <DashboardContent />
-      </div>
-    </div>
+      {/* Modal de novo agendamento */}
+      <NewAppointmentModal
+        isOpen={showNewAppointmentModal}
+        onClose={() => setShowNewAppointmentModal(false)}
+        onSuccess={handleNewAppointmentSuccess}
+      />
+    </>
   );
 };
 
