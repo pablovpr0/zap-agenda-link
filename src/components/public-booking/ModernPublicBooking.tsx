@@ -145,10 +145,10 @@ const ModernPublicBooking: React.FC<ModernPublicBookingProps> = ({ companySlug: 
 
           {/* Company Profile */}
           <CompanyHeader
-            companyName={companyData?.company_name}
-            companyLogo={companyData?.logo_url}
-            welcomeMessage={companyData?.welcome_message}
-            instagramUrl={companyData?.instagram_url}
+            companyName={companyData?.company_name || ''}
+            companyLogo={companyData?.logo_url || ''}
+            welcomeMessage={companyData?.welcome_message || ''}
+            instagramUrl={companyData?.instagram_url || ''}
           />
         </div>
 
@@ -182,7 +182,6 @@ const ModernPublicBooking: React.FC<ModernPublicBookingProps> = ({ companySlug: 
                 onFormDataChange={handleFormDataChange}
                 companyData={companyData}
                 professionals={professionals}
-                onRefreshTimes={refreshAvailableTimes}
               />
             </div>
           </div>

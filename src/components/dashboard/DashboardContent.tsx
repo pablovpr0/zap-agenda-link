@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import WelcomeSection from './WelcomeSection';
-import DashboardStats from './DashboardStats';
-import RevenueCard from './RevenueCard';
-import QuickActions from './QuickActions';
-import TodayAppointmentsList from './TodayAppointmentsList';
-import PublicBookingLink from './PublicBookingLink';
-import RecentAppointments from './RecentAppointments';
+import WelcomeSection from '@/components/dashboard/WelcomeSection';
+import DashboardStats from '@/components/dashboard/DashboardStats';
+import RevenueCard from '@/components/dashboard/RevenueCard';
+import QuickActions from '@/components/dashboard/QuickActions';
+import TodayAppointmentsList from '@/components/dashboard/TodayAppointmentsList';
+import PublicBookingLink from '@/components/dashboard/PublicBookingLink';
+import RecentAppointments from '@/components/dashboard/RecentAppointments';
 import ReportsButton from '@/components/reports/ReportsButton';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -72,10 +72,18 @@ const DashboardContent = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <DashboardStats
-          todayAppointments={data.todayAppointments}
-          totalRevenue={data.monthlyRevenue}
+          stats={{
+            todayAppointments: data.todayAppointments,
+            totalClients: data.totalClients,
+            monthlyRevenue: data.monthlyRevenue,
+            completionRate: data.completionRate
+          }}
         />
-        <RevenueCard totalRevenue={data.monthlyRevenue} />
+        <RevenueCard 
+          stats={{
+            monthlyRevenue: data.monthlyRevenue
+          }}
+        />
       </div>
 
       {/* Quick Actions */}
@@ -93,6 +101,7 @@ const DashboardContent = () => {
           <TodayAppointmentsList
             appointments={data.todayAppointmentsList}
             loading={loading}
+            onRefresh={refreshData}
           />
         </div>
 
@@ -105,7 +114,9 @@ const DashboardContent = () => {
             onCopyLink={handleCopyLink}
             onShareWhatsApp={handleShareWhatsApp}
           />
-          <RecentAppointments appointments={data.recentAppointments} />
+          <RecentAppointments 
+            appointments={data.recentAppointments} 
+          />
           {user && (
             <ReportsButton companyId={user.id} />
           )}
