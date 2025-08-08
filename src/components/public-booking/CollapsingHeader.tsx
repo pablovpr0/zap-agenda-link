@@ -68,16 +68,16 @@ const CollapsingHeader = ({
   const logoTranslateX = -164 * progress; // Linha reta horizontal
   const logoTranslateY = -96 * progress;  // Linha reta vertical
   
-  // A foto vai diminuindo a opacidade gradualmente desde o início
-  const logoOpacity = Math.max(0, 1 - progress * 1.2); // Desaparece gradualmente durante toda a transição
+  // A foto desaparece mais rapidamente criando efeito dramático
+  const logoOpacity = Math.max(0, 1 - progress * 2); // Desaparece mais rapidamente
   
   const nameOpacity = Math.max(0, 1 - progress * 3); // Desaparece mais rapidamente
   const businessTypeOpacity = Math.max(0, 1 - progress * 2.5); // Desaparece rapidamente
   const addressOpacity = Math.max(0, 1 - progress * 2.5); // Desaparece rapidamente
   
-  // Sticky header aparece mais rapidamente
-  const stickyHeaderOpacity = Math.min(1, progress * 2.5); // Aparece mais rápido
-  const stickyHeaderTranslateY = -10 + (10 * Math.min(1, progress * 2.5)); // Movimento mais sutil
+  // Sticky header aparece muito mais rapidamente
+  const stickyHeaderOpacity = Math.min(1, progress * 4); // Aparece 4x mais rápido
+  const stickyHeaderTranslateY = -8 + (8 * Math.min(1, progress * 4)); // Movimento mais sutil e rápido
 
   const handleFileSelect = (file: File) => {
     if (file && file.type.startsWith('image/')) {
@@ -136,11 +136,11 @@ const CollapsingHeader = ({
         }}
       >
         <div className="flex items-center gap-3 px-4 py-3 max-w-md mx-auto">
-          {/* Foto do sticky header - aparece gradualmente conforme a principal desaparece */}
+          {/* Foto do sticky header - aparece muito mais rapidamente */}
           <div 
-            className="w-10 h-10 rounded-full overflow-hidden bg-white border-2 profile-border flex-shrink-0 transition-opacity duration-200 ease-out"
+            className="w-10 h-10 rounded-full overflow-hidden bg-white border-2 profile-border flex-shrink-0 transition-opacity duration-150 ease-out"
             style={{
-              opacity: Math.min(1, progress * 1.5) // Aparece gradualmente conforme o progress aumenta
+              opacity: Math.min(1, progress * 3) // Aparece 3x mais rapidamente
             }}
           >
             <img

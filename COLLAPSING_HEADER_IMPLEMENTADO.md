@@ -267,8 +267,20 @@ shadowOpacity: 1 - progress * 0.7         // Sombra diminui
 - ✅ **Compensação sticky**: Foto do sticky aparece gradualmente com `progress * 1.5`
 - ✅ **Transição suave**: Mudança imperceptível entre as duas fotos
 
+## ⚡ Otimização de Velocidade Final
+
+### Problema Identificado
+- Foto de perfil e cabeçalho demoravam para aparecer/desaparecer
+- Transições muito lentas, pouco dramáticas
+
+### Solução Implementada
+- ✅ **Fade mais rápido**: Logo desaparece 2x mais rápido (`progress * 2`)
+- ✅ **Sticky header ultra-rápido**: Aparece 4x mais rápido (`progress * 4`)
+- ✅ **Foto sticky acelerada**: Aparece 3x mais rápido (`progress * 3`)
+- ✅ **Efeito dramático**: Transições mais responsivas e impactantes
+
 ---
 
-**Status**: ✅ Implementado e funcional (Fade gradual)
+**Status**: ✅ Implementado e funcional (Velocidade otimizada)
 **Data**: Janeiro 2025
-**Versão**: 2.5.0
+**Versão**: 2.6.0
