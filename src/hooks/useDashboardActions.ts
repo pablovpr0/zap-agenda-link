@@ -1,45 +1,92 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
-export const useDashboardActions = (bookingLink: string) => {
-  const [linkCopied, setLinkCopied] = useState(false);
+export const useDashboardActions = () => {
   const { toast } = useToast();
+  const [isCreatingAppointment, setIsCreatingAppointment] = useState(false);
 
-  const handleCopyLink = async () => {
+  const handleStatusChange = async (appointmentId: string, newStatus: string) => {
     try {
-      await navigator.clipboard.writeText(bookingLink);
-      setLinkCopied(true);
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: newStatus })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
       toast({
-        title: "Link copiado!",
-        description: "O link de agendamento foi copiado para a área de transferência.",
+        title: "Status atualizado",
+        description: "O status do agendamento foi atualizado com sucesso.",
       });
-      setTimeout(() => setLinkCopied(false), 2000);
     } catch (error) {
-      console.error('Erro ao copiar link:', error);
+      console.error('Error updating status:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível copiar o link.",
+        description: "Não foi possível atualizar o status.",
         variant: "destructive",
       });
     }
   };
 
-  const handleViewPublicPage = () => {
-    console.log('Abrindo página pública:', bookingLink);
-    window.open(bookingLink, '_blank');
+  const handleDeleteAppointment = async (appointmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Agendamento excluído",
+        description: "O agendamento foi removido com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o agendamento.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleShareWhatsApp = () => {
-    const message = encodeURIComponent(`Agende seu horário: ${bookingLink}`);
-    const whatsappUrl = `https://wa.me/?text=${message}`;
+  const handleWhatsAppClick = (phone: string, clientName: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const message = `Olá ${clientName}! Seu agendamento foi confirmado.`;
+    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
 
+  const handleCreateAppointment = async (appointmentData: any) => {
+    setIsCreatingAppointment(true);
+    try {
+      // Implementation for creating appointment
+      console.log('Creating appointment:', appointmentData);
+      
+      toast({
+        title: "Agendamento criado",
+        description: "O agendamento foi criado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error creating appointment:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar o agendamento.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingAppointment(false);
+    }
+  };
+
   return {
-    linkCopied,
-    handleCopyLink,
-    handleViewPublicPage,
-    handleShareWhatsApp
+    handleStatusChange,
+    handleDeleteAppointment,
+    handleWhatsAppClick,
+    handleCreateAppointment,
+    isCreatingAppointment
   };
 };

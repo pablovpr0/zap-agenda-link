@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from 'lucide-react';
@@ -146,30 +145,29 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
 
   const selectedDateAppointments = selectedDate ? transformAppointments(getAppointmentsForDate(selectedDate)) : [];
 
-  // Transform appointments for CalendarGrid - convert to the expected format
-  const transformedAppointments = Object.keys(appointments).reduce((acc, dateKey) => {
-    acc[dateKey] = appointments[dateKey].map(apt => ({
-      id: apt.id,
-      appointment_time: apt.appointment_time,
-      appointment_date: apt.appointment_date,
-      client_name: apt.client_name,
-      service_name: apt.service_name,
-      professional_name: apt.professional_name,
-      status: apt.status,
-      duration: apt.duration || 60,
-      client_phone: apt.client_phone || ''
-    }));
+  // Convert appointments object to array for CalendarGrid
+  const appointmentsArray = Object.keys(appointments).reduce((acc, dateKey) => {
+    appointments[dateKey].forEach(apt => {
+      acc.push({
+        id: apt.id,
+        appointment_date: dateKey,
+        appointment_time: apt.appointment_time,
+        status: apt.status,
+        client_name: apt.client_name,
+        client_phone: apt.client_phone || '',
+        service_name: apt.service_name
+      });
+    });
     return acc;
-  }, {} as Record<string, any[]>);
+  }, [] as any[]);
 
   const handleAppointmentClick = (appointment: any) => {
     // Convert the date string to a Date object for setSelectedDate
-    const appointmentDate = new Date(appointment.date + 'T00:00:00');
+    const appointmentDate = new Date(appointment.appointment_date + 'T00:00:00');
     setSelectedDate(appointmentDate);
   };
 
-  const handleCalendarDateClick = (dateKey: string) => {
-    const date = new Date(dateKey + 'T00:00:00');
+  const handleCalendarDateClick = (date: Date) => {
     handleDateClick(date);
   };
 
@@ -201,7 +199,7 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
           ) : (
             <CalendarGrid
               currentDate={currentDate}
-              appointments={transformedAppointments}
+              appointments={appointmentsArray}
               onAppointmentClick={handleAppointmentClick}
               onDateClick={handleCalendarDateClick}
             />

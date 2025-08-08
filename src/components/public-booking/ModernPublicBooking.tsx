@@ -1,17 +1,18 @@
-import React, { useState, useEffect, Dispatch, SetStateAction } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePublicBooking } from '@/hooks/usePublicBooking';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CompanyHeader } from '@/components/public-booking/CompanyHeader';
-import { CompanyProfileSection } from '@/components/public-booking/CompanyProfileSection';
+import CompanyHeader from '@/components/public-booking/CompanyHeader';
+import CompanyProfileSection from '@/components/public-booking/CompanyProfileSection';
 import BookingDataCard from '@/components/public-booking/BookingDataCard';
-import { SuccessModal } from '@/components/public-booking/SuccessModal';
+import SuccessModal from '@/components/public-booking/SuccessModal';
 import { Service } from '@/types/publicBooking';
 import { Professional } from '@/services/professionalsService';
 
 interface ModernPublicBookingProps {
-  companySlug: string;
+  companySlug?: string;
 }
 
 interface BookingFormData {
@@ -24,7 +25,10 @@ interface BookingFormData {
   selectedTime: string;
 }
 
-const ModernPublicBooking: React.FC<ModernPublicBookingProps> = ({ companySlug }) => {
+const ModernPublicBooking: React.FC<ModernPublicBookingProps> = ({ companySlug: propCompanySlug }) => {
+  const { companySlug: paramCompanySlug } = useParams<{ companySlug: string }>();
+  const companySlug = propCompanySlug || paramCompanySlug || '';
+
   const {
     companyData,
     companySettings,
@@ -118,15 +122,8 @@ const ModernPublicBooking: React.FC<ModernPublicBookingProps> = ({ companySlug }
     setSuccessModalData(null);
   };
 
-  const EnhancedCompanyHeader = ({ companyData }: { companyData: any }) => {
-    return (
-      <CompanyHeader
-        companyName={companyData?.company_name}
-        companyLogo={companyData?.logo_url}
-        welcomeMessage={companyData?.welcome_message}
-        instagramUrl={companyData?.instagram_url}
-      />
-    );
+  const handleFormDataChange = (data: BookingFormData) => {
+    setFormData(data);
   };
 
   return (
@@ -147,7 +144,12 @@ const ModernPublicBooking: React.FC<ModernPublicBookingProps> = ({ companySlug }
           )}
 
           {/* Company Profile */}
-          <EnhancedCompanyHeader companyData={companyData} />
+          <CompanyHeader
+            companyName={companyData?.company_name}
+            companyLogo={companyData?.logo_url}
+            welcomeMessage={companyData?.welcome_message}
+            instagramUrl={companyData?.instagram_url}
+          />
         </div>
 
         {/* Main Content */}
@@ -155,7 +157,12 @@ const ModernPublicBooking: React.FC<ModernPublicBookingProps> = ({ companySlug }
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Left Column - Company Info */}
             <div className="lg:w-1/3 space-y-6">
-              <CompanyProfileSection profile={profile} />
+              <CompanyProfileSection 
+                companyName={profile?.company_name || ''}
+                businessType={profile?.business_type}
+                address={profile?.company_address}
+                logoUrl={profile?.company_logo}
+              />
             </div>
 
             {/* Right Column - Booking Form */}
@@ -172,7 +179,7 @@ const ModernPublicBooking: React.FC<ModernPublicBookingProps> = ({ companySlug }
                 onSubmit={handleSubmit}
                 submitting={submitting}
                 formData={formData}
-                onFormDataChange={setFormData}
+                onFormDataChange={handleFormDataChange}
                 companyData={companyData}
                 professionals={professionals}
                 onRefreshTimes={refreshAvailableTimes}

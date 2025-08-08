@@ -39,7 +39,7 @@ const PublicBooking = () => {
     return <ErrorState companySlug={companySlug} />;
   }
 
-  return <ModernPublicBooking />;
+  return <ModernPublicBooking companySlug={companySlug} />;
 };
 
 export default PublicBooking;

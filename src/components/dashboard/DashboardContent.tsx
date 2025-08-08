@@ -18,7 +18,12 @@ const DashboardContent = () => {
   const { 
     data,
     loading, 
-    refreshData 
+    refreshData,
+    bookingLink,
+    linkCopied,
+    handleCopyLink,
+    handleViewPublicPage,
+    handleShareWhatsApp
   } = useDashboardData();
 
   const {
@@ -67,7 +72,6 @@ const DashboardContent = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <DashboardStats
-          totalAppointments={data.todayAppointments}
           todayAppointments={data.todayAppointments}
           totalRevenue={data.monthlyRevenue}
         />
@@ -75,7 +79,12 @@ const DashboardContent = () => {
       </div>
 
       {/* Quick Actions */}
-      <QuickActions onNewAppointment={() => setShowNewAppointmentModal(true)} />
+      <QuickActions 
+        onNewAppointment={() => setShowNewAppointmentModal(true)}
+        onViewPublicPage={handleViewPublicPage}
+        onManageClients={() => {}}
+        onShowSettings={() => {}}
+      />
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -83,17 +92,20 @@ const DashboardContent = () => {
         <div className="lg:col-span-2">
           <TodayAppointmentsList
             appointments={data.todayAppointmentsList}
-            onStatusChange={handleStatusChange}
-            onDelete={handleDeleteAppointment}
-            onWhatsApp={handleWhatsAppClick}
             loading={loading}
           />
         </div>
 
         {/* Right Column - Actions and Links */}
         <div className="space-y-6">
-          <PublicBookingLink />
-          <RecentAppointments />
+          <PublicBookingLink
+            bookingLink={bookingLink}
+            linkCopied={linkCopied}
+            onViewPublicPage={handleViewPublicPage}
+            onCopyLink={handleCopyLink}
+            onShareWhatsApp={handleShareWhatsApp}
+          />
+          <RecentAppointments appointments={data.recentAppointments} />
           {user && (
             <ReportsButton companyId={user.id} />
           )}
