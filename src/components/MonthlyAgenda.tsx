@@ -49,6 +49,10 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
     setCurrentDate(addMonths(currentDate, 1));
   };
 
+  const goToToday = () => {
+    setCurrentDate(getNowInBrazil());
+  };
+
   const handleDateClick = (date: Date) => {
     const dayAppointments = getAppointmentsForDate(date);
     if (dayAppointments.length > 0) {
@@ -142,14 +146,32 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
 
   const selectedDateAppointments = selectedDate ? transformAppointments(getAppointmentsForDate(selectedDate)) : [];
 
-  // Criar array de dias começando no domingo
-  const startDate = new Date(monthStart);
-  startDate.setDate(startDate.getDate() - startDate.getDay());
-  
-  const endDate = new Date(monthEnd);
-  endDate.setDate(endDate.getDate() + (6 - endDate.getDay()));
-  
-  const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
+  // Transform appointments for CalendarGrid - convert to the expected format
+  const transformedAppointments = Object.keys(appointments).reduce((acc, dateKey) => {
+    acc[dateKey] = appointments[dateKey].map(apt => ({
+      id: apt.id,
+      appointment_time: apt.appointment_time,
+      appointment_date: apt.appointment_date,
+      client_name: apt.client_name,
+      service_name: apt.service_name,
+      professional_name: apt.professional_name,
+      status: apt.status,
+      duration: apt.duration || 60,
+      client_phone: apt.client_phone || ''
+    }));
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  const handleAppointmentClick = (appointment: any) => {
+    // Convert the date string to a Date object for setSelectedDate
+    const appointmentDate = new Date(appointment.date + 'T00:00:00');
+    setSelectedDate(appointmentDate);
+  };
+
+  const handleCalendarDateClick = (dateKey: string) => {
+    const date = new Date(dateKey + 'T00:00:00');
+    handleDateClick(date);
+  };
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in">
@@ -161,6 +183,7 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
         currentDate={currentDate}
         onPreviousMonth={goToPreviousMonth}
         onNextMonth={goToNextMonth}
+        onToday={goToToday}
       />
 
       <Card>
@@ -178,9 +201,9 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
           ) : (
             <CalendarGrid
               currentDate={currentDate}
-              calendarDays={calendarDays}
-              getAppointmentsForDate={getAppointmentsForDate}
-              onDateClick={handleDateClick}
+              appointments={transformedAppointments}
+              onAppointmentClick={handleAppointmentClick}
+              onDateClick={handleCalendarDateClick}
             />
           )}
         </CardContent>

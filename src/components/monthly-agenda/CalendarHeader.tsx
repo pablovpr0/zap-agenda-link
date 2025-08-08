@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getNowInBrazil } from '@/utils/timezone';
 
 interface CalendarHeaderProps {
   currentDate: Date;
   onPreviousMonth: () => void;
   onNextMonth: () => void;
-  onToday: () => void;
+  onToday?: () => void;
 }
 
 const CalendarHeader: React.FC<CalendarHeaderProps> = ({
@@ -18,16 +19,24 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({
   onNextMonth,
   onToday
 }) => {
+  const handleTodayClick = () => {
+    if (onToday) {
+      onToday();
+    }
+  };
+
   return (
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-4">
         <h1 className="text-2xl font-bold text-foreground">
           {format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}
         </h1>
-        <Button variant="outline" size="sm" onClick={onToday}>
-          <Calendar className="h-4 w-4 mr-2" />
-          Hoje
-        </Button>
+        {onToday && (
+          <Button variant="outline" size="sm" onClick={handleTodayClick}>
+            <Calendar className="h-4 w-4 mr-2" />
+            Hoje
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

@@ -82,7 +82,10 @@ const ReportsButton: React.FC<ReportsButtonProps> = ({ companyId }) => {
     
     const totalRevenue = reportData
       .filter(apt => apt.status === 'completed')
-      .reduce((sum, apt) => sum + (apt.services?.price || 0), 0);
+      .reduce((sum, apt) => {
+        const price = apt.services?.price || 0;
+        return sum + (typeof price === 'number' ? price : 0);
+      }, 0);
 
     const serviceStats = reportData.reduce((acc, apt) => {
       const serviceName = apt.services?.name || 'Serviço não especificado';
@@ -258,7 +261,7 @@ const ReportsButton: React.FC<ReportsButtonProps> = ({ companyId }) => {
                     .map(([service, count]) => (
                       <div key={service} className="flex items-center justify-between">
                         <span className="text-sm">{service}</span>
-                        <Badge variant="secondary">{count}</Badge>
+                        <Badge variant="secondary">{String(count)}</Badge>
                       </div>
                     ))}
                 </div>

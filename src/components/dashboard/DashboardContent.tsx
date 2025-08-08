@@ -1,92 +1,119 @@
-import DashboardStats from './DashboardStats';
-import QuickActions from './QuickActions';
-import PublicBookingLink from './PublicBookingLink';
-import WelcomeSection from './WelcomeSection';
-import TodayAppointmentsList from './TodayAppointmentsList';
-import RevenueCard from './RevenueCard';
-import MonthlyAgenda from '../MonthlyAgenda';
-import ReportsButton from '../reports/ReportsButton';
+import React, { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import WelcomeSection from './dashboard/WelcomeSection';
+import DashboardStats from './dashboard/DashboardStats';
+import RevenueCard from './dashboard/RevenueCard';
+import QuickActions from './dashboard/QuickActions';
+import TodayAppointmentsList from './dashboard/TodayAppointmentsList';
+import PublicBookingLink from './dashboard/PublicBookingLink';
+import RecentAppointments from './dashboard/RecentAppointments';
+import ReportsButton from '@/components/reports/ReportsButton';
+import NewAppointmentModal from '@/components/NewAppointmentModal';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
-import { Settings } from 'lucide-react';
-interface DashboardContentProps {
-  companyName: string;
-  onShowAppointments: () => void;
-  onShowClients: () => void;
-  onShowServices: () => void;
-  onShowSettings: () => void;
-  onShowMonthlyAgenda: () => void;
-  onRefreshData: () => void;
-}
-const DashboardContent = ({
-  companyName,
-  onShowAppointments,
-  onShowClients,
-  onShowServices,
-  onShowSettings,
-  onShowMonthlyAgenda,
-  onRefreshData
-}: DashboardContentProps) => {
-  const {
-    data,
-    loading
+
+const DashboardContent = () => {
+  const { user } = useAuth();
+  const { 
+    todaysAppointments, 
+    totalAppointments, 
+    totalRevenue, 
+    loading, 
+    refreshData 
   } = useDashboardData();
+
   const {
-    linkCopied,
-    handleCopyLink,
-    handleViewPublicPage,
-    handleShareWhatsApp
-  } = useDashboardActions(data.bookingLink);
+    handleStatusChange,
+    handleDeleteAppointment,
+    handleWhatsAppClick,
+    handleCreateAppointment,
+    isCreatingAppointment
+  } = useDashboardActions();
+
+  const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
+  
+  // Mock data for services and professionals - in a real app, these would come from hooks
+  const services = [
+    { id: '1', name: 'Corte de Cabelo', duration: 30, price: 35 },
+    { id: '2', name: 'Barba', duration: 20, price: 20 },
+    { id: '3', name: 'Corte + Barba', duration: 50, price: 50 }
+  ];
+  
+  const professionals = [
+    { id: '1', name: 'João Silva' },
+    { id: '2', name: 'Maria Santos' }
+  ];
+
+  const handleNewAppointmentSuccess = () => {
+    refreshData();
+    setShowNewAppointmentModal(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-3 md:p-6 space-y-4 md:space-y-6 fade-in max-w-7xl mx-auto">
+    <div className="space-y-6">
+      {/* Welcome Section */}
       <WelcomeSection />
       
-      <DashboardStats stats={{
-        todayAppointments: data.todayAppointments,
-        totalClients: data.totalClients,
-        monthlyRevenue: data.monthlyRevenue,
-        completionRate: data.completionRate
-      }} />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <DashboardStats
+          totalAppointments={totalAppointments}
+          todayAppointments={todaysAppointments.length}
+          totalRevenue={totalRevenue}
+        />
+        <RevenueCard totalRevenue={totalRevenue} />
+      </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
-        <div className="space-y-4 md:space-y-6 min-w-0">
-          <QuickActions 
-            onNewAppointment={onShowAppointments} 
-            onViewPublicPage={handleViewPublicPage} 
-            onManageClients={onShowClients} 
-            onShowSettings={onShowSettings} 
-          />
-          
-          <PublicBookingLink 
-            bookingLink={data.bookingLink} 
-            linkCopied={linkCopied} 
-            onViewPublicPage={handleViewPublicPage} 
-            onCopyLink={handleCopyLink} 
-            onShareWhatsApp={handleShareWhatsApp} 
-          />
+      {/* Quick Actions */}
+      <QuickActions onNewAppointment={() => setShowNewAppointmentModal(true)} />
 
-          {/* Agenda Mensal - Responsiva */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <MonthlyAgenda />
-          </div>
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Today's Appointments */}
+        <div className="lg:col-span-2">
+          <TodayAppointmentsList
+            appointments={todaysAppointments}
+            onStatusChange={handleStatusChange}
+            onDelete={handleDeleteAppointment}
+            onWhatsApp={handleWhatsAppClick}
+            loading={loading}
+          />
         </div>
 
-        <div className="space-y-4 md:space-y-6 min-w-0">
-          <RevenueCard />
-          
-          <TodayAppointmentsList 
-            appointments={data.todayAppointmentsList} 
-            loading={loading} 
-            onRefresh={onRefreshData} 
-          />
+        {/* Right Column - Actions and Links */}
+        <div className="space-y-6">
+          <PublicBookingLink />
+          <RecentAppointments />
+          {user && (
+            <ReportsButton companyId={user.id} />
+          )}
         </div>
       </div>
 
-      {/* Botão de Relatórios no final da página */}
-      <div className="flex justify-center pt-6">
-        <ReportsButton />
-      </div>
+      {/* New Appointment Modal */}
+      {user && (
+        <NewAppointmentModal
+          isOpen={showNewAppointmentModal}
+          onClose={() => setShowNewAppointmentModal(false)}
+          companyId={user.id}
+          services={services}
+          professionals={professionals}
+          onAppointmentCreated={handleNewAppointmentSuccess}
+        />
+      )}
     </div>
   );
 };
+
 export default DashboardContent;

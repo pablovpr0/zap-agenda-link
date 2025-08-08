@@ -8,11 +8,17 @@ interface PublicCalendarProps {
 }
 
 const PublicCalendar = ({ availableDates, selectedDate, onDateSelect }: PublicCalendarProps) => {
+  const handleDateSelect = (date: Date) => {
+    // Convert Date to string in YYYY-MM-DD format
+    const dateString = date.toISOString().split('T')[0];
+    onDateSelect(dateString);
+  };
+
   return (
     <StandardCalendar
       availableDates={availableDates}
       selectedDate={selectedDate}
-      onDateSelect={onDateSelect}
+      onDateSelect={handleDateSelect}
       showNavigation={true}
       highlightToday={true}
     />

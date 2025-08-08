@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ interface NewAppointmentModalProps {
   services: Array<{ id: string; name: string; duration: number; price?: number }>;
   professionals: Array<{ id: string; name: string }>;
   onAppointmentCreated: () => void;
+  onSuccess?: () => void;
   initialDate?: string;
   initialTime?: string;
 }
@@ -33,6 +35,7 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
   services,
   professionals,
   onAppointmentCreated,
+  onSuccess,
   initialDate,
   initialTime
 }) => {
@@ -96,6 +99,9 @@ const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
       });
 
       onAppointmentCreated();
+      if (onSuccess) {
+        onSuccess();
+      }
       onClose();
       
       // Reset form
