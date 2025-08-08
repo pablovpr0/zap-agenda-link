@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { BookingFormData, CompanySettings, Service } from '@/types/publicBooking';
@@ -13,8 +14,10 @@ export const useBookingSubmission = (
 ) => {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successModalData, setSuccessModalData] = useState<any>(null);
 
-  const submitBooking = async (formData: BookingFormData) => {
+  const submitBooking = async (formData: BookingFormData, onTimesRefresh?: () => void) => {
     console.log('🔒 Starting secure booking submission...');
     
     setSubmitting(true);
@@ -87,12 +90,26 @@ export const useBookingSubmission = (
       
       console.log('✅ Appointment created successfully:', result.appointment?.id);
       
-      toast({
-        title: "Agendamento realizado com sucesso!",
-        description: `Agendamento confirmado para ${result.formattedDate} às ${sanitizedFormData.selectedTime}.`,
-      });
+      // Refresh times immediately to remove the booked slot
+      if (onTimesRefresh) {
+        console.log('🔄 Refreshing available times...');
+        onTimesRefresh();
+      }
 
-      // Send WhatsApp message with sanitized data
+      // Prepare success modal data
+      const successData = {
+        serviceName: result.service?.name || 'Serviço',
+        date: sanitizedFormData.selectedDate,
+        time: sanitizedFormData.selectedTime,
+        clientName: sanitizedFormData.clientName,
+        companyName: companySettings.company_name,
+        companyPhone: companySettings.phone
+      };
+
+      setSuccessModalData(successData);
+      setShowSuccessModal(true);
+
+      // Send WhatsApp message after modal delay
       if (companySettings.phone) {
         console.log('📱 Preparing WhatsApp message...');
         
@@ -108,10 +125,11 @@ export const useBookingSubmission = (
         const cleanPhone = companySettings.phone.replace(/\D/g, '');
         const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
         
+        // Delay WhatsApp opening to show modal first
         setTimeout(() => {
           console.log('📲 Opening WhatsApp...');
           window.open(whatsappUrl, '_blank');
-        }, 1000);
+        }, 3000); // 3 second delay for modal
       }
 
       return true;
@@ -130,6 +148,11 @@ export const useBookingSubmission = (
         errorMessage = "O serviço selecionado não está mais disponível.";
       } else if (error.message?.includes('Time slot already booked')) {
         errorMessage = "Este horário não está mais disponível. Por favor, escolha outro horário.";
+        // Refresh times when there's a conflict
+        if (onTimesRefresh) {
+          console.log('🔄 Refreshing times due to conflict...');
+          onTimesRefresh();
+        }
       } else if (error.message?.includes('Cannot book appointments in the past')) {
         errorMessage = "Não é possível agendar para datas passadas.";
       } else if (error.message?.includes('Name must be between')) {
@@ -154,8 +177,16 @@ export const useBookingSubmission = (
     }
   };
 
+  const closeSuccessModal = () => {
+    setShowSuccessModal(false);
+    setSuccessModalData(null);
+  };
+
   return {
     submitBooking,
-    submitting
+    submitting,
+    showSuccessModal,
+    successModalData,
+    closeSuccessModal
   };
 };

@@ -1,70 +1,114 @@
 
-import { format, eachDayOfInterval, isSameMonth, isToday } from 'date-fns';
+import React from 'react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, isToday } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import AppointmentCard from './AppointmentCard';
 
 interface Appointment {
   id: string;
-  appointment_date: string;
   appointment_time: string;
-  client_name: string;
-  client_phone: string;
-  service_name: string;
+  client_name?: string;
+  service_name?: string;
+  professional_name?: string;
   status: string;
 }
 
 interface CalendarGridProps {
   currentDate: Date;
-  calendarDays: Date[];
-  getAppointmentsForDate: (date: Date) => Appointment[];
-  onDateClick: (date: Date) => void;
+  appointments: Record<string, Appointment[]>;
+  onAppointmentClick: (appointment: Appointment & { date: string }) => void;
+  onDateClick: (date: string) => void;
 }
 
-const CalendarGrid = ({ currentDate, calendarDays, getAppointmentsForDate, onDateClick }: CalendarGridProps) => {
+const CalendarGrid: React.FC<CalendarGridProps> = ({
+  currentDate,
+  appointments,
+  onAppointmentClick,
+  onDateClick
+}) => {
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd = endOfMonth(currentDate);
+  const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+  const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+  // Get the first day of the week for the month
+  const firstDayOfWeek = monthStart.getDay();
+  const daysFromPreviousMonth = Array.from({ length: firstDayOfWeek }, (_, i) => {
+    const date = new Date(monthStart);
+    date.setDate(date.getDate() - firstDayOfWeek + i);
+    return date;
+  });
+
+  // Get remaining days to fill the last week
+  const totalCells = Math.ceil((days.length + firstDayOfWeek) / 7) * 7;
+  const daysFromNextMonth = Array.from({ length: totalCells - days.length - firstDayOfWeek }, (_, i) => {
+    const date = new Date(monthEnd);
+    date.setDate(date.getDate() + i + 1);
+    return date;
+  });
+
+  const allDays = [...daysFromPreviousMonth, ...days, ...daysFromNextMonth];
+
   return (
-    <>
-      {/* Days of week header */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
-        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day) => (
-          <div key={day} className="p-1 md:p-2 text-center text-xs md:text-sm font-medium text-gray-600">
+    <div className="bg-white rounded-lg border shadow-sm">
+      {/* Week days header */}
+      <div className="grid grid-cols-7 border-b">
+        {weekDays.map((day) => (
+          <div key={day} className="p-3 text-center text-sm font-medium text-muted-foreground border-r last:border-r-0">
             {day}
           </div>
         ))}
       </div>
-      
+
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {calendarDays.map((date, index) => {
-          const dayAppointments = getAppointmentsForDate(date);
-          const isCurrentMonth = isSameMonth(date, currentDate);
-          const isTodayDate = isToday(date);
-          const hasAppointments = dayAppointments.length > 0;
-          
+      <div className="grid grid-cols-7">
+        {allDays.map((day, index) => {
+          const dateKey = format(day, 'yyyy-MM-dd');
+          const dayAppointments = appointments[dateKey] || [];
+          const isCurrentMonth = isSameMonth(day, currentDate);
+          const isCurrentDay = isToday(day);
+
           return (
             <div
               key={index}
-              className={`
-                p-1 md:p-2 min-h-[40px] md:min-h-[60px] border rounded-lg cursor-pointer transition-colors text-center
-                ${isCurrentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400'}
-                ${isTodayDate ? 'border-primary border-2 bg-primary/5' : 'border-gray-200'}
-                ${hasAppointments && isCurrentMonth ? 'hover:bg-blue-50' : 'hover:bg-gray-100'}
-              `}
-              onClick={() => isCurrentMonth && onDateClick(date)}
-            >
-              <div className="text-xs md:text-sm font-medium">
-                {format(date, 'd', { timeZone: 'America/Sao_Paulo' })}
-              </div>
-              {hasAppointments && isCurrentMonth && (
-                <div className="mt-1">
-                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-primary rounded-full mx-auto"></div>
-                  <div className="text-[10px] md:text-xs text-primary mt-1">
-                    {dayAppointments.length}
-                  </div>
-                </div>
+              className={cn(
+                "min-h-[120px] p-2 border-r border-b last:border-r-0 cursor-pointer hover:bg-muted/20 transition-colors",
+                !isCurrentMonth && "bg-muted/10",
+                isCurrentDay && "bg-primary/5"
               )}
+              onClick={() => onDateClick(dateKey)}
+            >
+              <div className="h-full flex flex-col">
+                <div className={cn(
+                  "text-sm mb-2",
+                  !isCurrentMonth && "text-muted-foreground",
+                  isCurrentDay && "font-bold text-primary"
+                )}>
+                  {format(day, 'd', { locale: ptBR })}
+                </div>
+                
+                <div className="flex-1 space-y-1 overflow-hidden">
+                  {dayAppointments.slice(0, 3).map((appointment) => (
+                    <AppointmentCard
+                      key={appointment.id}
+                      appointment={appointment}
+                      onClick={() => onAppointmentClick({ ...appointment, date: dateKey })}
+                    />
+                  ))}
+                  {dayAppointments.length > 3 && (
+                    <div className="text-xs text-muted-foreground text-center py-1">
+                      +{dayAppointments.length - 3} mais
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           );
         })}
       </div>
-    </>
+    </div>
   );
 };
 

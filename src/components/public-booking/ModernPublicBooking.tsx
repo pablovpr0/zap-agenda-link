@@ -1,15 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePublicBooking } from '@/hooks/usePublicBooking';
-
 import { useToast } from '@/hooks/use-toast';
 import LoadingState from '@/components/public-booking/LoadingState';
 import ErrorState from '@/components/public-booking/ErrorState';
-import CompanyProfileSection from '@/components/public-booking/CompanyProfileSection';
 import CompanyHeaderWithCover from '@/components/public-booking/CompanyHeaderWithCover';
 import ScheduleHeroCard from '@/components/public-booking/ScheduleHeroCard';
 import BookingDataCard from '@/components/public-booking/BookingDataCard';
 import ClientDataCard from '@/components/public-booking/ClientDataCard';
+import SuccessModal from '@/components/public-booking/SuccessModal';
 
 const ModernPublicBooking = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
@@ -30,8 +30,6 @@ const ModernPublicBooking = () => {
     submitBooking
   } = usePublicBooking(companySlug || '');
 
-  // Tema é aplicado automaticamente pelo hook usePublicThemeApplication na página pai
-
   // Estados do formulário
   const [selectedService, setSelectedService] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
@@ -40,57 +38,53 @@ const ModernPublicBooking = () => {
   const [clientPhone, setClientPhone] = useState('');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
-
-  // As datas disponíveis vêm do hook usePublicBooking
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successModalData, setSuccessModalData] = useState<any>(null);
 
   // Carregar horários quando data e serviço são selecionados
   useEffect(() => {
-    const loadTimes = async () => {
-      if (selectedDate && selectedService) {
-        console.log('📅 Data selecionada:', selectedDate, '- Carregando horários...');
-        console.log('🏢 Company data:', { companyId: companyData?.id, companySlug });
-        setIsLoadingTimes(true);
-        setSelectedTime(''); // Reset time when loading new times
-        
-        try {
-          const selectedServiceData = services.find(s => s.id === selectedService);
-          const serviceDuration = selectedServiceData?.duration || 30;
-          
-          console.log('🔄 Carregando horários para:', { 
-            selectedDate, 
-            selectedService, 
-            serviceDuration,
-            companyId: companyData?.id,
-            servicesCount: services.length
-          });
-          
-          // Carregamento otimizado dos horários
-          const times = await generateAvailableTimes(selectedDate, serviceDuration);
-          setAvailableTimes(times);
-          
-          console.log('✅ Horários carregados:', times.length, 'horários disponíveis', times);
-        } catch (error) {
-          console.error('❌ Erro ao carregar horários:', error);
-          setAvailableTimes([]);
-          toast({
-            title: "Erro ao carregar horários",
-            description: "Não foi possível carregar os horários disponíveis. Tente novamente.",
-            variant: "destructive",
-          });
-        } finally {
-          setIsLoadingTimes(false);
-        }
-      } else {
-        console.log('⚠️ Condições não atendidas para carregar horários:', { selectedDate, selectedService });
-        setAvailableTimes([]);
-        setSelectedTime('');
-      }
-    };
-
-    // Usar timeout mínimo para garantir que a UI seja atualizada imediatamente
-    const timeoutId = setTimeout(loadTimes, 100);
-    return () => clearTimeout(timeoutId);
+    loadTimes();
   }, [selectedDate, selectedService, services, companyData?.id]);
+
+  const loadTimes = async () => {
+    if (selectedDate && selectedService) {
+      console.log('📅 Data selecionada:', selectedDate, '- Carregando horários...');
+      setIsLoadingTimes(true);
+      setSelectedTime(''); // Reset time when loading new times
+      
+      try {
+        const selectedServiceData = services.find(s => s.id === selectedService);
+        const serviceDuration = selectedServiceData?.duration || 30;
+        
+        console.log('🔄 Carregando horários para:', { 
+          selectedDate, 
+          selectedService, 
+          serviceDuration,
+          companyId: companyData?.id,
+          servicesCount: services.length
+        });
+        
+        const times = await generateAvailableTimes(selectedDate, serviceDuration);
+        setAvailableTimes(times);
+        
+        console.log('✅ Horários carregados:', times.length, 'horários disponíveis', times);
+      } catch (error) {
+        console.error('❌ Erro ao carregar horários:', error);
+        setAvailableTimes([]);
+        toast({
+          title: "Erro ao carregar horários",
+          description: "Não foi possível carregar os horários disponíveis. Tente novamente.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingTimes(false);
+      }
+    } else {
+      console.log('⚠️ Condições não atendidas para carregar horários:', { selectedDate, selectedService });
+      setAvailableTimes([]);
+      setSelectedTime('');
+    }
+  };
 
   const handleSubmit = async () => {
     if (!selectedService || !selectedDate || !selectedTime || !clientName.trim() || !clientPhone.trim()) {
@@ -111,14 +105,48 @@ const ModernPublicBooking = () => {
         clientPhone: clientPhone.trim(),
         clientEmail: '',
         notes: ''
-      });
+      }, loadTimes); // Pass refresh function
 
       if (success) {
+        // Prepare success modal data
+        const selectedServiceData = services.find(s => s.id === selectedService);
+        const modalData = {
+          serviceName: selectedServiceData?.name || 'Serviço',
+          date: selectedDate,
+          time: selectedTime,
+          clientName: clientName.trim(),
+          companyName: companySettings?.company_name || 'Empresa',
+          companyPhone: companySettings?.phone
+        };
+
+        setSuccessModalData(modalData);
+        setShowSuccessModal(true);
+
         // Reset form
         setSelectedService('');
         setSelectedDate('');
         setSelectedTime('');
+        setClientName('');
+        setClientPhone('');
         setAvailableTimes([]);
+
+        // Send WhatsApp message after modal delay
+        if (companySettings?.phone) {
+          setTimeout(() => {
+            const message = `Olá! Acabei de agendar um horário:
+
+📅 *Serviço:* ${selectedServiceData?.name}
+📅 *Data:* ${selectedDate}
+⏰ *Horário:* ${selectedTime}
+👤 *Nome:* ${clientName.trim()}
+
+Agendamento confirmado! ✅`;
+
+            const cleanPhone = companySettings.phone?.replace(/\D/g, '');
+            const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+          }, 3000);
+        }
       }
     } catch (error) {
       console.error('Erro no agendamento:', error);
@@ -126,33 +154,16 @@ const ModernPublicBooking = () => {
   };
 
   const refreshTimes = async () => {
-    if (selectedDate && selectedService) {
-      setIsLoadingTimes(true);
-      try {
-        const selectedServiceData = services.find(s => s.id === selectedService);
-        const serviceDuration = selectedServiceData?.duration || 30;
-        const times = await generateAvailableTimes(selectedDate, serviceDuration);
-        setAvailableTimes(times);
-        
-        // Se o horário selecionado não está mais disponível, limpar seleção
-        if (selectedTime && !times.includes(selectedTime)) {
-          setSelectedTime('');
-          toast({
-            title: "Horário atualizado",
-            description: "O horário selecionado não está mais disponível. Selecione outro horário.",
-            variant: "destructive",
-          });
-        }
-      } catch (error) {
-        console.error('Erro ao atualizar horários:', error);
-        toast({
-          title: "Erro ao atualizar",
-          description: "Não foi possível atualizar os horários. Tente novamente.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoadingTimes(false);
-      }
+    await loadTimes();
+    
+    // Se o horário selecionado não está mais disponível, limpar seleção
+    if (selectedTime && !availableTimes.includes(selectedTime)) {
+      setSelectedTime('');
+      toast({
+        title: "Horário atualizado",
+        description: "O horário selecionado não está mais disponível. Selecione outro horário.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -173,7 +184,7 @@ const ModernPublicBooking = () => {
         address={companyData.address}
         logoUrl={companySettings.logo_url || profile.company_logo}
         coverUrl={companyData.cover_image_url}
-        canEditCover={false} // Área pública não permite edição
+        canEditCover={false}
       />
 
       {/* Schedule Hero Card */}
@@ -208,6 +219,15 @@ const ModernPublicBooking = () => {
           />
         )}
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && successModalData && (
+        <SuccessModal
+          isOpen={showSuccessModal}
+          onClose={() => setShowSuccessModal(false)}
+          appointmentData={successModalData}
+        />
+      )}
 
       {/* Espaçamento inferior */}
       <div className="h-8" />

@@ -120,8 +120,7 @@ export const formatAppointmentDate = (date: string) => {
   // Usar timezone brasileiro para formatação
   const appointmentDate = new Date(date + 'T12:00:00'); // Meio-dia para evitar problemas de timezone
   return format(appointmentDate, "dd 'de' MMMM 'de' yyyy", { 
-    locale: ptBR,
-    timeZone: 'America/Sao_Paulo'
+    locale: ptBR
   });
 };
 
@@ -134,8 +133,7 @@ export const formatAppointmentDateWithWeekday = (date: string) => {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
-    day: 'numeric',
-    timeZone: 'America/Sao_Paulo'
+    day: 'numeric'
   });
   
   return formattedDate;
