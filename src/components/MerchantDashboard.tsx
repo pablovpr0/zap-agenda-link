@@ -34,10 +34,6 @@ const MerchantDashboard = () => {
     setShowNewAppointmentModal(false);
   };
 
-  const handleSettingsClick = () => {
-    navigate('/settings');
-  };
-
   if (!user) {
     navigate('/auth');
     return null;
@@ -55,10 +51,6 @@ const MerchantDashboard = () => {
             <Button variant="outline" size="sm" onClick={() => setShowNewAppointmentModal(true)}>
               <CalendarPlus className="w-4 h-4 mr-2" />
               Novo Agendamento
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleSettingsClick}>
-              <Settings className="w-4 h-4 mr-2" />
-              Configurações
             </Button>
           </div>
         </div>

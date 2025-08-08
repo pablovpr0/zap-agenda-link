@@ -32,7 +32,7 @@ const DashboardContent = () => {
     handleWhatsAppClick,
     handleCreateAppointment,
     isCreatingAppointment
-  } = useDashboardActions();
+  } = useDashboardActions(refreshData);
 
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
   
