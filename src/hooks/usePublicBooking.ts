@@ -43,10 +43,23 @@ export const usePublicBooking = (companySlug: string) => {
     business_type: companyData.business_type
   } : null;
 
+  // Callback para atualizar horários após agendamento
+  const handleBookingSuccess = () => {
+    console.log('🔄 Agendamento realizado com sucesso, atualizando dados...');
+    // Forçar recarregamento das datas disponíveis
+    if (companySettings) {
+      generateAvailableDates().then(dates => {
+        setAvailableDates(dates);
+        console.log('✅ Datas disponíveis atualizadas após agendamento');
+      });
+    }
+  };
+
   const { submitBooking, submitting } = useBookingSubmission(
     companySettings,
     services,
-    professionals
+    professionals,
+    handleBookingSuccess
   );
 
   const { generateAvailableDates, generateAvailableTimes } = useAvailableTimes(companySettings);

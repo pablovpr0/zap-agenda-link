@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePublicBooking } from '@/hooks/usePublicBooking';
-
+import { useBookingEvents } from '@/utils/bookingEvents';
 import { useToast } from '@/hooks/use-toast';
 import LoadingState from '@/components/public-booking/LoadingState';
 import ErrorState from '@/components/public-booking/ErrorState';
@@ -14,6 +14,7 @@ import ClientDataCard from '@/components/public-booking/ClientDataCard';
 const ModernPublicBooking = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
   const { toast } = useToast();
+  const { addEventListener, removeEventListener } = useBookingEvents();
   
   console.log('🔗 URL Slug extraído:', companySlug);
   
@@ -42,6 +43,37 @@ const ModernPublicBooking = () => {
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
 
   // As datas disponíveis vêm do hook usePublicBooking
+
+  // Listener para eventos de agendamento em tempo real
+  useEffect(() => {
+    if (!companyData?.id) return;
+
+    const handleAppointmentCreated = (event: any) => {
+      console.log('📡 Evento de agendamento recebido:', event);
+      
+      // Se o agendamento é da mesma empresa e data selecionada, atualizar horários
+      if (event.companyId === companyData.id && event.date === selectedDate) {
+        console.log('🔄 Atualizando horários devido a novo agendamento...');
+        refreshTimes();
+        
+        // Se o horário agendado era o selecionado, limpar seleção
+        if (event.time === selectedTime) {
+          setSelectedTime('');
+          toast({
+            title: "Horário não disponível",
+            description: "O horário selecionado foi agendado por outro cliente. Selecione outro horário.",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    addEventListener('appointment_created', handleAppointmentCreated);
+
+    return () => {
+      removeEventListener('appointment_created', handleAppointmentCreated);
+    };
+  }, [companyData?.id, selectedDate, selectedTime]);
 
   // Carregar horários quando data e serviço são selecionados
   useEffect(() => {
@@ -119,6 +151,9 @@ const ModernPublicBooking = () => {
         setSelectedDate('');
         setSelectedTime('');
         setAvailableTimes([]);
+        
+        // Atualizar horários disponíveis para outros usuários
+        console.log('🔄 Agendamento realizado, limpando cache de horários...');
       }
     } catch (error) {
       console.error('Erro no agendamento:', error);

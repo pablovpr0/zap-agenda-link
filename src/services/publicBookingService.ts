@@ -349,6 +349,31 @@ const generateSimpleTimeSlots = (
 };
 
 /**
+ * Cache simples para horários disponíveis (invalidado após agendamentos)
+ */
+let timeSlotsCache: { [key: string]: { data: string[], timestamp: number } } = {};
+const CACHE_DURATION = 30000; // 30 segundos
+
+/**
+ * Invalida o cache de horários para uma data específica
+ */
+export const invalidateTimeSlotsCache = (companyId: string, date?: string) => {
+  if (date) {
+    const cacheKey = `${companyId}-${date}`;
+    delete timeSlotsCache[cacheKey];
+    console.log('🗑️ Cache invalidado para:', cacheKey);
+  } else {
+    // Invalidar todo o cache da empresa
+    Object.keys(timeSlotsCache).forEach(key => {
+      if (key.startsWith(companyId)) {
+        delete timeSlotsCache[key];
+      }
+    });
+    console.log('🗑️ Cache completo invalidado para empresa:', companyId);
+  }
+};
+
+/**
  * FUNÇÃO PRINCIPAL - SISTEMA DE AGENDAMENTO CORRIGIDO
  * 
  * Versão simplificada e robusta que garante o funcionamento
@@ -363,6 +388,16 @@ export const checkAvailableTimes = async (
     selectedDate,
     serviceDuration: serviceDuration || 60
   });
+
+  // Verificar cache primeiro
+  const cacheKey = `${companyId}-${selectedDate}-${serviceDuration || 60}`;
+  const cached = timeSlotsCache[cacheKey];
+  const now = Date.now();
+  
+  if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+    console.log('📦 Retornando horários do cache:', cached.data.length);
+    return cached.data;
+  }
 
   try {
     // ETAPA 1: Validar data
@@ -435,6 +470,12 @@ export const checkAvailableTimes = async (
       total: availableSlots.length,
       slots: availableSlots
     });
+
+    // Armazenar no cache
+    timeSlotsCache[cacheKey] = {
+      data: availableSlots,
+      timestamp: now
+    };
 
     return availableSlots;
 

@@ -9,7 +9,8 @@ import { validateBookingForm } from '@/utils/inputValidation';
 export const useBookingSubmission = (
   companySettings: CompanySettings | null,
   services: Service[],
-  professionals: Professional[]
+  professionals: Professional[],
+  onBookingSuccess?: () => void
 ) => {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
@@ -91,6 +92,12 @@ export const useBookingSubmission = (
         title: "Agendamento realizado com sucesso!",
         description: `Agendamento confirmado para ${result.formattedDate} às ${sanitizedFormData.selectedTime}.`,
       });
+
+      // Callback para atualizar horários disponíveis
+      if (onBookingSuccess) {
+        console.log('🔄 Executando callback de atualização após agendamento...');
+        onBookingSuccess();
+      }
 
       // Send WhatsApp message with sanitized data
       if (companySettings.phone) {
