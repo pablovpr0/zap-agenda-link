@@ -12,7 +12,7 @@ import { Service } from '@/types/publicBooking';
 import { Professional } from '@/services/professionalsService';
 
 interface ModernPublicBookingProps {
-  companySlug?: string;
+  companySlug: string;
 }
 
 interface BookingFormData {
@@ -25,10 +25,7 @@ interface BookingFormData {
   selectedTime: string;
 }
 
-const ModernPublicBooking: React.FC<ModernPublicBookingProps> = ({ companySlug: propCompanySlug }) => {
-  const { companySlug: paramCompanySlug } = useParams<{ companySlug: string }>();
-  const companySlug = propCompanySlug || paramCompanySlug || '';
-
+const ModernPublicBooking: React.FC<ModernPublicBookingProps> = ({ companySlug }) => {
   const {
     companyData,
     companySettings,
@@ -145,10 +142,16 @@ const ModernPublicBooking: React.FC<ModernPublicBookingProps> = ({ companySlug: 
 
           {/* Company Profile */}
           <CompanyHeader
-            companyName={companyData?.company_name || ''}
-            companyLogo={companyData?.logo_url || ''}
-            welcomeMessage={companyData?.welcome_message || ''}
-            instagramUrl={companyData?.instagram_url || ''}
+            companySettings={{
+              logo_url: companyData?.logo_url,
+              address: companyData?.address,
+              welcome_message: companyData?.welcome_message
+            }}
+            profile={{
+              company_name: companyData?.company_name || '',
+              business_type: companyData?.business_type || '',
+              profile_image_url: companyData?.profile_image_url
+            }}
           />
         </div>
 
