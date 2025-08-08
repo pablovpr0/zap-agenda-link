@@ -1,113 +1,123 @@
-
 import React from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, isToday } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { format, isToday } from 'date-fns';
 import { cn } from '@/lib/utils';
 import AppointmentCard from './AppointmentCard';
 
-interface Appointment {
-  id: string;
-  appointment_time: string;
-  client_name?: string;
-  service_name?: string;
-  professional_name?: string;
-  status: string;
-}
-
 interface CalendarGridProps {
   currentDate: Date;
-  appointments: Record<string, Appointment[]>;
-  onAppointmentClick: (appointment: Appointment & { date: string }) => void;
-  onDateClick: (date: string) => void;
+  appointments: Appointment[];
+  onDateClick: (date: Date) => void;
+  onAppointmentClick: (appointment: Appointment) => void;
+}
+
+interface Appointment {
+  id: string;
+  appointment_date: string;
+  appointment_time: string;
+  status: string;
+  client_name?: string;
+  client_phone?: string;
+  service_name?: string;
+}
+
+interface MonthlyAppointment {
+  id: string;
+  appointment_date: string;
+  appointment_time: string;
+  status: string;
+  client_name?: string;
+  client_phone: string;
+  service_name?: string;
+  duration: number;
 }
 
 const CalendarGrid: React.FC<CalendarGridProps> = ({
   currentDate,
   appointments,
-  onAppointmentClick,
-  onDateClick
+  onDateClick,
+  onAppointmentClick
 }) => {
-  const monthStart = startOfMonth(currentDate);
-  const monthEnd = endOfMonth(currentDate);
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-  const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const daysInMonth = [];
+  let day = firstDayOfMonth;
 
-  // Get the first day of the week for the month
-  const firstDayOfWeek = monthStart.getDay();
-  const daysFromPreviousMonth = Array.from({ length: firstDayOfWeek }, (_, i) => {
-    const date = new Date(monthStart);
-    date.setDate(date.getDate() - firstDayOfWeek + i);
-    return date;
-  });
+  while (day <= lastDayOfMonth) {
+    daysInMonth.push(new Date(day));
+    day.setDate(day.getDate() + 1);
+  }
 
-  // Get remaining days to fill the last week
-  const totalCells = Math.ceil((days.length + firstDayOfWeek) / 7) * 7;
-  const daysFromNextMonth = Array.from({ length: totalCells - days.length - firstDayOfWeek }, (_, i) => {
-    const date = new Date(monthEnd);
-    date.setDate(date.getDate() + i + 1);
-    return date;
-  });
+  const paddingDays = firstDayOfMonth.getDay();
+  const totalDays = daysInMonth.length + paddingDays;
 
-  const allDays = [...daysFromPreviousMonth, ...days, ...daysFromNextMonth];
+  const days = [];
+  for (let i = 0; i < totalDays; i++) {
+    if (i < paddingDays) {
+      days.push(null);
+    } else {
+      days.push(daysInMonth[i - paddingDays]);
+    }
+  }
+
+  const mapAppointmentToMonthly = (appointment: Appointment): MonthlyAppointment => {
+    return {
+      id: appointment.id,
+      appointment_date: appointment.appointment_date || new Date().toISOString().split('T')[0],
+      appointment_time: appointment.appointment_time,
+      status: appointment.status,
+      client_name: appointment.client_name,
+      client_phone: appointment.client_phone || '',
+      service_name: appointment.service_name,
+      duration: 30 // Default duration if not provided
+    };
+  };
 
   return (
-    <div className="bg-white rounded-lg border shadow-sm">
-      {/* Week days header */}
-      <div className="grid grid-cols-7 border-b">
-        {weekDays.map((day) => (
-          <div key={day} className="p-3 text-center text-sm font-medium text-muted-foreground border-r last:border-r-0">
-            {day}
-          </div>
-        ))}
-      </div>
+    <div className="grid grid-cols-7 gap-1 mb-6">
+      {/* Day headers */}
+      {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+        <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground bg-muted/50">
+          {day}
+        </div>
+      ))}
+      
+      {/* Calendar days */}
+      {days.map((day, index) => {
+        const dayAppointments = appointments.filter(apt => 
+          new Date(apt.appointment_date).toDateString() === day.toDateString()
+        );
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7">
-        {allDays.map((day, index) => {
-          const dateKey = format(day, 'yyyy-MM-dd');
-          const dayAppointments = appointments[dateKey] || [];
-          const isCurrentMonth = isSameMonth(day, currentDate);
-          const isCurrentDay = isToday(day);
-
-          return (
-            <div
-              key={index}
-              className={cn(
-                "min-h-[120px] p-2 border-r border-b last:border-r-0 cursor-pointer hover:bg-muted/20 transition-colors",
-                !isCurrentMonth && "bg-muted/10",
-                isCurrentDay && "bg-primary/5"
-              )}
-              onClick={() => onDateClick(dateKey)}
-            >
-              <div className="h-full flex flex-col">
-                <div className={cn(
-                  "text-sm mb-2",
-                  !isCurrentMonth && "text-muted-foreground",
-                  isCurrentDay && "font-bold text-primary"
-                )}>
-                  {format(day, 'd', { locale: ptBR })}
-                </div>
-                
-                <div className="flex-1 space-y-1 overflow-hidden">
-                  {dayAppointments.slice(0, 3).map((appointment) => (
-                    <AppointmentCard
-                      key={appointment.id}
-                      appointment={appointment}
-                      onClick={() => onAppointmentClick({ ...appointment, date: dateKey })}
-                    />
-                  ))}
-                  {dayAppointments.length > 3 && (
-                    <div className="text-xs text-muted-foreground text-center py-1">
-                      +{dayAppointments.length - 3} mais
-                    </div>
-                  )}
-                </div>
-              </div>
+        return (
+          <div
+            key={index}
+            className={cn(
+              "min-h-[120px] p-1 border border-border cursor-pointer hover:bg-accent/50 transition-colors",
+              day.getMonth() !== currentDate.getMonth() && "text-muted-foreground bg-muted/20",
+              isToday(day) && "bg-primary/10 border-primary/30"
+            )}
+            onClick={() => onDateClick(day)}
+          >
+            <div className="text-sm font-medium p-1">
+              {day.getDate()}
             </div>
-          );
-        })}
-      </div>
+            <div className="space-y-1">
+              {dayAppointments.slice(0, 3).map(appointment => (
+                <AppointmentCard
+                  key={appointment.id}
+                  appointment={mapAppointmentToMonthly(appointment)}
+                  onClick={() => onAppointmentClick(appointment)}
+                />
+              ))}
+              {dayAppointments.length > 3 && (
+                <div className="text-xs text-muted-foreground p-1">
+                  +{dayAppointments.length - 3} mais
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };

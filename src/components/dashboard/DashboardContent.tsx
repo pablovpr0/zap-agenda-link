@@ -1,12 +1,13 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import WelcomeSection from './dashboard/WelcomeSection';
-import DashboardStats from './dashboard/DashboardStats';
-import RevenueCard from './dashboard/RevenueCard';
-import QuickActions from './dashboard/QuickActions';
-import TodayAppointmentsList from './dashboard/TodayAppointmentsList';
-import PublicBookingLink from './dashboard/PublicBookingLink';
-import RecentAppointments from './dashboard/RecentAppointments';
+import WelcomeSection from './WelcomeSection';
+import DashboardStats from './DashboardStats';
+import RevenueCard from './RevenueCard';
+import QuickActions from './QuickActions';
+import TodayAppointmentsList from './TodayAppointmentsList';
+import PublicBookingLink from './PublicBookingLink';
+import RecentAppointments from './RecentAppointments';
 import ReportsButton from '@/components/reports/ReportsButton';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -15,9 +16,7 @@ import { useDashboardActions } from '@/hooks/useDashboardActions';
 const DashboardContent = () => {
   const { user } = useAuth();
   const { 
-    todaysAppointments, 
-    totalAppointments, 
-    totalRevenue, 
+    data,
     loading, 
     refreshData 
   } = useDashboardData();
@@ -68,11 +67,11 @@ const DashboardContent = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <DashboardStats
-          totalAppointments={totalAppointments}
-          todayAppointments={todaysAppointments.length}
-          totalRevenue={totalRevenue}
+          totalAppointments={data.todayAppointments}
+          todayAppointments={data.todayAppointments}
+          totalRevenue={data.monthlyRevenue}
         />
-        <RevenueCard totalRevenue={totalRevenue} />
+        <RevenueCard totalRevenue={data.monthlyRevenue} />
       </div>
 
       {/* Quick Actions */}
@@ -83,7 +82,7 @@ const DashboardContent = () => {
         {/* Left Column - Today's Appointments */}
         <div className="lg:col-span-2">
           <TodayAppointmentsList
-            appointments={todaysAppointments}
+            appointments={data.todayAppointmentsList}
             onStatusChange={handleStatusChange}
             onDelete={handleDeleteAppointment}
             onWhatsApp={handleWhatsAppClick}

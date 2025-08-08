@@ -16,11 +16,9 @@ const PublicCalendar = ({ availableDates, selectedDate, onDateSelect }: PublicCa
 
   return (
     <StandardCalendar
-      availableDates={availableDates}
-      selectedDate={selectedDate}
+      companyId=""
       onDateSelect={handleDateSelect}
-      showNavigation={true}
-      highlightToday={true}
+      onAppointmentSelect={() => {}}
     />
   );
 };

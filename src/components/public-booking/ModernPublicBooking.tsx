@@ -1,237 +1,194 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Dispatch, SetStateAction } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePublicBooking } from '@/hooks/usePublicBooking';
-import { useToast } from '@/hooks/use-toast';
-import LoadingState from '@/components/public-booking/LoadingState';
-import ErrorState from '@/components/public-booking/ErrorState';
-import CompanyHeaderWithCover from '@/components/public-booking/CompanyHeaderWithCover';
-import ScheduleHeroCard from '@/components/public-booking/ScheduleHeroCard';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { CompanyHeader } from '@/components/public-booking/CompanyHeader';
+import { CompanyProfileSection } from '@/components/public-booking/CompanyProfileSection';
 import BookingDataCard from '@/components/public-booking/BookingDataCard';
-import ClientDataCard from '@/components/public-booking/ClientDataCard';
-import SuccessModal from '@/components/public-booking/SuccessModal';
+import { SuccessModal } from '@/components/public-booking/SuccessModal';
+import { Service } from '@/types/publicBooking';
+import { Professional } from '@/services/professionalsService';
 
-const ModernPublicBooking = () => {
-  const { companySlug } = useParams<{ companySlug: string }>();
-  const { toast } = useToast();
-  
-  console.log('🔗 URL Slug extraído:', companySlug);
-  
+interface ModernPublicBookingProps {
+  companySlug: string;
+}
+
+interface BookingFormData {
+  clientName: string;
+  clientPhone: string;
+  clientEmail?: string;
+  selectedService: string;
+  selectedProfessional?: string;
+  selectedDate: string;
+  selectedTime: string;
+}
+
+const ModernPublicBooking: React.FC<ModernPublicBookingProps> = ({ companySlug }) => {
   const {
     companyData,
     companySettings,
     profile,
     services,
+    professionals,
     loading,
     error,
     submitting,
     availableDates,
     generateAvailableTimes,
     submitBooking
-  } = usePublicBooking(companySlug || '');
+  } = usePublicBooking(companySlug);
 
-  // Estados do formulário
-  const [selectedService, setSelectedService] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedTime, setSelectedTime] = useState('');
-  const [clientName, setClientName] = useState('');
-  const [clientPhone, setClientPhone] = useState('');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
-  const [isLoadingTimes, setIsLoadingTimes] = useState(false);
+  const [timesLoading, setTimesLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successModalData, setSuccessModalData] = useState<any>(null);
+  const [formData, setFormData] = useState<BookingFormData>({
+    clientName: '',
+    clientPhone: '',
+    clientEmail: '',
+    selectedService: '',
+    selectedProfessional: '',
+    selectedDate: selectedDate,
+    selectedTime: ''
+  });
 
-  // Carregar horários quando data e serviço são selecionados
   useEffect(() => {
-    loadTimes();
-  }, [selectedDate, selectedService, services, companyData?.id]);
+    setFormData(prev => ({ ...prev, selectedDate: selectedDate }));
+  }, [selectedDate]);
 
-  const loadTimes = async () => {
-    if (selectedDate && selectedService) {
-      console.log('📅 Data selecionada:', selectedDate, '- Carregando horários...');
-      setIsLoadingTimes(true);
-      setSelectedTime(''); // Reset time when loading new times
-      
-      try {
-        const selectedServiceData = services.find(s => s.id === selectedService);
-        const serviceDuration = selectedServiceData?.duration || 30;
-        
-        console.log('🔄 Carregando horários para:', { 
-          selectedDate, 
-          selectedService, 
-          serviceDuration,
-          companyId: companyData?.id,
-          servicesCount: services.length
-        });
-        
-        const times = await generateAvailableTimes(selectedDate, serviceDuration);
-        setAvailableTimes(times);
-        
-        console.log('✅ Horários carregados:', times.length, 'horários disponíveis', times);
-      } catch (error) {
-        console.error('❌ Erro ao carregar horários:', error);
-        setAvailableTimes([]);
-        toast({
-          title: "Erro ao carregar horários",
-          description: "Não foi possível carregar os horários disponíveis. Tente novamente.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoadingTimes(false);
-      }
-    } else {
-      console.log('⚠️ Condições não atendidas para carregar horários:', { selectedDate, selectedService });
-      setAvailableTimes([]);
-      setSelectedTime('');
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedService || !selectedDate || !selectedTime || !clientName.trim() || !clientPhone.trim()) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos para continuar.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const success = await submitBooking({
-        selectedService,
-        selectedDate,
-        selectedTime,
-        clientName: clientName.trim(),
-        clientPhone: clientPhone.trim(),
-        clientEmail: '',
-        notes: ''
-      }, loadTimes); // Pass refresh function
-
-      if (success) {
-        // Prepare success modal data
-        const selectedServiceData = services.find(s => s.id === selectedService);
-        const modalData = {
-          serviceName: selectedServiceData?.name || 'Serviço',
-          date: selectedDate,
-          time: selectedTime,
-          clientName: clientName.trim(),
-          companyName: companySettings?.company_name || 'Empresa',
-          companyPhone: companySettings?.phone
-        };
-
-        setSuccessModalData(modalData);
-        setShowSuccessModal(true);
-
-        // Reset form
-        setSelectedService('');
-        setSelectedDate('');
-        setSelectedTime('');
-        setClientName('');
-        setClientPhone('');
-        setAvailableTimes([]);
-
-        // Send WhatsApp message after modal delay
-        if (companySettings?.phone) {
-          setTimeout(() => {
-            const message = `Olá! Acabei de agendar um horário:
-
-📅 *Serviço:* ${selectedServiceData?.name}
-📅 *Data:* ${selectedDate}
-⏰ *Horário:* ${selectedTime}
-👤 *Nome:* ${clientName.trim()}
-
-Agendamento confirmado! ✅`;
-
-            const cleanPhone = companySettings.phone?.replace(/\D/g, '');
-            const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
-            window.open(whatsappUrl, '_blank');
-          }, 3000);
+  useEffect(() => {
+    const loadAvailableTimes = async () => {
+      if (companySettings && selectedDate) {
+        setTimesLoading(true);
+        try {
+          const times = await generateAvailableTimes(selectedDate);
+          setAvailableTimes(times);
+        } catch (error) {
+          console.error('Error generating available times:', error);
+        } finally {
+          setTimesLoading(false);
         }
       }
-    } catch (error) {
-      console.error('Erro no agendamento:', error);
-    }
-  };
+    };
 
-  const refreshTimes = async () => {
-    await loadTimes();
-    
-    // Se o horário selecionado não está mais disponível, limpar seleção
-    if (selectedTime && !availableTimes.includes(selectedTime)) {
-      setSelectedTime('');
-      toast({
-        title: "Horário atualizado",
-        description: "O horário selecionado não está mais disponível. Selecione outro horário.",
-        variant: "destructive",
+    loadAvailableTimes();
+  }, [companySettings, selectedDate, generateAvailableTimes]);
+
+  const handleSubmit = async () => {
+    const isSuccess = await submitBooking({
+      ...formData,
+      selectedDate: selectedDate,
+      selectedTime: selectedTime
+    }, refreshAvailableTimes);
+
+    if (isSuccess) {
+      // Reset form data after successful submission
+      setFormData({
+        clientName: '',
+        clientPhone: '',
+        clientEmail: '',
+        selectedService: '',
+        selectedProfessional: '',
+        selectedDate: selectedDate,
+        selectedTime: ''
       });
+      setSelectedTime('');
     }
   };
 
-  if (loading) {
-    return <LoadingState />;
-  }
+  const refreshAvailableTimes = async () => {
+    if (companySettings && selectedDate) {
+      setTimesLoading(true);
+      try {
+        const times = await generateAvailableTimes(selectedDate);
+        setAvailableTimes(times);
+      } catch (error) {
+        console.error('Error refreshing available times:', error);
+      } finally {
+        setTimesLoading(false);
+      }
+    }
+  };
 
-  if (error || !companyData || !companySettings || !profile) {
-    return <ErrorState companySlug={companySlug} />;
-  }
+  const closeSuccessModal = () => {
+    setShowSuccessModal(false);
+    setSuccessModalData(null);
+  };
+
+  const EnhancedCompanyHeader = ({ companyData }: { companyData: any }) => {
+    return (
+      <CompanyHeader
+        companyName={companyData?.company_name}
+        companyLogo={companyData?.logo_url}
+        welcomeMessage={companyData?.welcome_message}
+        instagramUrl={companyData?.instagram_url}
+      />
+    );
+  };
 
   return (
-    <div className="min-h-screen public-page overflow-x-hidden">
-      {/* Company Header with Cover */}
-      <CompanyHeaderWithCover
-        companyName={profile.company_name}
-        businessType={profile.business_type}
-        address={companyData.address}
-        logoUrl={companySettings.logo_url || profile.company_logo}
-        coverUrl={companyData.cover_image_url}
-        canEditCover={false}
-      />
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        {/* Company Header */}
+        <div className="relative">
+          {/* Cover Image */}
+          {companyData?.cover_image_url && (
+            <div className="w-full h-32 sm:h-48 md:h-64 relative overflow-hidden">
+              <img
+                src={companyData.cover_image_url}
+                alt="Cover"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/20"></div>
+            </div>
+          )}
 
-      {/* Schedule Hero Card */}
-      <ScheduleHeroCard />
+          {/* Company Profile */}
+          <EnhancedCompanyHeader companyData={companyData} />
+        </div>
 
-      {/* Container with proper overflow handling */}
-      <div className="relative">
-        {/* Booking Data Card */}
-        <BookingDataCard
-          services={services}
-          selectedService={selectedService}
-          onServiceChange={setSelectedService}
-          availableDates={availableDates}
-          selectedDate={selectedDate}
-          onDateSelect={setSelectedDate}
-          availableTimes={availableTimes}
-          selectedTime={selectedTime}
-          onTimeSelect={setSelectedTime}
-          isLoadingTimes={isLoadingTimes}
-          onRefreshTimes={refreshTimes}
-        />
+        {/* Main Content */}
+        <div className="container mx-auto px-4 py-6 max-w-6xl">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Left Column - Company Info */}
+            <div className="lg:w-1/3 space-y-6">
+              <CompanyProfileSection profile={profile} />
+            </div>
 
-        {/* Client Data Card */}
-        {selectedService && selectedDate && selectedTime && (
-          <ClientDataCard
-            clientName={clientName}
-            onClientNameChange={setClientName}
-            clientPhone={clientPhone}
-            onClientPhoneChange={setClientPhone}
-            onSubmit={handleSubmit}
-            isSubmitting={submitting}
-          />
-        )}
+            {/* Right Column - Booking Form */}
+            <div className="lg:w-2/3">
+              <BookingDataCard
+                services={services}
+                availableDates={availableDates}
+                selectedDate={selectedDate}
+                onDateSelect={setSelectedDate}
+                selectedTime={selectedTime}
+                onTimeSelect={setSelectedTime}
+                availableTimes={availableTimes}
+                timesLoading={timesLoading}
+                onSubmit={handleSubmit}
+                submitting={submitting}
+                formData={formData}
+                onFormDataChange={setFormData}
+                companyData={companyData}
+                professionals={professionals}
+                onRefreshTimes={refreshAvailableTimes}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Success Modal */}
-      {showSuccessModal && successModalData && (
-        <SuccessModal
-          isOpen={showSuccessModal}
-          onClose={() => setShowSuccessModal(false)}
-          appointmentData={successModalData}
-        />
-      )}
-
-      {/* Espaçamento inferior */}
-      <div className="h-8" />
-    </div>
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={closeSuccessModal}
+        appointmentData={successModalData}
+      />
+    </>
   );
 };
 

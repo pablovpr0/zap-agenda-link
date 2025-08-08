@@ -1,13 +1,14 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import PublicCalendar from '@/components/PublicCalendar';
 import { format } from 'date-fns';
-import { ServiceSelection } from '@/components/public-booking/ServiceSelection';
-import { TimeSlotSelection } from '@/components/public-booking/TimeSlotSelection';
-import { ClientInfoForm } from '@/components/public-booking/ClientInfoForm';
+import ServiceSelection from '@/components/public-booking/ServiceSelection';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Service {
   id: string;
@@ -63,9 +64,7 @@ const BookingDataCard: React.FC<BookingDataCardProps> = ({
   companyData,
   professionals
 }) => {
-  const handleDateSelect = (date: Date) => {
-    // Convert Date to string format
-    const dateString = format(date, 'yyyy-MM-dd');
+  const handleDateSelect = (dateString: string) => {
     onDateSelect(dateString);
   };
 
@@ -82,13 +81,16 @@ const BookingDataCard: React.FC<BookingDataCardProps> = ({
       
       <CardContent className="p-4 md:p-6 space-y-6">
         {/* Step 1: Service Selection */}
-        <ServiceSelection
-          services={services}
-          selectedService={formData.selectedService}
-          onServiceChange={(serviceId) =>
-            onFormDataChange({ ...formData, selectedService: serviceId })
-          }
-        />
+        <div className="space-y-3">
+          <Label className="text-base font-medium text-gray-800">1. Escolha um serviço</Label>
+          <ServiceSelection
+            services={services}
+            selectedService={formData.selectedService}
+            onServiceChange={(serviceId) =>
+              onFormDataChange({ ...formData, selectedService: serviceId })
+            }
+          />
+        </div>
 
         {/* Step 2: Date Selection */}
         <div className="space-y-3">
@@ -101,20 +103,48 @@ const BookingDataCard: React.FC<BookingDataCardProps> = ({
         </div>
 
         {/* Step 3: Time Slot Selection */}
-        <TimeSlotSelection
-          availableTimes={availableTimes}
-          selectedTime={selectedTime}
-          onTimeSelect={onTimeSelect}
-          loading={timesLoading}
-        />
+        <div className="space-y-3">
+          <Label className="text-base font-medium text-gray-800">3. Escolha um horário</Label>
+          <Select value={selectedTime} onValueChange={onTimeSelect} disabled={!selectedDate || timesLoading}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={selectedDate ? "Selecione um horário" : "Selecione uma data primeiro"} />
+            </SelectTrigger>
+            <SelectContent>
+              {availableTimes.map((time) => (
+                <SelectItem key={time} value={time}>
+                  {time}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Step 4: Client Information Form */}
-        <ClientInfoForm
-          formData={formData}
-          onFormDataChange={onFormDataChange}
-          companyData={companyData}
-          professionals={professionals}
-        />
+        {/* Step 4: Client Information */}
+        <div className="space-y-4">
+          <Label className="text-base font-medium text-gray-800">4. Dados Pessoais</Label>
+          <Input
+            type="text"
+            placeholder="Nome Completo"
+            value={formData.clientName}
+            onChange={(e) => onFormDataChange({ ...formData, clientName: e.target.value })}
+            required
+          />
+          <Input
+            type="tel"
+            placeholder="Telefone"
+            value={formData.clientPhone}
+            onChange={(e) => onFormDataChange({ ...formData, clientPhone: e.target.value })}
+            required
+          />
+          {formData.clientEmail !== undefined && (
+            <Input
+              type="email"
+              placeholder="Email (opcional)"
+              value={formData.clientEmail || ''}
+              onChange={(e) => onFormDataChange({ ...formData, clientEmail: e.target.value })}
+            />
+          )}
+        </div>
 
         {/* Submit Button */}
         <Button

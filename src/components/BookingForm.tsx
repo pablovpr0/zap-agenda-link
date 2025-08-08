@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -66,9 +67,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
     onTimeSelect(time);
   };
 
-  const handleDateSelect = (date: Date) => {
-    // Convert Date to string format expected by parent
-    const dateString = format(date, 'yyyy-MM-dd');
+  const handleDateSelect = (dateString: string) => {
     onDateSelect(dateString);
     setFormData(prev => ({
       ...prev,

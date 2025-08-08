@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -7,15 +8,11 @@ import DashboardContent from '@/components/dashboard/DashboardContent';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 
-interface DashboardProps {
-  
-}
-
 const MerchantDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const { refetch } = useDashboardData();
+  const { refreshData } = useDashboardData();
 
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
 
@@ -33,7 +30,7 @@ const MerchantDashboard = () => {
 
   const handleNewAppointmentSuccess = () => {
     // Refresh appointments after successful creation
-    refetch();
+    refreshData();
     setShowNewAppointmentModal(false);
   };
 
