@@ -5,8 +5,8 @@ import { useBookingEvents } from '@/utils/bookingEvents';
 import { useToast } from '@/hooks/use-toast';
 import LoadingState from '@/components/public-booking/LoadingState';
 import ErrorState from '@/components/public-booking/ErrorState';
-import CompanyProfileSection from '@/components/public-booking/CompanyProfileSection';
-import CompanyHeaderWithCover from '@/components/public-booking/CompanyHeaderWithCover';
+
+import CollapsingHeader from '@/components/public-booking/CollapsingHeader';
 import ScheduleHeroCard from '@/components/public-booking/ScheduleHeroCard';
 import BookingDataCard from '@/components/public-booking/BookingDataCard';
 import ClientDataCard from '@/components/public-booking/ClientDataCard';
@@ -15,9 +15,9 @@ const ModernPublicBooking = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
   const { toast } = useToast();
   const { addEventListener, removeEventListener } = useBookingEvents();
-  
 
-  
+
+
   const {
     companyData,
     companySettings,
@@ -52,7 +52,7 @@ const ModernPublicBooking = () => {
       // Se o agendamento é da mesma empresa e data selecionada, atualizar horários
       if (event.companyId === companyData.id && event.date === selectedDate) {
         refreshTimes();
-        
+
         // Se o horário agendado era o selecionado, limpar seleção
         if (event.time === selectedTime) {
           setSelectedTime('');
@@ -78,15 +78,15 @@ const ModernPublicBooking = () => {
       if (selectedDate && selectedService) {
         setIsLoadingTimes(true);
         setSelectedTime(''); // Reset time when loading new times
-        
+
         try {
           const selectedServiceData = services.find(s => s.id === selectedService);
           const serviceDuration = selectedServiceData?.duration || 30;
-          
+
           // Carregamento otimizado dos horários
           const times = await generateAvailableTimes(selectedDate, serviceDuration);
           setAvailableTimes(times);
-          
+
           console.log('✅ Horários carregados:', times.length, 'horários disponíveis', times);
         } catch (error) {
           console.error('❌ Erro ao carregar horários:', error);
@@ -137,7 +137,7 @@ const ModernPublicBooking = () => {
         setSelectedDate('');
         setSelectedTime('');
         setAvailableTimes([]);
-        
+
       }
     } catch (error) {
       // Erro já tratado no hook
@@ -152,7 +152,7 @@ const ModernPublicBooking = () => {
         const serviceDuration = selectedServiceData?.duration || 30;
         const times = await generateAvailableTimes(selectedDate, serviceDuration);
         setAvailableTimes(times);
-        
+
         // Se o horário selecionado não está mais disponível, limpar seleção
         if (selectedTime && !times.includes(selectedTime)) {
           setSelectedTime('');
@@ -184,8 +184,8 @@ const ModernPublicBooking = () => {
 
   return (
     <div className="min-h-screen public-page overflow-x-hidden">
-      {/* Company Header with Cover */}
-      <CompanyHeaderWithCover
+      {/* Collapsing Header */}
+      <CollapsingHeader
         companyName={profile.company_name}
         businessType={profile.business_type}
         address={companyData.address}
@@ -198,7 +198,7 @@ const ModernPublicBooking = () => {
       <ScheduleHeroCard />
 
       {/* Container with proper overflow handling */}
-      <div className="relative">
+      <div className="relative" style={{ paddingTop: '0px' }}>
         {/* Booking Data Card */}
         <BookingDataCard
           services={services}
