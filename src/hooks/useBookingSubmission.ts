@@ -73,10 +73,10 @@ export const useBookingSubmission = (
       // Create appointment with sanitized data
       const result = await createAppointment(sanitizedFormData, companySettings, services, professionals);
       
-      // AJUSTE 1: Invalidar cache de horários após agendamento público
+      // CORREÇÃO: Invalidar TODO o cache da empresa após agendamento público
       const { invalidateTimeSlotsCache } = await import('@/services/publicBookingService');
-      invalidateTimeSlotsCache(companySettings.company_id, sanitizedFormData.selectedDate);
-      console.log(`🔄 [AJUSTE 1] Cache de horários invalidado após agendamento público para ${sanitizedFormData.selectedDate}`);
+      invalidateTimeSlotsCache(companySettings.company_id); // Sem data = invalida tudo
+      console.log(`🔄 [CORREÇÃO] TODO cache de horários invalidado após agendamento público`);
       
       toast({
         title: "Agendamento realizado com sucesso!",

@@ -340,10 +340,10 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
 
       if (appointmentError) throw appointmentError;
 
-      // AJUSTE 1: Invalidar cache de horários após criar agendamento
+      // CORREÇÃO: Invalidar TODO o cache da empresa após criar agendamento
       const { invalidateTimeSlotsCache } = await import('@/services/publicBookingService');
-      invalidateTimeSlotsCache(user!.id, formattedDate);
-      console.log(`🔄 [AJUSTE 1] Cache de horários invalidado para ${formattedDate}`);
+      invalidateTimeSlotsCache(user!.id); // Sem data = invalida tudo
+      console.log(`🔄 [CORREÇÃO] TODO cache de horários invalidado após agendamento manual`);
 
       toast({
         title: "Agendamento criado!",

@@ -20,6 +20,7 @@ export interface ExistingClient {
 
 /**
  * Busca um cliente existente pelo telefone normalizado
+ * CORREÇÃO: Retorna sempre o cliente mais recente se houver duplicatas
  */
 export const findClientByPhone = async (companyId: string, phone: string): Promise<ExistingClient | null> => {
   try {
@@ -29,47 +30,100 @@ export const findClientByPhone = async (companyId: string, phone: string): Promi
       return null;
     }
 
-    // Busca por telefone normalizado exato
-    const { data: exactMatch, error: exactError } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('company_id', companyId)
-      .eq('normalized_phone', normalizedPhone)
-      .limit(1)
-      .single();
-
-    if (!exactError && exactMatch) {
-      return exactMatch;
-    }
-
-    // Se não encontrou por telefone normalizado, busca todos os clientes e compara
+    // CORREÇÃO: Buscar TODOS os clientes com telefone equivalente e retornar o mais recente
     const { data: allClients, error: allError } = await supabase
       .from('clients')
       .select('*')
-      .eq('company_id', companyId);
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false }); // Mais recente primeiro
 
     if (allError || !allClients) {
       return null;
     }
 
-    // Procura por telefones equivalentes
+    // Procurar por telefones equivalentes
+    const matchingClients = [];
     for (const client of allClients) {
-      if (arePhoneNumbersEqual(client.phone, phone)) {
-        // Atualiza o telefone normalizado se não estiver definido
-        if (!client.normalized_phone) {
-          await supabase
-            .from('clients')
-            .update({ normalized_phone: normalizedPhone })
-            .eq('id', client.id);
-        }
-        return { ...client, normalized_phone: normalizedPhone };
+      if (arePhoneNumbersEqual(client.phone, phone) || client.normalized_phone === normalizedPhone) {
+        matchingClients.push(client);
       }
     }
 
-    return null;
+    if (matchingClients.length === 0) {
+      return null;
+    }
+
+    // Se encontrou múltiplos clientes com mesmo telefone, consolidar
+    if (matchingClients.length > 1) {
+      console.log(`🔄 [CORREÇÃO] Encontrados ${matchingClients.length} clientes duplicados para telefone ${phone}`);
+      await consolidateDuplicateClients(companyId, matchingClients, normalizedPhone);
+    }
+
+    // Retornar o cliente mais recente
+    const latestClient = matchingClients[0];
+    
+    // Garantir que o telefone normalizado esteja definido
+    if (!latestClient.normalized_phone) {
+      await supabase
+        .from('clients')
+        .update({ normalized_phone: normalizedPhone })
+        .eq('id', latestClient.id);
+      latestClient.normalized_phone = normalizedPhone;
+    }
+
+    return latestClient;
   } catch (error) {
     console.error('Erro ao buscar cliente por telefone:', error);
     return null;
+  }
+};
+
+/**
+ * NOVA FUNÇÃO: Consolida clientes duplicados mantendo o mais recente
+ */
+const consolidateDuplicateClients = async (
+  companyId: string, 
+  duplicateClients: ExistingClient[], 
+  normalizedPhone: string
+) => {
+  try {
+    // Ordenar por data de criação (mais recente primeiro)
+    const sortedClients = duplicateClients.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    const keepClient = sortedClients[0]; // Manter o mais recente
+    const clientsToRemove = sortedClients.slice(1); // Remover os outros
+
+    console.log(`🔄 [CONSOLIDAÇÃO] Mantendo cliente: ${keepClient.name} (${keepClient.id})`);
+    console.log(`🗑️ [CONSOLIDAÇÃO] Removendo ${clientsToRemove.length} duplicatas`);
+
+    // Atualizar agendamentos dos clientes duplicados para apontar para o cliente mantido
+    for (const clientToRemove of clientsToRemove) {
+      await supabase
+        .from('appointments')
+        .update({ client_id: keepClient.id })
+        .eq('client_id', clientToRemove.id);
+
+      console.log(`📋 [CONSOLIDAÇÃO] Agendamentos de ${clientToRemove.name} transferidos para ${keepClient.name}`);
+    }
+
+    // Remover clientes duplicados
+    const idsToRemove = clientsToRemove.map(c => c.id);
+    await supabase
+      .from('clients')
+      .delete()
+      .in('id', idsToRemove);
+
+    // Atualizar o cliente mantido com telefone normalizado
+    await supabase
+      .from('clients')
+      .update({ normalized_phone: normalizedPhone })
+      .eq('id', keepClient.id);
+
+    console.log(`✅ [CONSOLIDAÇÃO] Duplicatas removidas, cliente único mantido: ${keepClient.name}`);
+  } catch (error) {
+    console.error('❌ Erro ao consolidar clientes duplicados:', error);
   }
 };
 
@@ -92,54 +146,43 @@ export const createOrUpdateClient = async (
     const existingClient = await findClientByPhone(companyId, clientData.phone);
 
     if (existingClient) {
-      console.log(`📞 [AJUSTE 2] Cliente encontrado pelo telefone: ${existingClient.name} (${existingClient.phone})`);
+      console.log(`📞 [CORREÇÃO] Cliente encontrado pelo telefone: ${existingClient.name} (${existingClient.phone})`);
       
-      // Cliente já existe - AJUSTE 2: Apenas vincula ao agendamento existente, sem duplicar
-      const updateData: any = {};
+      // CORREÇÃO: Cliente já existe - SEMPRE atualizar com dados mais recentes
+      const updateData: any = {
+        name: clientData.name, // SEMPRE atualizar o nome (pode ter mudado)
+        normalized_phone: normalizedPhone // Garantir que está definido
+      };
       
-      // Atualiza apenas campos vazios para preservar dados existentes
-      if (!existingClient.email && clientData.email) {
+      // Atualizar email se fornecido (mesmo que já exista)
+      if (clientData.email) {
         updateData.email = clientData.email;
       }
       
-      if (!existingClient.notes && clientData.notes) {
+      // Atualizar notas se fornecidas
+      if (clientData.notes) {
         updateData.notes = clientData.notes;
       }
 
-      // Garante que o telefone normalizado esteja definido
-      if (!existingClient.normalized_phone) {
-        updateData.normalized_phone = normalizedPhone;
+      // SEMPRE fazer a atualização para manter dados atualizados
+      const { data: updatedClient, error } = await supabase
+        .from('clients')
+        .update(updateData)
+        .eq('id', existingClient.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erro ao atualizar cliente:', error);
+        // Retornar cliente existente mesmo com erro de atualização
+        return { client: existingClient, isNew: false };
       }
 
-      // Se há algo para atualizar, faz a atualização
-      if (Object.keys(updateData).length > 0) {
-        const { data: updatedClient, error } = await supabase
-          .from('clients')
-          .update(updateData)
-          .eq('id', existingClient.id)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Erro ao atualizar cliente:', error);
-          return { client: existingClient, isNew: false };
-        }
-
-        console.log(`✅ [AJUSTE 2] Cliente atualizado: ${updatedClient.name}`);
-        return { client: updatedClient, isNew: false };
-      }
-
-      return { client: existingClient, isNew: false };
+      console.log(`✅ [CORREÇÃO] Cliente atualizado: ${updatedClient.name} (mesmo telefone, dados atualizados)`);
+      return { client: updatedClient, isNew: false };
     }
 
-    // CORREÇÃO DUPLICAÇÃO: Verificação final antes de criar + proteção contra condição de corrida
-    const finalCheck = await findClientByPhone(companyId, clientData.phone);
-    if (finalCheck) {
-      console.log(`📞 [CORREÇÃO DUPLICAÇÃO] Cliente encontrado na verificação final: ${finalCheck.name}`);
-      return { client: finalCheck, isNew: false };
-    }
-
-    // AJUSTE 2: Cliente não existe, cria um novo com telefone como identificador único
+    // CORREÇÃO: Cliente não existe, criar novo
     const { data: newClient, error } = await supabase
       .from('clients')
       .insert({
@@ -154,18 +197,10 @@ export const createOrUpdateClient = async (
       .single();
 
     if (error) {
-      // CORREÇÃO DUPLICAÇÃO: Se erro de duplicação, tentar buscar o cliente que foi criado por outro processo
-      if (error.code === '23505' || error.message?.includes('duplicate') || error.message?.includes('unique')) {
-        console.log(`🔄 [CORREÇÃO DUPLICAÇÃO] Erro de duplicação detectado, buscando cliente existente`);
-        const existingAfterError = await findClientByPhone(companyId, clientData.phone);
-        if (existingAfterError) {
-          return { client: existingAfterError, isNew: false };
-        }
-      }
       throw error;
     }
 
-    console.log(`✅ [CORREÇÃO DUPLICAÇÃO] Novo cliente criado: ${newClient.name} (${newClient.phone})`);
+    console.log(`✅ [CORREÇÃO] Novo cliente criado: ${newClient.name} (${newClient.phone})`);
     return { client: newClient, isNew: true };
   } catch (error) {
     console.error('Erro ao criar/atualizar cliente:', error);

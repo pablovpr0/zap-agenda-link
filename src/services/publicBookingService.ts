@@ -270,10 +270,10 @@ const generateSimpleTimeSlots = (
 
 /**
  * Cache simples para horários disponíveis (invalidado após agendamentos)
- * CORREÇÃO CRÍTICA: Cache reduzido para evitar conflitos de concorrência
+ * CORREÇÃO CRÍTICA: Cache mínimo para garantir horários sempre atualizados
  */
 let timeSlotsCache: { [key: string]: { data: string[], timestamp: number } } = {};
-const CACHE_DURATION = 5000; // REDUZIDO: 5 segundos para evitar conflitos
+const CACHE_DURATION = 2000; // ULTRA REDUZIDO: 2 segundos para máxima precisão
 
 /**
  * Invalida o cache de horários para uma data específica
@@ -362,16 +362,16 @@ const timeToMinutes = (time: string): number => {
 export const checkAvailableTimes = async (
   companyId: string,
   selectedDate: string,
-  serviceDuration?: number
+  serviceDuration?: number,
+  forceRefresh: boolean = false
 ) => {
-  // CORREÇÃO CRÍTICA: Sempre buscar dados frescos para evitar conflitos de concorrência
-  // Cache reduzido e verificação em tempo real
+  // CORREÇÃO CRÍTICA: Opção para forçar busca sem cache
   const cacheKey = `${companyId}-${selectedDate}-${serviceDuration || 60}`;
   const cached = timeSlotsCache[cacheKey];
   const now = Date.now();
   
-  // Cache muito reduzido para horários críticos
-  if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+  // Se forceRefresh = true, pular cache completamente
+  if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
     // VERIFICAÇÃO ADICIONAL: Re-verificar agendamentos recentes mesmo com cache
     const { data: recentBookings } = await supabase
       .from('appointments')
@@ -386,8 +386,13 @@ export const checkAvailableTimes = async (
       delete timeSlotsCache[cacheKey];
       console.log(`🔄 [CORREÇÃO CRÍTICA] Cache invalidado devido a agendamentos recentes`);
     } else {
+      console.log(`📋 [CACHE] Retornando horários do cache: ${cached.data.length} slots`);
       return cached.data;
     }
+  }
+  
+  if (forceRefresh) {
+    console.log(`🔄 [FORÇA] Buscando horários sem cache para ${selectedDate}`);
   }
 
   try {

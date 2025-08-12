@@ -87,7 +87,7 @@ const ModernPublicBooking = () => {
           const times = await generateAvailableTimes(selectedDate, serviceDuration);
           setAvailableTimes(times);
 
-          console.log('✅ Horários carregados:', times.length, 'horários disponíveis', times);
+          console.log('✅ [HORÁRIOS] Carregados:', times.length, 'horários disponíveis para', selectedDate);
         } catch (error) {
           console.error('❌ Erro ao carregar horários:', error);
           setAvailableTimes([]);
@@ -105,10 +105,42 @@ const ModernPublicBooking = () => {
       }
     };
 
-    // Usar timeout mínimo para garantir que a UI seja atualizada imediatamente
-    const timeoutId = setTimeout(loadTimes, 100);
-    return () => clearTimeout(timeoutId);
+    // Carregar imediatamente
+    loadTimes();
   }, [selectedDate, selectedService, services, companyData?.id]);
+
+  // CORREÇÃO: Atualização automática dos horários a cada 3 segundos para garantir sincronização
+  useEffect(() => {
+    if (!selectedDate || !selectedService) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const selectedServiceData = services.find(s => s.id === selectedService);
+        const serviceDuration = selectedServiceData?.duration || 30;
+        const times = await generateAvailableTimes(selectedDate, serviceDuration);
+        
+        // Só atualizar se houver mudança nos horários
+        if (JSON.stringify(times) !== JSON.stringify(availableTimes)) {
+          setAvailableTimes(times);
+          console.log('🔄 [HORÁRIOS] Atualizados automaticamente:', times.length, 'disponíveis');
+          
+          // Se o horário selecionado não está mais disponível, limpar
+          if (selectedTime && !times.includes(selectedTime)) {
+            setSelectedTime('');
+            toast({
+              title: "Horário não disponível",
+              description: "O horário selecionado foi agendado por outro cliente.",
+              variant: "destructive",
+            });
+          }
+        }
+      } catch (error) {
+        console.error('❌ Erro na atualização automática:', error);
+      }
+    }, 3000); // A cada 3 segundos
+
+    return () => clearInterval(interval);
+  }, [selectedDate, selectedService, availableTimes, selectedTime, services, generateAvailableTimes]);
 
   const handleSubmit = async () => {
     if (!selectedService || !selectedDate || !selectedTime || !clientName.trim() || !clientPhone.trim()) {
