@@ -16,26 +16,25 @@ export const usePWAInstall = () => {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const location = useLocation();
 
-  // Determina se é área do cliente (URL pública) ou comerciante
-  const isClientArea = location.pathname.startsWith('/public/') || 
-                       (location.pathname !== '/' && 
-                        location.pathname !== '/auth' && 
-                        location.pathname !== '/company-setup' && 
-                        !location.pathname.startsWith('/create-test') &&
-                        !location.pathname.startsWith('/debug') &&
-                        !location.pathname.startsWith('/fix-'));
+  // Determina se é área administrativa (onde queremos mostrar PWA)
+  // Só ativar PWA nas páginas principais do admin
+  const isAdminArea = location.pathname === '/' || 
+                      location.pathname === '/auth' || 
+                      location.pathname === '/company-setup';
   
-  const appName = isClientArea ? 'ZapAgenda Cliente' : 'ZapAgenda Comércio';
-  const installMessage = isClientArea 
-    ? 'Instale o ZapAgenda Cliente para agendar mais facilmente!' 
-    : 'Instale o ZapAgenda Comércio para gerenciar seus agendamentos!';
+  const appName = 'ZapAgenda Comércio';
+  const installMessage = 'Instale o ZapAgenda Comércio para gerenciar seus agendamentos!';
 
   useEffect(() => {
+    // Só ativar PWA prompt em áreas administrativas
+    if (!isAdminArea) {
+      return; // Não fazer nada em páginas públicas
+    }
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      // Só mostrar o pop-up se NÃO for área do cliente (página pública)
-      setShowInstallPrompt(!isClientArea);
+      setShowInstallPrompt(true);
     };
 
     const handleAppInstalled = () => {
@@ -50,7 +49,7 @@ export const usePWAInstall = () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [isAdminArea]);
 
   const installPWA = async () => {
     if (!deferredPrompt) return;

@@ -15,6 +15,8 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
+import { createOrUpdateClient, findClientByPhone } from '@/services/clientService';
+import { formatPhoneForDisplay } from '@/utils/phoneNormalization';
 
 interface NewAppointmentModalProps {
   isOpen: boolean;
@@ -58,6 +60,8 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
   const [newClientName, setNewClientName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
   const [newClientEmail, setNewClientEmail] = useState('');
+  const [existingClientByPhone, setExistingClientByPhone] = useState<Client | null>(null);
+  const [checkingPhone, setCheckingPhone] = useState(false);
 
   // Service and appointment states
   const [services, setServices] = useState<Service[]>([]);
@@ -96,12 +100,50 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
     setNewClientName('');
     setNewClientPhone('');
     setNewClientEmail('');
+    setExistingClientByPhone(null);
     setSelectedService(null);
     setSelectedProfessional('');
     setSelectedDate(undefined);
     setSelectedTime('');
     setAvailableTimes([]);
   };
+
+  // Verificar se já existe cliente com o telefone digitado
+  const checkExistingClientByPhone = async (phone: string) => {
+    if (!phone || phone.length < 10) {
+      setExistingClientByPhone(null);
+      return;
+    }
+
+    setCheckingPhone(true);
+    try {
+      const existingClient = await findClientByPhone(user!.id, phone);
+      setExistingClientByPhone(existingClient);
+      
+      // Se encontrou um cliente, preenche automaticamente o nome
+      if (existingClient && !newClientName) {
+        setNewClientName(existingClient.name);
+        if (existingClient.email && !newClientEmail) {
+          setNewClientEmail(existingClient.email);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar cliente por telefone:', error);
+    } finally {
+      setCheckingPhone(false);
+    }
+  };
+
+  // Effect para verificar telefone em tempo real
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (newClientPhone && isNewClient) {
+        checkExistingClientByPhone(newClientPhone);
+      }
+    }, 500); // Debounce de 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [newClientPhone, isNewClient, user]);
 
   const loadInitialData = async () => {
     setLoading(true);
@@ -237,21 +279,23 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
     try {
       let clientId = selectedClient?.id;
 
-      // Create new client if needed
+      // Create or find existing client if needed
       if (!selectedClient && isNewClient) {
-        const { data: newClient, error: clientError } = await supabase
-          .from('clients')
-          .insert({
-            company_id: user!.id,
-            name: newClientName,
-            phone: newClientPhone,
-            email: newClientEmail || null
-          })
-          .select()
-          .single();
+        const { client: clientResult, isNew } = await createOrUpdateClient(user!.id, {
+          name: newClientName,
+          phone: newClientPhone,
+          email: newClientEmail || undefined
+        });
 
-        if (clientError) throw clientError;
-        clientId = newClient.id;
+        clientId = clientResult.id;
+
+        // Mostrar mensagem diferente se o cliente já existia
+        if (!isNew) {
+          toast({
+            title: "Cliente encontrado!",
+            description: `Cliente ${clientResult.name} já estava cadastrado com este telefone.`,
+          });
+        }
       }
 
       // Create appointment
@@ -416,7 +460,20 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
                           value={newClientPhone}
                           onChange={(e) => setNewClientPhone(e.target.value)}
                           required
+                          className={existingClientByPhone ? "border-orange-300 bg-orange-50" : ""}
                         />
+                        {checkingPhone && (
+                          <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                            <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                            Verificando telefone...
+                          </p>
+                        )}
+                        {existingClientByPhone && (
+                          <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Cliente já cadastrado: {existingClientByPhone.name}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <Label htmlFor="new-client-email" className="text-sm">Email</Label>

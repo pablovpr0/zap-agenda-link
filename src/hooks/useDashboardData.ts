@@ -101,7 +101,7 @@ export const useDashboardData = (companyName?: string) => {
         return total + (apt.services?.price || 0);
       }, 0) || 0;
 
-      // Recent appointments
+      // Recent appointments - ordenar por data e hora do agendamento
       const { data: recentAppointments, error: recentError } = await supabase
         .from('appointments')
         .select(`
@@ -113,7 +113,8 @@ export const useDashboardData = (companyName?: string) => {
           services(name)
         `)
         .eq('company_id', user.id)
-        .order('created_at', { ascending: false })
+        .order('appointment_date', { ascending: false })
+        .order('appointment_time', { ascending: false })
         .limit(5);
 
       if (recentError) {

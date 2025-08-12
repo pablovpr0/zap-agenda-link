@@ -17,6 +17,16 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Skip caching for development server requests
+  if (event.request.url.includes('localhost') && 
+      (event.request.url.includes('@vite') || 
+       event.request.url.includes('@react-refresh') ||
+       event.request.url.includes('.tsx') ||
+       event.request.url.includes('.ts') ||
+       event.request.url.includes('src/'))) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -24,7 +34,12 @@ self.addEventListener('fetch', (event) => {
           return response;
         }
         return fetch(event.request);
-      }
-    )
+      })
+      .catch(() => {
+        // If fetch fails, return a basic response for navigation requests
+        if (event.request.mode === 'navigate') {
+          return caches.match('/');
+        }
+      })
   );
 });

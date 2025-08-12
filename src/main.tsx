@@ -23,15 +23,22 @@ root.render(
   </React.StrictMode>
 );
 
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
+// Register service worker for PWA (only in production)
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then((registration) => {
-        // Service worker registered successfully
+        console.log('SW registered: ', registration);
       })
       .catch((registrationError) => {
-        // Service worker registration failed
+        console.log('SW registration failed: ', registrationError);
       });
+  });
+} else if ('serviceWorker' in navigator && import.meta.env.DEV) {
+  // In development, unregister any existing service workers to avoid conflicts
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    for(let registration of registrations) {
+      registration.unregister();
+    }
   });
 }

@@ -10,6 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error?: Error }>;
   signUp: (email: string, password: string, name: string) => Promise<{ error?: Error }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error?: Error }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -147,13 +148,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const resetPassword = async (email: string): Promise<{ error?: Error }> => {
+    try {
+      setIsLoading(true);
+      const redirectUrl = `${window.location.origin}/auth`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+
+      if (error) {
+        console.error('Reset password error:', error);
+        return { error: new Error(error.message) };
+      }
+
+      return {};
+    } catch (error: any) {
+      console.error('Reset password catch error:', error);
+      return { error: new Error('Erro inesperado ao redefinir senha') };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const value = {
     user,
     session,
     isLoading: isLoading || !initialized,
     signIn,
     signUp,
-    signOut
+    signOut,
+    resetPassword
   };
 
   return (

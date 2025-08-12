@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { testDatabaseConnection, createMinimalTestData } from '@/utils/testDatabase';
+import { supabase } from '@/integrations/supabase/client';
 
 const CreateTestCompany = () => {
   const [loading, setLoading] = useState(false);
@@ -11,20 +11,25 @@ const CreateTestCompany = () => {
   const createTestCompany = async () => {
     setLoading(true);
     try {
-      const result = await createMinimalTestData();
-      
-      if (result.success) {
+      // Verificar se já existe uma empresa com slug 'pablo'
+      const { data: existingCompany } = await supabase
+        .from('company_settings')
+        .select('slug')
+        .eq('slug', 'pablo')
+        .maybeSingle();
+
+      if (existingCompany) {
         toast({
-          title: "Sucesso!",
-          description: "Empresa de teste 'pablo' criada com sucesso!",
+          title: "Empresa já existe",
+          description: "A empresa de teste 'pablo' já foi criada!",
         });
-      } else {
-        toast({
-          title: "Erro",
-          description: `Erro ao criar empresa: ${result.error?.message}`,
-          variant: "destructive",
-        });
+        return;
       }
+
+      toast({
+        title: "Funcionalidade Simplificada",
+        description: "Use a interface normal para criar empresas. Esta página é apenas para testes de desenvolvimento.",
+      });
       
     } catch (error) {
       console.error('❌ Erro geral:', error);
@@ -41,18 +46,21 @@ const CreateTestCompany = () => {
   const testConnection = async () => {
     setLoading(true);
     try {
-      const result = await testDatabaseConnection();
+      const { data: companies, error } = await supabase
+        .from('company_settings')
+        .select('slug, company_name')
+        .limit(10);
       
-      if (result.success) {
+      if (error) {
         toast({
-          title: "Conexão OK",
-          description: `Encontradas ${result.data?.length || 0} empresas no banco`,
+          title: "Erro de Conexão",
+          description: error.message,
+          variant: "destructive",
         });
       } else {
         toast({
-          title: "Erro de Conexão",
-          description: `${result.error?.message}`,
-          variant: "destructive",
+          title: "Conexão OK",
+          description: `Encontradas ${companies?.length || 0} empresas no banco`,
         });
       }
       
@@ -68,7 +76,9 @@ const CreateTestCompany = () => {
   };
 
   const testPublicLink = () => {
-    window.open('http://localhost:8081/pablo', '_blank');
+    // Usar a URL atual do ambiente
+    const currentUrl = window.location.origin;
+    window.open(`${currentUrl}/pablo`, '_blank');
   };
 
   return (
@@ -107,8 +117,11 @@ const CreateTestCompany = () => {
           </Button>
           
           <div className="text-sm text-gray-600">
-            <p><strong>Link público:</strong></p>
-            <p>http://localhost:8081/pablo</p>
+            <p><strong>Link público de teste:</strong></p>
+            <p>{window.location.origin}/pablo</p>
+            <p className="mt-2 text-xs text-gray-500">
+              Nota: Esta página é para desenvolvimento. Use a interface normal para criar empresas.
+            </p>
           </div>
         </CardContent>
       </Card>

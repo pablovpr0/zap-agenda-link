@@ -5,8 +5,8 @@ export interface DashboardData {
   monthlyRevenue: number;
   completionRate: number;
   bookingLink: string;
-  recentAppointments: any[];
-  todayAppointmentsList: any[];
+  recentAppointments: RecentAppointment[];
+  todayAppointmentsList: TodayAppointment[];
 }
 
 export interface TodayAppointment {

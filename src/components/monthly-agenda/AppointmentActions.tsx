@@ -59,51 +59,36 @@ const AppointmentActions = ({
 
   return (
     <>
-      <div className="flex flex-wrap gap-2 justify-start lg:justify-end">
+      <div className="flex gap-1">
         <Button 
-          variant="outline" 
+          variant="ghost" 
           size="sm"
           onClick={() => onWhatsAppClick(appointment.client_phone, appointment.client_name, appointment.appointment_date, appointment.appointment_time)}
-          className="flex items-center gap-2 text-xs bg-green-50 hover:bg-green-100 border-green-300 text-green-700 hover:text-green-800"
+          className="h-8 w-8 p-0 text-green-600 hover:bg-green-50"
+          title="Enviar lembrete via WhatsApp"
         >
-          <MessageSquare className="w-3 h-3" />
-          <span className="hidden sm:inline">Lembrete</span>
+          <MessageSquare className="w-4 h-4" />
         </Button>
 
         <Button 
-          variant="outline" 
+          variant="ghost" 
           size="sm"
           onClick={() => setShowEditDialog(true)}
-          className="flex items-center gap-2 text-xs bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700 hover:text-blue-800"
+          className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50"
+          title="Editar agendamento"
         >
-          <Edit className="w-3 h-3" />
-          <span className="hidden sm:inline">Editar</span>
+          <Edit className="w-4 h-4" />
         </Button>
 
         <Button 
-          variant="outline" 
-          size="sm"
-          onClick={handleCancel}
-          disabled={isCancelling}
-          className="flex items-center gap-2 text-xs bg-orange-50 hover:bg-orange-100 border-orange-300 text-orange-700 hover:text-orange-800"
-        >
-          <X className="w-3 h-3" />
-          <span className="hidden sm:inline">
-            {isCancelling ? 'Cancelando...' : 'Cancelar'}
-          </span>
-        </Button>
-
-        <Button 
-          variant="outline" 
+          variant="ghost" 
           size="sm"
           onClick={handleDelete}
           disabled={isDeleting}
-          className="flex items-center gap-2 text-xs bg-red-50 hover:bg-red-100 border-red-300 text-red-700 hover:text-red-800"
+          className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+          title="Excluir agendamento"
         >
-          <Trash2 className="w-3 h-3" />
-          <span className="hidden sm:inline">
-            {isDeleting ? 'Excluindo...' : 'Excluir'}
-          </span>
+          <Trash2 className="w-4 h-4" />
         </Button>
       </div>
 

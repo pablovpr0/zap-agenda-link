@@ -43,7 +43,7 @@ const AppointmentDialog = ({
 
   return (
     <Dialog open={!!selectedDate} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto [&>button]:hidden">
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center justify-between text-lg md:text-xl">
             <span className="flex items-center gap-2">

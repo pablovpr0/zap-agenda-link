@@ -2,12 +2,10 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Calendar, Clock, Coffee, Save, RefreshCw } from 'lucide-react';
+import { Calendar, Clock, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 interface DaySchedule {
   day_of_week: number;
@@ -42,11 +40,11 @@ const ScheduleSettings = ({
     hasError: !!error
   });
   const dayNames = {
-    1: 'Segunda-feira',
-    2: 'Terça-feira',
-    3: 'Quarta-feira',
-    4: 'Quinta-feira',
-    5: 'Sexta-feira',
+    1: 'Segunda',
+    2: 'Terça',
+    3: 'Quarta',
+    4: 'Quinta',
+    5: 'Sexta',
     6: 'Sábado',
     0: 'Domingo'
   };
@@ -161,23 +159,7 @@ const ScheduleSettings = ({
       setSaving(false);
     }
   };
-  const copyToAllDays = (sourceDay: number) => {
-    const sourceSchedule = schedules.find(s => s.day_of_week === sourceDay);
-    if (!sourceSchedule) return;
-    setSchedules(prev => prev.map(schedule => ({
-      ...schedule,
-      start_time: sourceSchedule.start_time,
-      end_time: sourceSchedule.end_time,
-      lunch_start: sourceSchedule.lunch_start,
-      lunch_end: sourceSchedule.lunch_end,
-      has_lunch_break: sourceSchedule.has_lunch_break
-    })));
-    setHasChanges(true);
-    toast({
-      title: "Horários copiados",
-      description: "Os horários foram aplicados a todos os dias."
-    });
-  };
+
 
   // Debug: Always show component state
   console.log('🔍 ScheduleSettings render state:', {
@@ -242,138 +224,139 @@ const ScheduleSettings = ({
         </CardContent>
       </Card>;
   }
-  return <div className="space-y-4">
-      {/* Debug Info */}
+  return (
+    <Card className="bg-white border-gray-200 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50">
+        <CardTitle className="text-base md:text-lg text-gray-800 flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-green-600" />
+          ⏰ Horários de Funcionamento
+        </CardTitle>
+        <p className="text-sm text-gray-600 mt-1">
+          Configure os horários de cada dia da semana
+        </p>
+      </CardHeader>
       
-
-      <Card className="bg-white border-gray-200 shadow-lg">
-        
-      <CardContent className="space-y-6">
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2 justify-between items-center">
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => loadSchedules()} disabled={loading}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Recarregar
-            </Button>
-          </div>
-          
-          {hasChanges && <Button onClick={saveSchedules} disabled={saving} className="bg-green-600 hover:bg-green-700">
-              {saving ? <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Salvando...
-                </> : <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Salvar Alterações
-                </>}
-            </Button>}
-        </div>
-
-        {/* Schedule Configuration */}
-        <div className="space-y-4">
-          {schedules.map(schedule => <div key={schedule.day_of_week} className="p-3 md:p-4 border border-gray-200 rounded-lg bg-gray-50 overflow-hidden">
-              {/* Day Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                  <span className="text-sm font-semibold text-gray-800 min-w-[100px] sm:min-w-[120px]">
-                    {dayNames[schedule.day_of_week as keyof typeof dayNames]}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <Switch checked={schedule.is_active} onCheckedChange={checked => updateSchedule(schedule.day_of_week, {
-                    is_active: checked
-                  })} className="data-[state=checked]:bg-green-600" />
-                    <Badge variant={schedule.is_active ? "default" : "secondary"} className="text-xs whitespace-nowrap">
-                      {schedule.is_active ? 'ABERTO' : 'FECHADO'}
-                    </Badge>
-                  </div>
-                </div>
-                
-                {schedule.is_active && <Button variant="ghost" size="sm" onClick={() => copyToAllDays(schedule.day_of_week)} className="text-xs">
-                    Copiar para todos
-                  </Button>}
+      <CardContent className="space-y-4 p-4">
+        {schedules.map(schedule => (
+          <div key={schedule.day_of_week} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            {/* Linha principal: Nome do dia + Status + Horários */}
+            <div className="flex items-center justify-between gap-4 mb-3">
+              {/* Nome do dia */}
+              <div className="min-w-[80px]">
+                <span className="font-medium text-gray-800">
+                  {dayNames[schedule.day_of_week as keyof typeof dayNames]}
+                </span>
               </div>
               
-              {/* Hours Configuration */}
-              {schedule.is_active && <div className="space-y-4 ml-0 sm:ml-4 sm:border-l-2 sm:border-green-200 sm:pl-4 mt-4">
-                  {/* Working Hours */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-medium text-gray-600 flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-green-600" />
-                        Abertura
-                      </Label>
-                      <Input type="time" value={schedule.start_time} onChange={e => updateSchedule(schedule.day_of_week, {
-                    start_time: e.target.value
-                  })} className="text-sm h-9 border-gray-300 focus:border-green-500 w-full" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-medium text-gray-600 flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-green-600" />
-                        Fechamento
-                      </Label>
-                      <Input type="time" value={schedule.end_time} onChange={e => updateSchedule(schedule.day_of_week, {
-                    end_time: e.target.value
-                  })} className="text-sm h-9 border-gray-300 focus:border-green-500 w-full" />
-                    </div>
+              {/* Botão Aberto/Fechado */}
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant={schedule.is_active ? "default" : "destructive"}
+                  onClick={() => updateSchedule(schedule.day_of_week, { is_active: !schedule.is_active })}
+                  className={`px-4 py-2 font-medium rounded-md transition-colors ${
+                    schedule.is_active 
+                      ? 'bg-green-600 hover:bg-green-700 text-white' 
+                      : 'bg-red-600 hover:bg-red-700 text-white'
+                  }`}
+                >
+                  {schedule.is_active ? 'ABERTO' : 'FECHADO'}
+                </Button>
+              </div>
+              
+              {/* Horários de funcionamento */}
+              {schedule.is_active && (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-4 h-4 text-gray-500" />
+                    <Input
+                      type="time"
+                      value={schedule.start_time}
+                      onChange={(e) => updateSchedule(schedule.day_of_week, { start_time: e.target.value })}
+                      className="w-20 h-8 text-sm"
+                    />
                   </div>
-
-                  {/* Lunch Break Toggle */}
-                  <div className="flex items-center space-x-2 pt-2 border-t border-gray-200">
-                    <Switch checked={schedule.has_lunch_break} onCheckedChange={checked => updateSchedule(schedule.day_of_week, {
-                  has_lunch_break: checked
-                })} className="data-[state=checked]:bg-orange-600" />
-                    <Label className="text-xs font-medium text-gray-600 flex items-center gap-1">
-                      <Coffee className="w-3 h-3 text-orange-600" />
-                      Intervalo de almoço
-                    </Label>
+                  <span className="text-gray-500">às</span>
+                  <Input
+                    type="time"
+                    value={schedule.end_time}
+                    onChange={(e) => updateSchedule(schedule.day_of_week, { end_time: e.target.value })}
+                    className="w-20 h-8 text-sm"
+                  />
+                </div>
+              )}
+            </div>
+            
+            {/* Horário de almoço (embaixo) */}
+            {schedule.is_active && (
+              <div className="border-t border-gray-200 pt-3 mt-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Almoço</span>
                   </div>
-
-                  {/* Lunch Break Hours */}
-                  {schedule.has_lunch_break && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-0 sm:pl-4 sm:border-l border-orange-200">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium text-gray-600">
-                          Início do almoço
-                        </Label>
-                        <Input type="time" value={schedule.lunch_start || '12:00'} onChange={e => updateSchedule(schedule.day_of_week, {
-                    lunch_start: e.target.value
-                  })} className="text-sm h-9 border-gray-300 focus:border-orange-500" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium text-gray-600">
-                          Fim do almoço
-                        </Label>
-                        <Input type="time" value={schedule.lunch_end || '13:00'} onChange={e => updateSchedule(schedule.day_of_week, {
-                    lunch_end: e.target.value
-                  })} className="text-sm h-9 border-gray-300 focus:border-orange-500" />
-                      </div>
-                    </div>}
-
-                  {/* Schedule Summary */}
-                  <div className="text-xs text-gray-500 bg-white p-2 rounded border">
-                    <strong>Resumo:</strong> {schedule.start_time} às {schedule.end_time}
-                    {schedule.has_lunch_break && schedule.lunch_start && schedule.lunch_end && <span> (Almoço: {schedule.lunch_start} às {schedule.lunch_end})</span>}
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => updateSchedule(schedule.day_of_week, { has_lunch_break: !schedule.has_lunch_break })}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                        schedule.has_lunch_break 
+                          ? 'bg-orange-600 text-white border-orange-600 hover:bg-orange-700' 
+                          : 'bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300'
+                      }`}
+                    >
+                      {schedule.has_lunch_break ? 'ATIVO' : 'INATIVO'}
+                    </Button>
+                    
+                    {schedule.has_lunch_break && (
+                      <>
+                        <Input
+                          type="time"
+                          value={schedule.lunch_start || '12:00'}
+                          onChange={(e) => updateSchedule(schedule.day_of_week, { lunch_start: e.target.value })}
+                          className="w-20 h-8 text-sm"
+                        />
+                        <span className="text-gray-500 text-sm">às</span>
+                        <Input
+                          type="time"
+                          value={schedule.lunch_end || '13:00'}
+                          onChange={(e) => updateSchedule(schedule.day_of_week, { lunch_end: e.target.value })}
+                          className="w-20 h-8 text-sm"
+                        />
+                      </>
+                    )}
                   </div>
-                </div>}
-            </div>)}
-        </div>
-
-        {/* Save Button (Bottom) */}
-        {hasChanges && <div className="flex justify-center pt-4 border-t">
-            <Button onClick={saveSchedules} disabled={saving} size="lg" className="bg-green-600 hover:bg-green-700 px-8">
-              {saving ? <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Salvando Configurações...
-                </> : <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Salvar Todas as Alterações
-                </>}
-            </Button>
-          </div>}
-
-        {/* Sync Notice */}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
         
+        {/* Botão de salvar */}
+        {hasChanges && (
+          <div className="flex justify-center pt-4 border-t">
+            <Button 
+              onClick={saveSchedules} 
+              disabled={saving} 
+              className="bg-green-600 hover:bg-green-700 px-8"
+            >
+              {saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Salvar Alterações
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
-    </div>;
+  );
 };
 export default ScheduleSettings;

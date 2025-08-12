@@ -13,6 +13,7 @@ const PWAInstallPrompt = () => {
     installMessage 
   } = usePWAInstall();
 
+  // Não renderizar nada se não deve mostrar o prompt
   if (!showInstallPrompt) return null;
 
   return (

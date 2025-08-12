@@ -66,47 +66,48 @@ const AppointmentCard = ({
 
   return (
     <div>
-      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 md:p-6 space-y-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-        {/* Header do Card */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm">
-              <Clock className="w-4 h-4 text-primary flex-shrink-0" />
-              <span className="font-semibold text-gray-800">
-                {appointment.appointment_time.substring(0, 5)}
-              </span>
+      <div className="bg-white rounded-lg p-4 border border-gray-200 hover:bg-gray-50 transition-colors">
+        <div className="space-y-3">
+          {/* Primeira linha: Horário, Nome e Telefone */}
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="flex items-center gap-2 text-primary font-medium">
+              <Clock className="w-4 h-4" />
+              <span>{appointment.appointment_time.substring(0, 5)}</span>
             </div>
-            <Badge className={`text-xs font-medium border ${getStatusColor(appointment.status)}`}>
-              {getStatusLabel(appointment.status)}
-            </Badge>
+            
+            <div className="flex items-center gap-2 min-w-0">
+              <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
+              <span className="font-medium text-gray-800 truncate">{appointment.client_name}</span>
+            </div>
+            
+            <div className="flex items-center gap-2 text-gray-600 min-w-0">
+              <MessageSquare className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">{appointment.client_phone}</span>
+            </div>
+
+            {appointment.status === 'completed' && (
+              <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
+                Concluído
+              </Badge>
+            )}
           </div>
           
-          <AppointmentActions
-            appointment={appointment}
-            onWhatsAppClick={onWhatsAppClick}
-            onCancelClick={onCancelClick}
-            onRescheduleClick={onRescheduleClick}
-            onDeleteClick={onDeleteClick}
-            onRefresh={onRefresh}
-          />
-        </div>
-
-        <AppointmentInfo appointment={appointment} />
-
-        {/* Observações */}
-        {appointment.notes && (
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-            <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-primary" />
-              Observações:
-            </p>
-            <p className="text-sm text-gray-600 leading-relaxed">{appointment.notes}</p>
+          {/* Segunda linha: Ações */}
+          <div className="flex justify-end">
+            <AppointmentActions
+              appointment={appointment}
+              onWhatsAppClick={onWhatsAppClick}
+              onCancelClick={onCancelClick}
+              onRescheduleClick={onRescheduleClick}
+              onDeleteClick={onDeleteClick}
+              onRefresh={onRefresh}
+            />
           </div>
-        )}
+        </div>
       </div>
       
       {index < totalAppointments - 1 && (
-        <Separator className="my-4" />
+        <Separator className="my-2" />
       )}
     </div>
   );

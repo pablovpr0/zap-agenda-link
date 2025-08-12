@@ -316,7 +316,26 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
 
     const serviceDuration = serviceData.duration;
 
-    // Verificar disponibilidade do horário
+    // VERIFICAÇÃO DUPLA: Verificar disponibilidade do horário exato
+    const { data: existingExactSlot, error: checkError } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('company_id', appointmentData.company_id)
+      .eq('appointment_date', appointmentData.appointment_date)
+      .eq('appointment_time', appointmentData.appointment_time)
+      .neq('status', 'cancelled')
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('❌ Erro ao verificar slot:', checkError);
+      throw new Error('Erro ao verificar disponibilidade do horário');
+    }
+
+    if (existingExactSlot) {
+      throw new Error('⚠️ Este horário não está mais disponível. Outro cliente acabou de agendar neste mesmo horário. Por favor, escolha outro horário.');
+    }
+
+    // Verificar disponibilidade considerando duração do serviço
     const availability = await checkTimeSlotAvailability(
       appointmentData.company_id,
       appointmentData.appointment_date,
@@ -368,6 +387,14 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
     }
 
     // INSERÇÃO COM VERIFICAÇÃO FINAL: Usar uma transação para garantir atomicidade
+    console.log('🔒 Tentando criar agendamento:', {
+      company_id: appointmentData.company_id,
+      appointment_date: appointmentData.appointment_date,
+      appointment_time: appointmentData.appointment_time,
+      client_name: appointmentData.client_name,
+      timestamp: new Date().toISOString()
+    });
+
     const { data, error } = await supabase
       .from('appointments')
       .insert({
@@ -387,11 +414,17 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
       .single();
 
     if (error) {
-      // Verificar se é erro de conflito de horário
+      // Verificar se é erro de conflito de horário (constraint única)
+      if (error.code === '23505' || error.message?.includes('idx_appointments_unique_slot')) {
+        throw new Error('⚠️ Este horário não está mais disponível. Outro cliente acabou de agendar neste mesmo horário. Por favor, escolha outro horário.');
+      }
+      
+      // Outros erros de duplicação ou conflito
       if (error.message?.includes('duplicate') || error.message?.includes('conflict')) {
         throw new Error('Este horário não está mais disponível. Por favor, escolha outro horário.');
       }
       
+      console.error('❌ Erro ao criar agendamento:', error);
       throw error;
     }
     
