@@ -236,25 +236,25 @@ const ScheduleSettings = ({
         </p>
       </CardHeader>
       
-      <CardContent className="space-y-4 p-4">
+      {/* AJUSTE 5: Layout responsivo melhorado para horários de funcionamento */}
+      <CardContent className="space-y-4 p-3 md:p-4">
         {schedules.map(schedule => (
-          <div key={schedule.day_of_week} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-            {/* Linha principal: Nome do dia + Status + Horários */}
-            <div className="flex items-center justify-between gap-4 mb-3">
-              {/* Nome do dia */}
-              <div className="min-w-[80px]">
-                <span className="font-medium text-gray-800">
-                  {dayNames[schedule.day_of_week as keyof typeof dayNames]}
-                </span>
-              </div>
-              
-              {/* Botão Aberto/Fechado */}
-              <div className="flex items-center gap-2">
+          <div key={schedule.day_of_week} className="border-2 border-gray-300 rounded-lg p-3 md:p-4 bg-gray-50 shadow-sm">
+            {/* Layout responsivo: Stack em mobile, horizontal em desktop */}
+            <div className="space-y-3">
+              {/* Linha 1: Nome do dia + Status */}
+              <div className="flex items-center justify-between">
+                <div className="min-w-[80px]">
+                  <span className="font-medium text-gray-800 text-base">
+                    {dayNames[schedule.day_of_week as keyof typeof dayNames]}
+                  </span>
+                </div>
+                
                 <Button
                   size="sm"
                   variant={schedule.is_active ? "default" : "destructive"}
                   onClick={() => updateSchedule(schedule.day_of_week, { is_active: !schedule.is_active })}
-                  className={`px-4 py-2 font-medium rounded-md transition-colors ${
+                  className={`px-3 md:px-4 py-2 font-medium rounded-md transition-colors text-xs md:text-sm ${
                     schedule.is_active 
                       ? 'bg-green-600 hover:bg-green-700 text-white' 
                       : 'bg-red-600 hover:bg-red-700 text-white'
@@ -264,72 +264,73 @@ const ScheduleSettings = ({
                 </Button>
               </div>
               
-              {/* Horários de funcionamento */}
+              {/* Linha 2: Horários de funcionamento (se ativo) - Layout otimizado */}
               {schedule.is_active && (
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
+                <div className="bg-white p-3 rounded-md">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Clock className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">Abertura:</span>
                     <Input
                       type="time"
                       value={schedule.start_time}
                       onChange={(e) => updateSchedule(schedule.day_of_week, { start_time: e.target.value })}
                       className="w-20 h-8 text-sm"
                     />
+                    <span className="text-sm text-gray-600 mx-2">Fechamento:</span>
+                    <Input
+                      type="time"
+                      value={schedule.end_time}
+                      onChange={(e) => updateSchedule(schedule.day_of_week, { end_time: e.target.value })}
+                      className="w-20 h-8 text-sm"
+                    />
                   </div>
-                  <span className="text-gray-500">às</span>
-                  <Input
-                    type="time"
-                    value={schedule.end_time}
-                    onChange={(e) => updateSchedule(schedule.day_of_week, { end_time: e.target.value })}
-                    className="w-20 h-8 text-sm"
-                  />
                 </div>
               )}
-            </div>
-            
-            {/* Horário de almoço (embaixo) */}
-            {schedule.is_active && (
-              <div className="border-t border-gray-200 pt-3 mt-3">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Almoço</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => updateSchedule(schedule.day_of_week, { has_lunch_break: !schedule.has_lunch_break })}
-                      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                        schedule.has_lunch_break 
-                          ? 'bg-orange-600 text-white border-orange-600 hover:bg-orange-700' 
-                          : 'bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300'
-                      }`}
-                    >
-                      {schedule.has_lunch_break ? 'ATIVO' : 'INATIVO'}
-                    </Button>
+              
+              {/* Linha 3: Horário de almoço (se ativo) */}
+              {schedule.is_active && (
+                <div className="border-t border-gray-200 pt-3">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 font-medium">Intervalo de Almoço</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateSchedule(schedule.day_of_week, { has_lunch_break: !schedule.has_lunch_break })}
+                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                          schedule.has_lunch_break 
+                            ? 'bg-orange-600 text-white border-orange-600 hover:bg-orange-700' 
+                            : 'bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300'
+                        }`}
+                      >
+                        {schedule.has_lunch_break ? 'ATIVO' : 'INATIVO'}
+                      </Button>
+                    </div>
                     
                     {schedule.has_lunch_break && (
-                      <>
-                        <Input
-                          type="time"
-                          value={schedule.lunch_start || '12:00'}
-                          onChange={(e) => updateSchedule(schedule.day_of_week, { lunch_start: e.target.value })}
-                          className="w-20 h-8 text-sm"
-                        />
-                        <span className="text-gray-500 text-sm">às</span>
-                        <Input
-                          type="time"
-                          value={schedule.lunch_end || '13:00'}
-                          onChange={(e) => updateSchedule(schedule.day_of_week, { lunch_end: e.target.value })}
-                          className="w-20 h-8 text-sm"
-                        />
-                      </>
+                      <div className="bg-orange-50 p-3 rounded-md">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm text-gray-600">Início:</span>
+                          <Input
+                            type="time"
+                            value={schedule.lunch_start || '12:00'}
+                            onChange={(e) => updateSchedule(schedule.day_of_week, { lunch_start: e.target.value })}
+                            className="w-20 h-8 text-sm"
+                          />
+                          <span className="text-sm text-gray-600 mx-2">Fim:</span>
+                          <Input
+                            type="time"
+                            value={schedule.lunch_end || '13:00'}
+                            onChange={(e) => updateSchedule(schedule.day_of_week, { lunch_end: e.target.value })}
+                            className="w-20 h-8 text-sm"
+                          />
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         ))}
         

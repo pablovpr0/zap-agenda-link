@@ -270,17 +270,24 @@ const generateSimpleTimeSlots = (
 
 /**
  * Cache simples para horários disponíveis (invalidado após agendamentos)
+ * CORREÇÃO CRÍTICA: Cache reduzido para evitar conflitos de concorrência
  */
 let timeSlotsCache: { [key: string]: { data: string[], timestamp: number } } = {};
-const CACHE_DURATION = 30000; // 30 segundos
+const CACHE_DURATION = 5000; // REDUZIDO: 5 segundos para evitar conflitos
 
 /**
  * Invalida o cache de horários para uma data específica
+ * CORREÇÃO CRÍTICA: Invalidação mais agressiva para evitar conflitos
  */
 export const invalidateTimeSlotsCache = (companyId: string, date?: string) => {
   if (date) {
-    const cacheKey = `${companyId}-${date}`;
-    delete timeSlotsCache[cacheKey];
+    // Invalidar todos os caches relacionados à data (diferentes durações de serviço)
+    Object.keys(timeSlotsCache).forEach(key => {
+      if (key.includes(`${companyId}-${date}`)) {
+        delete timeSlotsCache[key];
+      }
+    });
+    console.log(`🔄 [CORREÇÃO CRÍTICA] Cache invalidado para empresa ${companyId} na data ${date}`);
   } else {
     // Invalidar todo o cache da empresa
     Object.keys(timeSlotsCache).forEach(key => {
@@ -288,26 +295,99 @@ export const invalidateTimeSlotsCache = (companyId: string, date?: string) => {
         delete timeSlotsCache[key];
       }
     });
+    console.log(`🔄 [CORREÇÃO CRÍTICA] Todo cache invalidado para empresa ${companyId}`);
   }
+};
+
+/**
+ * NOVA FUNÇÃO: Verificação de disponibilidade em tempo real
+ * Verifica se um horário específico ainda está disponível antes do agendamento
+ */
+export const verifyTimeSlotAvailability = async (
+  companyId: string,
+  selectedDate: string,
+  selectedTime: string,
+  serviceDuration: number = 60
+): Promise<boolean> => {
+  try {
+    // Buscar agendamentos mais recentes
+    const { data: conflicts } = await supabase
+      .from('appointments')
+      .select('appointment_time, duration, services(duration)')
+      .eq('company_id', companyId)
+      .eq('appointment_date', selectedDate)
+      .in('status', ['confirmed', 'completed', 'in_progress']);
+
+    if (!conflicts) return true;
+
+    // Verificar se há conflito com o horário solicitado
+    const requestedMinutes = timeToMinutes(selectedTime);
+    const serviceEndMinutes = requestedMinutes + serviceDuration;
+
+    for (const conflict of conflicts) {
+      const conflictMinutes = timeToMinutes(conflict.appointment_time.substring(0, 5));
+      const conflictDuration = conflict.services?.duration || conflict.duration || 60;
+      const conflictEndMinutes = conflictMinutes + conflictDuration;
+
+      // Verificar sobreposição
+      if (
+        (requestedMinutes >= conflictMinutes && requestedMinutes < conflictEndMinutes) ||
+        (serviceEndMinutes > conflictMinutes && serviceEndMinutes <= conflictEndMinutes) ||
+        (requestedMinutes <= conflictMinutes && serviceEndMinutes >= conflictEndMinutes)
+      ) {
+        console.log(`🚨 [CORREÇÃO CRÍTICA] Conflito detectado: ${selectedTime} conflita com ${conflict.appointment_time}`);
+        return false;
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ Erro ao verificar disponibilidade:', error);
+    return false;
+  }
+};
+
+// Função auxiliar para converter horário em minutos
+const timeToMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
 };
 
 /**
  * FUNÇÃO PRINCIPAL - SISTEMA DE AGENDAMENTO CORRIGIDO
  * 
  * Versão simplificada e robusta que garante o funcionamento
+ * AJUSTE 1: Horários selecionados são removidos da lista automaticamente
  */
 export const checkAvailableTimes = async (
   companyId: string,
   selectedDate: string,
   serviceDuration?: number
 ) => {
-  // Verificar cache primeiro
+  // CORREÇÃO CRÍTICA: Sempre buscar dados frescos para evitar conflitos de concorrência
+  // Cache reduzido e verificação em tempo real
   const cacheKey = `${companyId}-${selectedDate}-${serviceDuration || 60}`;
   const cached = timeSlotsCache[cacheKey];
   const now = Date.now();
   
+  // Cache muito reduzido para horários críticos
   if (cached && (now - cached.timestamp) < CACHE_DURATION) {
-    return cached.data;
+    // VERIFICAÇÃO ADICIONAL: Re-verificar agendamentos recentes mesmo com cache
+    const { data: recentBookings } = await supabase
+      .from('appointments')
+      .select('appointment_time')
+      .eq('company_id', companyId)
+      .eq('appointment_date', selectedDate)
+      .in('status', ['confirmed', 'completed', 'in_progress'])
+      .gte('created_at', new Date(now - 10000).toISOString()); // Últimos 10 segundos
+    
+    if (recentBookings && recentBookings.length > 0) {
+      // Se há agendamentos recentes, invalidar cache e buscar dados frescos
+      delete timeSlotsCache[cacheKey];
+      console.log(`🔄 [CORREÇÃO CRÍTICA] Cache invalidado devido a agendamentos recentes`);
+    } else {
+      return cached.data;
+    }
   }
 
   try {
@@ -338,15 +418,15 @@ export const checkAvailableTimes = async (
       return [];
     }
 
-    // ETAPA 4: Buscar agendamentos (simplificado)
+    // ETAPA 4: Buscar agendamentos confirmados e concluídos (AJUSTE 1: Incluir todos os status que bloqueiam horários)
     const { data: bookedAppointments } = await supabase
       .from('appointments')
-      .select('appointment_time, duration, status')
+      .select('appointment_time, duration, status, services(duration)')
       .eq('company_id', companyId)
       .eq('appointment_date', selectedDate)
-      .in('status', ['confirmed', 'completed']);
+      .in('status', ['confirmed', 'completed', 'in_progress']);
 
-    // ETAPA 5: Gerar horários (versão simplificada)
+    // ETAPA 5: Gerar horários (versão simplificada) - AJUSTE 1: Horários ocupados são automaticamente removidos
     const availableSlots = generateSimpleTimeSlots(
       dailySchedule.start_time,
       dailySchedule.end_time,
@@ -364,9 +444,41 @@ export const checkAvailableTimes = async (
       timestamp: now
     };
 
+    // CORREÇÃO CRÍTICA: Verificação final em tempo real antes de retornar
+    const finalVerification = await supabase
+      .from('appointments')
+      .select('appointment_time')
+      .eq('company_id', companyId)
+      .eq('appointment_date', selectedDate)
+      .in('status', ['confirmed', 'completed', 'in_progress']);
+
+    if (finalVerification.data) {
+      const recentlyBookedTimes = new Set(
+        finalVerification.data.map(apt => apt.appointment_time.substring(0, 5))
+      );
+      
+      // Filtrar horários que foram agendados após o cache
+      const finalAvailableSlots = availableSlots.filter(slot => !recentlyBookedTimes.has(slot));
+      
+      if (finalAvailableSlots.length !== availableSlots.length) {
+        console.log(`🚨 [CORREÇÃO CRÍTICA] ${availableSlots.length - finalAvailableSlots.length} horários removidos por conflito de concorrência`);
+        
+        // Atualizar cache com dados corretos
+        timeSlotsCache[cacheKey] = {
+          data: finalAvailableSlots,
+          timestamp: now
+        };
+        
+        return finalAvailableSlots;
+      }
+    }
+
+    console.log(`✅ [CORREÇÃO CRÍTICA] Horários verificados para ${selectedDate}: ${availableSlots.length} slots (${availableSlots.join(', ')})`);
+
     return availableSlots;
 
   } catch (error: any) {
+    console.error('❌ Erro ao buscar horários disponíveis:', error);
     return [];
   }
 };

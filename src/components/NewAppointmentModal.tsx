@@ -85,7 +85,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
     }
   }, [isOpen, user]);
 
-  // Load available times when date and service change
+  // AJUSTE 3: Load available times when date and service change - corrigido para dia atual
   useEffect(() => {
     if (selectedDate && selectedService && user) {
       loadAvailableTimes();
@@ -219,6 +219,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
     }
   };
 
+  // AJUSTE 3: Corrigir carregamento de horários para incluir dia atual corretamente
   const loadAvailableTimes = async () => {
     if (!selectedDate || !selectedService) return;
 
@@ -226,19 +227,22 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
     try {
       const formattedDate = format(selectedDate, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' });
       
+      console.log(`🕐 [AJUSTE 3] Carregando horários para agendamento manual: ${formattedDate}`);
+      
       // Import the updated checkAvailableTimes function
       const { checkAvailableTimes } = await import('@/services/publicBookingService');
       
-      // Get available times using the new daily schedule system
+      // AJUSTE 3: Get available times using the corrected system that handles current day properly
       const times = await checkAvailableTimes(
         user!.id,
         formattedDate,
         selectedService.duration
       );
 
+      console.log(`✅ [AJUSTE 3] Horários carregados para agendamento manual: ${times.length} slots disponíveis`);
       setAvailableTimes(times);
     } catch (error) {
-      console.error('Erro ao carregar horários:', error);
+      console.error('❌ [AJUSTE 3] Erro ao carregar horários:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os horários disponíveis.",
@@ -298,8 +302,29 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
         }
       }
 
-      // Create appointment
+      // CORREÇÃO CRÍTICA: Verificar disponibilidade em tempo real antes de criar agendamento
       const formattedDate = format(selectedDate, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' });
+      
+      const { verifyTimeSlotAvailability } = await import('@/services/publicBookingService');
+      const isAvailable = await verifyTimeSlotAvailability(
+        user!.id,
+        formattedDate,
+        selectedTime,
+        selectedService.duration
+      );
+
+      if (!isAvailable) {
+        toast({
+          title: "Horário não disponível",
+          description: "Este horário foi agendado por outro cliente. Por favor, selecione outro horário.",
+          variant: "destructive",
+        });
+        // Recarregar horários disponíveis
+        await loadAvailableTimes();
+        return;
+      }
+
+      // Create appointment
       const { error: appointmentError } = await supabase
         .from('appointments')
         .insert({
@@ -314,6 +339,11 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
         });
 
       if (appointmentError) throw appointmentError;
+
+      // AJUSTE 1: Invalidar cache de horários após criar agendamento
+      const { invalidateTimeSlotsCache } = await import('@/services/publicBookingService');
+      invalidateTimeSlotsCache(user!.id, formattedDate);
+      console.log(`🔄 [AJUSTE 1] Cache de horários invalidado para ${formattedDate}`);
 
       toast({
         title: "Agendamento criado!",
@@ -601,7 +631,15 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
                       setSelectedDate(date);
                       setSelectedTime(''); // Reset time when date changes
                     }}
-                    disabled={(date) => date < new Date()}
+                    disabled={(date) => {
+                      // AJUSTE 3: Permitir seleção do dia atual (não bloquear hoje)
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const checkDate = new Date(date);
+                      checkDate.setHours(0, 0, 0, 0);
+                      return checkDate < today;
+                    }}
+                    locale={ptBR}
                     initialFocus
                   />
                 </PopoverContent>

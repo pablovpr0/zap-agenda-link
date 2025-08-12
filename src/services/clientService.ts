@@ -75,6 +75,7 @@ export const findClientByPhone = async (companyId: string, phone: string): Promi
 
 /**
  * Cria ou atualiza um cliente, evitando duplicatas por telefone
+ * AJUSTE 2: Telefone como identificador único - sistema aprimorado
  */
 export const createOrUpdateClient = async (
   companyId: string, 
@@ -87,19 +88,20 @@ export const createOrUpdateClient = async (
       throw new Error('Número de telefone inválido');
     }
 
-    // Verifica se já existe um cliente com este telefone
+    // AJUSTE 2: Verifica se já existe um cliente com este telefone (identificador único)
     const existingClient = await findClientByPhone(companyId, clientData.phone);
 
     if (existingClient) {
-      // Cliente já existe, preserva os dados originais mas pode atualizar email/notas se estiverem vazios
+      console.log(`📞 [AJUSTE 2] Cliente encontrado pelo telefone: ${existingClient.name} (${existingClient.phone})`);
+      
+      // Cliente já existe - AJUSTE 2: Apenas vincula ao agendamento existente, sem duplicar
       const updateData: any = {};
       
-      // Atualiza email se o existente estiver vazio e o novo não
+      // Atualiza apenas campos vazios para preservar dados existentes
       if (!existingClient.email && clientData.email) {
         updateData.email = clientData.email;
       }
       
-      // Atualiza notas se as existentes estiverem vazias e as novas não
       if (!existingClient.notes && clientData.notes) {
         updateData.notes = clientData.notes;
       }
@@ -123,13 +125,21 @@ export const createOrUpdateClient = async (
           return { client: existingClient, isNew: false };
         }
 
+        console.log(`✅ [AJUSTE 2] Cliente atualizado: ${updatedClient.name}`);
         return { client: updatedClient, isNew: false };
       }
 
       return { client: existingClient, isNew: false };
     }
 
-    // Cliente não existe, cria um novo
+    // CORREÇÃO DUPLICAÇÃO: Verificação final antes de criar + proteção contra condição de corrida
+    const finalCheck = await findClientByPhone(companyId, clientData.phone);
+    if (finalCheck) {
+      console.log(`📞 [CORREÇÃO DUPLICAÇÃO] Cliente encontrado na verificação final: ${finalCheck.name}`);
+      return { client: finalCheck, isNew: false };
+    }
+
+    // AJUSTE 2: Cliente não existe, cria um novo com telefone como identificador único
     const { data: newClient, error } = await supabase
       .from('clients')
       .insert({
@@ -144,9 +154,18 @@ export const createOrUpdateClient = async (
       .single();
 
     if (error) {
+      // CORREÇÃO DUPLICAÇÃO: Se erro de duplicação, tentar buscar o cliente que foi criado por outro processo
+      if (error.code === '23505' || error.message?.includes('duplicate') || error.message?.includes('unique')) {
+        console.log(`🔄 [CORREÇÃO DUPLICAÇÃO] Erro de duplicação detectado, buscando cliente existente`);
+        const existingAfterError = await findClientByPhone(companyId, clientData.phone);
+        if (existingAfterError) {
+          return { client: existingAfterError, isNew: false };
+        }
+      }
       throw error;
     }
 
+    console.log(`✅ [CORREÇÃO DUPLICAÇÃO] Novo cliente criado: ${newClient.name} (${newClient.phone})`);
     return { client: newClient, isNew: true };
   } catch (error) {
     console.error('Erro ao criar/atualizar cliente:', error);

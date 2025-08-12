@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, Phone, User, CheckCircle, MessageSquare, Trash2 } from 'lucide-react';
+import { Calendar, Clock, User, CheckCircle, MessageSquare, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppointmentActions } from '@/hooks/useAppointmentActions';
@@ -110,71 +110,75 @@ const TodayAppointmentsList = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
+        {/* Layout simplificado em 2 linhas */}
+        <div className="space-y-3">
           {sortedAppointments.map(appointment => (
-            <div key={appointment.id} className="bg-white rounded-lg p-4 border border-gray-200 hover:bg-gray-50 transition-colors">
-              <div className="space-y-3">
-                {/* Primeira linha: Horário, Nome e Telefone */}
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="flex items-center gap-2 text-green-600 font-medium">
+            <div key={appointment.id} className="bg-white rounded-lg p-3 border border-gray-200 hover:bg-gray-50 transition-colors">
+              {/* Linha 1: Horário, Nome e Telefone + Status */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  {/* Horário */}
+                  <div className="flex items-center gap-2 text-green-600 font-bold">
                     <Clock className="w-4 h-4" />
-                    <span>{appointment.appointment_time.substring(0, 5)}</span>
+                    <span className="text-lg">{appointment.appointment_time.substring(0, 5)}</span>
                   </div>
                   
-                  <div className="flex items-center gap-2 min-w-0">
+                  {/* Nome */}
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
                     <span className="font-medium text-gray-800 truncate">{appointment.client_name}</span>
                   </div>
                   
-                  <div className="flex items-center gap-2 text-gray-600 min-w-0">
-                    <Phone className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">{appointment.client_phone}</span>
+                  {/* Telefone */}
+                  <div className="text-gray-600 min-w-0">
+                    <span className="text-sm">{appointment.client_phone}</span>
                   </div>
-
-                  {appointment.status === 'completed' && (
-                    <div className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-1 rounded flex-shrink-0">
-                      <CheckCircle className="w-3 h-3" />
-                      <span>Concluído</span>
-                    </div>
-                  )}
                 </div>
                 
-                {/* Segunda linha: Ações */}
-                <div className="flex justify-end gap-1">
+                {/* Status */}
+                {appointment.status === 'completed' && (
+                  <div className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-1 rounded ml-2">
+                    <CheckCircle className="w-3 h-3" />
+                    <span className="hidden sm:inline">Concluído</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Linha 2: Ações no canto esquerdo */}
+              <div className="flex justify-start gap-3">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => handleWhatsAppClick(appointment.client_phone, appointment.client_name, appointment.appointment_time)}
+                  className="h-8 w-8 p-0 text-green-600 hover:bg-green-50"
+                  title="Enviar lembrete via WhatsApp"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                </Button>
+
+                {appointment.status !== 'completed' && (
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => handleWhatsAppClick(appointment.client_phone, appointment.client_name, appointment.appointment_time)}
-                    className="h-8 w-8 p-0 text-green-600 hover:bg-green-50"
-                    title="Enviar lembrete via WhatsApp"
+                    onClick={() => handleCompleteAppointment(appointment.id, appointment.client_name)}
+                    disabled={isUpdating}
+                    className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50"
+                    title="Marcar como concluído"
                   >
-                    <MessageSquare className="w-4 h-4" />
+                    <CheckCircle className="w-4 h-4" />
                   </Button>
+                )}
 
-                  {appointment.status !== 'completed' && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleCompleteAppointment(appointment.id, appointment.client_name)}
-                      disabled={isUpdating}
-                      className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50"
-                      title="Marcar como concluído"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                    </Button>
-                  )}
-
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleDeleteAppointment(appointment.id, appointment.client_name, appointment.client_phone)}
-                    disabled={isDeleting}
-                    className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
-                    title="Excluir agendamento"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => handleDeleteAppointment(appointment.id, appointment.client_name, appointment.client_phone)}
+                  disabled={isDeleting}
+                  className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                  title="Excluir agendamento"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
             </div>
           ))}

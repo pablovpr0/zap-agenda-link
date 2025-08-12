@@ -316,6 +316,19 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
 
     const serviceDuration = serviceData.duration;
 
+    // CORREÇÃO CRÍTICA: Verificação de disponibilidade em tempo real mais robusta
+    const { verifyTimeSlotAvailability } = await import('./publicBookingService');
+    const isAvailable = await verifyTimeSlotAvailability(
+      appointmentData.company_id,
+      appointmentData.appointment_date,
+      appointmentData.appointment_time,
+      serviceDuration
+    );
+
+    if (!isAvailable) {
+      throw new Error('⚠️ Este horário não está mais disponível. Outro cliente acabou de agendar neste mesmo horário. Por favor, escolha outro horário.');
+    }
+
     // VERIFICAÇÃO DUPLA: Verificar disponibilidade do horário exato
     const { data: existingExactSlot, error: checkError } = await supabase
       .from('appointments')
@@ -349,37 +362,18 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
 
     let clientId = appointmentData.client_id;
 
-    // Se não tem client_id, criar ou buscar cliente
+    // CORREÇÃO: Usar o serviço de clientes com lógica de telefone único
     if (!clientId && appointmentData.client_name && appointmentData.client_phone) {
-      // Primeiro, tentar encontrar cliente existente pelo telefone
-      const { data: existingClient } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('company_id', appointmentData.company_id)
-        .eq('phone', appointmentData.client_phone)
-        .maybeSingle();
+      const { createOrUpdateClient } = await import('./clientService');
+      
+      const { client } = await createOrUpdateClient(appointmentData.company_id, {
+        name: appointmentData.client_name,
+        phone: appointmentData.client_phone,
+        email: appointmentData.client_email || undefined
+      });
 
-      if (existingClient) {
-        clientId = existingClient.id;
-      } else {
-        // Criar novo cliente
-        const { data: newClient, error: clientError } = await supabase
-          .from('clients')
-          .insert({
-            company_id: appointmentData.company_id,
-            name: appointmentData.client_name,
-            phone: appointmentData.client_phone,
-            email: appointmentData.client_email || null
-          })
-          .select('id')
-          .single();
-
-        if (clientError) {
-          throw new Error(`Erro ao criar cliente: ${clientError.message}`);
-        }
-
-        clientId = newClient.id;
-      }
+      clientId = client.id;
+      console.log(`📞 [CORREÇÃO DUPLICAÇÃO] Cliente processado: ${client.name} (${client.phone}) - ID: ${client.id}`);
     }
 
     if (!clientId) {
