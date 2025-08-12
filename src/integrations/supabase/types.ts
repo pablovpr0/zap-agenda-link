@@ -95,6 +95,7 @@ export type Database = {
           email: string | null
           id: string
           name: string
+          normalized_phone: string | null
           notes: string | null
           phone: string
           updated_at: string
@@ -105,6 +106,7 @@ export type Database = {
           email?: string | null
           id?: string
           name: string
+          normalized_phone?: string | null
           notes?: string | null
           phone: string
           updated_at?: string
@@ -115,6 +117,7 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string
+          normalized_phone?: string | null
           notes?: string | null
           phone?: string
           updated_at?: string
@@ -437,6 +440,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_fcm_tokens: {
+        Row: {
+          created_at: string | null
+          device_type: string | null
+          fcm_token: string
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_type?: string | null
+          fcm_token: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          device_type?: string | null
+          fcm_token?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
