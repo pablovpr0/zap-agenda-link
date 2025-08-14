@@ -77,7 +77,7 @@ const BookingDataCard = ({
               Escolha a data
               {selectedDate && (
                 <span className="ml-2 text-sm text-[#19c662] dynamic-primary font-normal">
-                  ✓ {formatToBrasilia(selectedDate + 'T12:00:00', "EEEE, dd 'de' MMMM")}
+                  ✓ {formatToBrasilia(new Date(selectedDate + 'T12:00:00'), "EEEE, dd 'de' MMMM")}
                 </span>
               )}
             </label>

@@ -36,7 +36,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
   }, [isOpen]);
 
   const formatDate = (dateStr: string) => {
-    return formatToBrasilia(dateStr + 'T12:00:00', "EEEE, dd 'de' MMMM 'de' yyyy");
+    return formatToBrasilia(new Date(dateStr + 'T12:00:00'), "EEEE, dd 'de' MMMM 'de' yyyy");
   };
 
   const generateCalendarEvent = () => {

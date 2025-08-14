@@ -1,4 +1,5 @@
 
+
 import { fromZonedTime, toZonedTime, format } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 
@@ -23,10 +24,11 @@ export const convertFromUTC = (date: Date): Date => {
  * Formata uma data no timezone do Brasil
  */
 export const formatInBrazilTimezone = (
-  date: Date, 
+  date: Date | string, 
   formatString: string = 'dd/MM/yyyy HH:mm'
 ): string => {
-  const brasiliaDate = toZonedTime(date, BRAZIL_TIMEZONE);
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const brasiliaDate = toZonedTime(dateObj, BRAZIL_TIMEZONE);
   return format(brasiliaDate, formatString, { 
     timeZone: BRAZIL_TIMEZONE,
     locale: ptBR 
@@ -106,9 +108,9 @@ export const isDateTimePastInBrazil = (date: string, time?: string): boolean => 
 /**
  * Formata horário UTC para horário do Brasil
  */
-export const formatUtcToBrazilTime = (utcTimestamp: string): string => {
+export const formatUtcToBrazilTime = (utcTimestamp: string | Date): string => {
   if (!utcTimestamp) return '';
-  const utcDate = new Date(utcTimestamp);
+  const utcDate = typeof utcTimestamp === 'string' ? new Date(utcTimestamp) : utcTimestamp;
   return formatInBrazilTimezone(utcDate, 'HH:mm');
 };
 
@@ -129,3 +131,4 @@ export const debugTimezone = () => {
     timezone: BRAZIL_TIMEZONE
   });
 };
+
