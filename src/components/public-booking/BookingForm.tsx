@@ -37,6 +37,7 @@ const BookingForm = ({
   const [selectedTime, setSelectedTime] = useState('');
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
   // Load available times when date or service changes
@@ -82,6 +83,7 @@ const BookingForm = ({
       setSelectedTime('');
       setClientName('');
       setClientPhone('');
+      setClientEmail('');
       setAvailableTimes([]);
     }
   };
@@ -100,7 +102,7 @@ const BookingForm = ({
           <ServiceSelection
             services={services}
             selectedService={selectedService}
-            onServiceChange={setSelectedService}
+            onServiceSelect={setSelectedService}
           />
 
           {/* Calendário */}
@@ -129,8 +131,10 @@ const BookingForm = ({
           <ClientForm
             clientName={clientName}
             clientPhone={clientPhone}
-            onNameChange={setClientName}
-            onPhoneChange={setClientPhone}
+            clientEmail={clientEmail}
+            onClientNameChange={setClientName}
+            onClientPhoneChange={setClientPhone}
+            onClientEmailChange={setClientEmail}
           />
 
           <Button 
