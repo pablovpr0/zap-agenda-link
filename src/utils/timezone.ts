@@ -1,5 +1,4 @@
 
-
 import { fromZonedTime, toZonedTime, format } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 
@@ -131,4 +130,3 @@ export const debugTimezone = () => {
     timezone: BRAZIL_TIMEZONE
   });
 };
-
