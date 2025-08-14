@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { getNowInBrazil, getTodayInBrazil } from '@/utils/timezone';
+import { formatToBrasilia, getNowInBrazil, getTodayInBrazil } from '@/utils/timezone';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { devLog, devError, devWarn, devInfo } from '@/utils/console';
@@ -51,12 +51,12 @@ const StandardCalendar = ({
     if (disabled || !isDateAvailable(date)) return;
     
     if (onDateSelect) {
-      // Seleção imediata da data usando formato simples
-      const dateString = format(date, 'yyyy-MM-dd');
+      // Usar formatação brasileira para a data
+      const dateString = formatToBrasilia(date, 'yyyy-MM-dd');
       onDateSelect(dateString);
       
       // Log para debug
-      devLog('📅 Data selecionada imediatamente:', dateString);
+      devLog('📅 [BRASIL] Data selecionada:', dateString);
     }
   };
 
@@ -84,7 +84,7 @@ const StandardCalendar = ({
           </Button>
           
           <h3 className="text-lg font-semibold text-black capitalize">
-            {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
+            {formatToBrasilia(currentMonth, 'MMMM yyyy')}
           </h3>
           
           <Button
@@ -113,7 +113,7 @@ const StandardCalendar = ({
         {calendarDays.map((date) => {
           const isCurrentMonth = isSameMonth(date, currentMonth);
           const isAvailable = isDateAvailable(date);
-          const isSelected = selectedDate === format(date, 'yyyy-MM-dd');
+          const isSelected = selectedDate === formatToBrasilia(date, 'yyyy-MM-dd');
           const isTodayDate = highlightToday && isToday(date);
           
           return (
@@ -133,7 +133,7 @@ const StandardCalendar = ({
                 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
               `}
             >
-              {format(date, 'd')}
+              {formatToBrasilia(date, 'd')}
               {isTodayDate && !isSelected && (
                 <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-[#19c662] rounded-full"></div>
               )}

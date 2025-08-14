@@ -1,14 +1,48 @@
 
 project_id = "mjufryrwcedazffgxbws"
 
-[functions.create-checkout]
-verify_jwt = false
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
-[functions.check-subscription]
-verify_jwt = false
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
 
-[functions.stripe-webhook]
-verify_jwt = false
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1:54321"
 
-[functions.validate-booking-limits]
+[inbucket]
+enabled = true
+port = 54324
+sender_name = "Supabase"
+smtp_host = "127.0.0.1"
+smtp_port = 54325
+pop3_port = 54326
+
+[storage]
+enabled = true
+port = 54327
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+port = 54328
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["https://mjufryrwcedazffgxbws.supabase.co"]
+jwt_expiry = 3600
+refresh_token_rotation_enabled = true
+security_update_password_require_reauthentication = true
+
+[edge_functions]
+enabled = true
+port = 54329
+
+[functions.get-available-times-brazil]
 verify_jwt = false

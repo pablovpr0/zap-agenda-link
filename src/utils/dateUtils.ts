@@ -94,7 +94,7 @@ export const formatMonthYear = (date: Date | string): string => {
   return formatToBrasilia(dateObj, 'MMMM yyyy');
 };
 
-// Adicionar funções ausentes
+// Funções específicas para o sistema de agendamento
 export const generateAvailableDates = (workingDays: number[], advanceBookingLimit: number): Date[] => {
   const dates: Date[] = [];
   const today = getCurrentBrasiliaDate();
@@ -129,4 +129,30 @@ export const formatAppointmentDateWithWeekday = (date: Date | string): string =>
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   if (!isValid(dateObj)) return '';
   return formatToBrasilia(dateObj, "EEEE, dd 'de' MMMM");
+};
+
+/**
+ * Formata data no padrão brasileiro (dd/mm/aaaa)
+ */
+export const formatBrazilianDate = (date: Date | string): string => {
+  return formatDateForDisplay(date);
+};
+
+/**
+ * Formata horário no padrão brasileiro (24 horas)
+ */
+export const formatBrazilianTime = (time: string): string => {
+  if (!time) return '';
+  // Garantir formato HH:mm
+  const [hours, minutes] = time.split(':');
+  return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+};
+
+/**
+ * Formata data e hora completas no padrão brasileiro
+ */
+export const formatBrazilianDateTime = (date: Date | string, time?: string): string => {
+  const dateStr = formatBrazilianDate(date);
+  if (!time) return dateStr;
+  return `${dateStr} às ${formatBrazilianTime(time)}`;
 };

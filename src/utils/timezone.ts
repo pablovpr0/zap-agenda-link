@@ -1,9 +1,10 @@
-import { parseISO } from 'date-fns';
+
+import { parseISO, format as formatDate } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { utcToZonedTime, zonedTimeToUtc, format } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime, format } from 'date-fns-tz';
 import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
-// Timezone do Brasil
+// Timezone oficial do Brasil
 export const BRAZIL_TIMEZONE = 'America/Sao_Paulo';
 
 /**
@@ -11,14 +12,14 @@ export const BRAZIL_TIMEZONE = 'America/Sao_Paulo';
  */
 export const utcToBrazilTime = (utcDate: Date | string): Date => {
   const date = typeof utcDate === 'string' ? parseISO(utcDate) : utcDate;
-  return utcToZonedTime(date, BRAZIL_TIMEZONE);
+  return toZonedTime(date, BRAZIL_TIMEZONE);
 };
 
 /**
  * Converte uma data do horário de Brasília para UTC
  */
 export const brazilTimeToUtc = (brazilDate: Date): Date => {
-  return zonedTimeToUtc(brazilDate, BRAZIL_TIMEZONE);
+  return fromZonedTime(brazilDate, BRAZIL_TIMEZONE);
 };
 
 /**
@@ -66,7 +67,7 @@ export const convertBrasiliaToDatabase = (dateStr: string, timeStr: string): str
  * Obtém a data atual no horário de Brasília
  */
 export const getNowInBrazil = (): Date => {
-  return utcToZonedTime(new Date(), BRAZIL_TIMEZONE);
+  return toZonedTime(new Date(), BRAZIL_TIMEZONE);
 };
 
 /**
@@ -91,7 +92,7 @@ export const getCurrentTimeInBrazil = (): string => {
 export const brazilDateTimeToUtc = (dateStr: string, timeStr: string): Date => {
   // Criar data no horário de Brasília
   const brazilDateTime = new Date(`${dateStr}T${timeStr}:00`);
-  return zonedTimeToUtc(brazilDateTime, BRAZIL_TIMEZONE);
+  return fromZonedTime(brazilDateTime, BRAZIL_TIMEZONE);
 };
 
 /**
@@ -130,6 +131,23 @@ export const convertWorkingHours = (timeStr: string): string => {
 };
 
 /**
+ * Formata valores monetários no padrão brasileiro
+ */
+export const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(value);
+};
+
+/**
+ * Formata números no padrão brasileiro
+ */
+export const formatNumber = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR').format(value);
+};
+
+/**
  * Debug: Mostra comparação de horários
  */
 export const debugTimezone = () => {
@@ -139,7 +157,7 @@ export const debugTimezone = () => {
   devLog('🕐 Debug Timezone:', {
     utc: now.toISOString(),
     brazil: format(brazilTime, 'yyyy-MM-dd HH:mm:ss', { timeZone: BRAZIL_TIMEZONE }),
-    utc_formatted: format(now, 'yyyy-MM-dd HH:mm:ss'),
+    utc_formatted: formatDate(now, 'yyyy-MM-dd HH:mm:ss'),
     brazil_formatted: format(brazilTime, 'yyyy-MM-dd HH:mm:ss', { timeZone: BRAZIL_TIMEZONE }),
     timezone: BRAZIL_TIMEZONE
   });
