@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export const useMonthlyLimit = () => {
   const { toast } = useToast();
@@ -14,6 +15,18 @@ export const useMonthlyLimit = () => {
 
     setChecking(true);
     try {
+      // Verificar se o usuário é admin
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single();
+
+      // Se o usuário é admin, não aplicar limitações
+      if (profileData?.is_admin) {
+        devLog('👑 Usuário admin - ignorando limite mensal');
+        return true;
+      }
       // Buscar configurações da empresa
       const { data: settings, error: settingsError } = await supabase
         .from('company_settings')
@@ -22,12 +35,12 @@ export const useMonthlyLimit = () => {
         .maybeSingle();
 
       if (settingsError) {
-        console.error('Erro ao buscar configurações:', settingsError);
+        devError('Erro ao buscar configurações:', settingsError);
         return true; // Em caso de erro, permite o agendamento
       }
 
       if (!settings?.monthly_appointments_limit) {
-        console.log('Limite mensal não configurado');
+        devLog('Limite mensal não configurado');
         return true; // Se não há limite configurado, permite o agendamento
       }
 
@@ -43,7 +56,7 @@ export const useMonthlyLimit = () => {
         .maybeSingle();
 
       if (clientError) {
-        console.error('Erro ao buscar cliente:', clientError);
+        devError('Erro ao buscar cliente:', clientError);
         return true; // Em caso de erro, permite o agendamento
       }
 
@@ -60,12 +73,12 @@ export const useMonthlyLimit = () => {
         .neq('status', 'cancelled');
 
       if (appointmentsError) {
-        console.error('Erro ao buscar agendamentos:', appointmentsError);
+        devError('Erro ao buscar agendamentos:', appointmentsError);
         return true; // Em caso de erro, permite o agendamento
       }
 
       const appointmentCount = appointments?.length || 0;
-      console.log(`Cliente ${clientPhone} tem ${appointmentCount} agendamentos este mês. Limite: ${monthlyLimit}`);
+      devLog(`Cliente ${clientPhone} tem ${appointmentCount} agendamentos este mês. Limite: ${monthlyLimit}`);
 
       if (appointmentCount >= monthlyLimit) {
         toast({
@@ -78,7 +91,7 @@ export const useMonthlyLimit = () => {
 
       return true;
     } catch (error) {
-      console.error('Erro ao verificar limite mensal:', error);
+      devError('Erro ao verificar limite mensal:', error);
       return true; // Em caso de erro, permite o agendamento
     } finally {
       setChecking(false);

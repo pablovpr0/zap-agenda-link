@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 import CompanySettingsModal from '../CompanySettingsModal';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 const WelcomeSection = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   return <>
@@ -22,7 +23,7 @@ const WelcomeSection = () => {
 
       <CompanySettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} onSuccess={() => {
       // Poderia recarregar dados se necessário
-      console.log('Configurações salvas com sucesso');
+      devLog('Configurações salvas com sucesso');
     }} />
     </>;
 };

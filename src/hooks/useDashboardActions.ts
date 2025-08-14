@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export const useDashboardActions = (bookingLink: string) => {
   const [linkCopied, setLinkCopied] = useState(false);
@@ -16,7 +17,7 @@ export const useDashboardActions = (bookingLink: string) => {
       });
       setTimeout(() => setLinkCopied(false), 2000);
     } catch (error) {
-      console.error('Erro ao copiar link:', error);
+      devError('Erro ao copiar link:', error);
       toast({
         title: "Erro",
         description: "Não foi possível copiar o link.",
@@ -26,7 +27,7 @@ export const useDashboardActions = (bookingLink: string) => {
   };
 
   const handleViewPublicPage = () => {
-    console.log('Abrindo página pública:', bookingLink);
+    devLog('Abrindo página pública:', bookingLink);
     window.open(bookingLink, '_blank');
   };
 

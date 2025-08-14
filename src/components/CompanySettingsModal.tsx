@@ -14,6 +14,7 @@ import LunchBreakSettings from './settings/modal/LunchBreakSettings';
 import AppointmentSettings from './settings/modal/AppointmentSettings';
 import SettingsHelpSection from './settings/modal/SettingsHelpSection';
 import { getStorageData, setStorageData, MockCompanySettings, STORAGE_KEYS } from '@/data/mockData';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface CompanySettingsModalProps {
   isOpen: boolean;
@@ -75,7 +76,7 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
       }
 
     } catch (error: any) {
-      console.error('Erro ao carregar configurações:', error);
+      devError('Erro ao carregar configurações:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar as configurações.",
@@ -147,7 +148,7 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
       onClose();
 
     } catch (error: any) {
-      console.error('Erro ao salvar configurações:', error);
+      devError('Erro ao salvar configurações:', error);
       toast({
         title: "Erro",
         description: "Não foi possível salvar as configurações. Tente novamente.",

@@ -5,6 +5,7 @@ import { ptBR } from 'date-fns/locale';
 import { getNowInBrazil, getTodayInBrazil } from '@/utils/timezone';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface StandardCalendarProps {
   availableDates?: Date[];
@@ -55,7 +56,7 @@ const StandardCalendar = ({
       onDateSelect(dateString);
       
       // Log para debug
-      console.log('📅 Data selecionada imediatamente:', dateString);
+      devLog('📅 Data selecionada imediatamente:', dateString);
     }
   };
 

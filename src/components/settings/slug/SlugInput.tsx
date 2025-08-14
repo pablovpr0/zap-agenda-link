@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Link, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { validateSlug, isSlugTaken } from '@/services/companySettingsService';
 import { getDomainConfig } from '@/lib/domainConfig';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface SlugInputProps {
   slug: string;
@@ -41,7 +42,7 @@ const SlugInput = ({ slug, currentSlug, onSlugChange, onValidationChange }: Slug
           setIsAvailable(available);
           onValidationChange(validationResult.isValid, available);
         } catch (error) {
-          console.error('Erro ao verificar disponibilidade:', error);
+          devError('Erro ao verificar disponibilidade:', error);
           setIsAvailable(null);
           onValidationChange(validationResult.isValid, null);
         } finally {

@@ -1,15 +1,16 @@
 import { supabase } from '@/integrations/supabase/client';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export async function debugAvailableTimesGeneration(
   companyId: string, 
   selectedDate: string, 
   companySettings: any
 ) {
-  console.log('🔍 DEBUG: Available Times Generation');
-  console.log('📅 Date selected:', selectedDate);
+  devLog('🔍 DEBUG: Available Times Generation');
+  devLog('📅 Date selected:', selectedDate);
   const date = new Date(selectedDate + 'T12:00:00'); // Meio-dia para evitar problemas de timezone
   const dayOfWeek = date.getDay();
-  console.log('📅 Day of week:', dayOfWeek);
+  devLog('📅 Day of week:', dayOfWeek);
 
   // Get daily schedule for this day
   const { data: dailySchedule, error: scheduleError } = await (supabase as any)
@@ -18,10 +19,10 @@ export async function debugAvailableTimesGeneration(
     .eq('company_id', companyId)
     .eq('day_of_week', dayOfWeek);
 
-  console.log('📋 Daily schedules query result:', { dailySchedule, scheduleError });
+  devLog('📋 Daily schedules query result:', { dailySchedule, scheduleError });
 
   if (scheduleError) {
-    console.error('❌ Error fetching daily schedule:', scheduleError);
+    devError('❌ Error fetching daily schedule:', scheduleError);
     return null;
   }
 
@@ -29,8 +30,8 @@ export async function debugAvailableTimesGeneration(
   const activeSchedule = dailySchedule?.find((schedule: any) => schedule.is_active);
 
   if (!activeSchedule) {
-    console.log('🚫 No active schedule found for this day');
-    console.log('🔄 Falling back to company_settings working hours');
+    devLog('🚫 No active schedule found for this day');
+    devLog('🔄 Falling back to company_settings working hours');
     
     // Fallback to company_settings
     const workingHours = {
@@ -42,13 +43,13 @@ export async function debugAvailableTimesGeneration(
       lunch_end: companySettings.lunch_end_time
     };
 
-    console.log('⏰ Using company settings:', workingHours);
+    devLog('⏰ Using company settings:', workingHours);
     return workingHours;
   }
 
-  console.log('✅ Active schedule found:', activeSchedule);
+  devLog('✅ Active schedule found:', activeSchedule);
   
-  console.log('⏰ Using schedule:', {
+  devLog('⏰ Using schedule:', {
     start_time: activeSchedule.start_time,
     end_time: activeSchedule.end_time,
     interval: companySettings.appointment_interval,
@@ -67,7 +68,7 @@ export async function debugAvailableTimesGeneration(
     lunch_end: activeSchedule.lunch_end
   };
 
-  console.log('🎯 Final working hours config:', workingHours);
+  devLog('🎯 Final working hours config:', workingHours);
 
   // Generate time slots for debugging
   const timeSlots = [];
@@ -83,7 +84,7 @@ export async function debugAvailableTimesGeneration(
     lunchEnd = new Date(`1970-01-01T${workingHours.lunch_end}`);
   }
 
-  console.log('🍽️ Lunch break config:', { 
+  devLog('🍽️ Lunch break config:', { 
     enabled: workingHours.lunch_break_enabled, 
     start: workingHours.lunch_start, 
     end: workingHours.lunch_end,
@@ -109,9 +110,9 @@ export async function debugAvailableTimesGeneration(
     currentTime = new Date(currentTime.getTime() + intervalMs);
   }
 
-  console.log('🕐 Generated time slots:', timeSlots);
-  console.log('🚫 Lunch break slots:', timeSlots.filter(slot => !slot.available));
-  console.log('✅ Available slots:', timeSlots.filter(slot => slot.available));
+  devLog('🕐 Generated time slots:', timeSlots);
+  devLog('🚫 Lunch break slots:', timeSlots.filter(slot => !slot.available));
+  devLog('✅ Available slots:', timeSlots.filter(slot => slot.available));
 
   return workingHours;
 }
@@ -124,7 +125,7 @@ export async function getAvailableTimesForDate(
   companyId: string,
   selectedDate: string
 ) {
-  console.log('🔍 Getting available times for:', { companyId, selectedDate });
+  devLog('🔍 Getting available times for:', { companyId, selectedDate });
   
   try {
     // Get company settings
@@ -135,7 +136,7 @@ export async function getAvailableTimesForDate(
       .single();
 
     if (!companySettings) {
-      console.error('❌ No company settings found');
+      devError('❌ No company settings found');
       return [];
     }
 
@@ -143,7 +144,7 @@ export async function getAvailableTimesForDate(
     const workingHours = await debugAvailableTimesGeneration(companyId, selectedDate, companySettings);
     
     if (!workingHours) {
-      console.log('❌ No working hours configuration found');
+      devLog('❌ No working hours configuration found');
       return [];
     }
 
@@ -161,17 +162,17 @@ export async function getAvailableTimesForDate(
       });
 
     if (error) {
-      console.error('❌ Error from get_available_times:', error);
+      devError('❌ Error from get_available_times:', error);
       return [];
     }
 
     const times = availableTimes?.map((item: any) => item.available_time) || [];
-    console.log('✅ Final available times:', times);
+    devLog('✅ Final available times:', times);
     
     return times;
 
   } catch (error) {
-    console.error('❌ Error in getAvailableTimesForDate:', error);
+    devError('❌ Error in getAvailableTimesForDate:', error);
     return [];
   }
 }

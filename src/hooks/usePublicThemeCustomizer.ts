@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export const usePublicThemeCustomizer = () => {
   const { user } = useAuth();
@@ -15,7 +16,7 @@ export const usePublicThemeCustomizer = () => {
     try {
       setLoading(true);
       // Simular salvamento por enquanto
-      console.log('Salvando configurações de tema:', newSettings);
+      devLog('Salvando configurações de tema:', newSettings);
       setSettings(newSettings);
       
       // Aqui você pode adicionar a lógica real de salvamento

@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface Service {
   id: string;
@@ -55,7 +56,7 @@ const ServiceManagement = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Erro ao carregar serviços:', error);
+        devError('Erro ao carregar serviços:', error);
         toast({
           title: "Erro",
           description: "Não foi possível carregar os serviços.",
@@ -66,7 +67,7 @@ const ServiceManagement = () => {
 
       setServices(servicesData || []);
     } catch (error) {
-      console.error('Erro ao carregar serviços:', error);
+      devError('Erro ao carregar serviços:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os serviços.",
@@ -114,7 +115,7 @@ const ServiceManagement = () => {
         description: "Serviço criado com sucesso.",
       });
     } catch (error) {
-      console.error('Erro ao criar serviço:', error);
+      devError('Erro ao criar serviço:', error);
       toast({
         title: "Erro",
         description: "Não foi possível criar o serviço.",
@@ -174,7 +175,7 @@ const ServiceManagement = () => {
         description: "Serviço atualizado com sucesso.",
       });
     } catch (error) {
-      console.error('Erro ao atualizar serviço:', error);
+      devError('Erro ao atualizar serviço:', error);
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o serviço.",
@@ -199,7 +200,7 @@ const ServiceManagement = () => {
         description: "Serviço excluído com sucesso.",
       });
     } catch (error) {
-      console.error('Erro ao excluir serviço:', error);
+      devError('Erro ao excluir serviço:', error);
       toast({
         title: "Erro",
         description: "Não foi possível excluir o serviço.",

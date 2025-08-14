@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { PublicThemeSettings } from '@/types/publicTheme';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export const savePublicThemeSettings = async (settings: PublicThemeSettings): Promise<PublicThemeSettings> => {
   try {
@@ -17,13 +18,13 @@ export const savePublicThemeSettings = async (settings: PublicThemeSettings): Pr
       .single();
 
     if (error) {
-      console.error('Error saving public theme settings:', error);
+      devError('Error saving public theme settings:', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Failed to save public theme settings:', error);
+    devError('Failed to save public theme settings:', error);
     throw error;
   }
 };
@@ -37,13 +38,13 @@ export const loadPublicThemeSettings = async (companyId: string): Promise<Public
     .maybeSingle();
 
     if (error) {
-      console.error('Error loading public theme settings:', error);
+      devError('Error loading public theme settings:', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Failed to load public theme settings:', error);
+    devError('Failed to load public theme settings:', error);
     return null;
   }
 };
@@ -59,7 +60,7 @@ export const loadPublicThemeBySlug = async (companySlug: string): Promise<Public
       .maybeSingle();
 
     if (companyError || !companyData) {
-      console.error('Company not found for slug:', companySlug);
+      devError('Company not found for slug:', companySlug);
       return null;
     }
 
@@ -71,13 +72,13 @@ export const loadPublicThemeBySlug = async (companySlug: string): Promise<Public
       .maybeSingle();
 
     if (themeError) {
-      console.error('Error loading theme settings:', themeError);
+      devError('Error loading theme settings:', themeError);
       return null;
     }
 
     return themeData;
   } catch (error) {
-    console.error('Failed to load public theme by slug:', error);
+    devError('Failed to load public theme by slug:', error);
     return null;
   }
 };

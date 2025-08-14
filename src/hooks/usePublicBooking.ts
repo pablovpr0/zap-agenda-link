@@ -60,7 +60,7 @@ export const usePublicBooking = (companySlug: string) => {
     handleBookingSuccess
   );
 
-  const { generateAvailableDates, generateAvailableTimes } = useAvailableTimes(companySettings);
+  const { generateAvailableDates, generateAvailableTimes, availableTimes, isLoading: timesLoading, refreshTimes } = useAvailableTimes(companySettings);
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
 
   // Load available dates when companySettings is available
@@ -124,6 +124,9 @@ export const usePublicBooking = (companySlug: string) => {
     submitting,
     availableDates,
     generateAvailableTimes,
+    availableTimes,
+    timesLoading,
+    refreshTimes,
     submitBooking
   };
 };

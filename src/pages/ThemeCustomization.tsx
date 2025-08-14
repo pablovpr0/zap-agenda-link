@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Palette } from 'lucide-react';
 import PublicThemeCustomizer from '@/components/settings/PublicThemeCustomizer';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 const ThemeCustomization = () => {
   const {
     user
@@ -14,7 +15,7 @@ const ThemeCustomization = () => {
     return null;
   }
   const handleSaveTheme = (settings: any) => {
-    console.log('Tema salvo:', settings);
+    devLog('Tema salvo:', settings);
     // Callback já é tratado pelo PublicThemeCustomizer
   };
   return <div className="min-h-screen bg-gray-50">

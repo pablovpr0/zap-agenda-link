@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { createOrUpdateClient, migrateExistingClients } from '@/services/clientService';
 import { formatPhoneForDisplay } from '@/utils/phoneNormalization';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface Client {
   id: string;
@@ -57,7 +58,7 @@ const ClientManagement = () => {
       if (error) throw error;
       setClients(data || []);
     } catch (error) {
-      console.error('Erro ao carregar clientes:', error);
+      devError('Erro ao carregar clientes:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os clientes.",
@@ -129,7 +130,7 @@ const ClientManagement = () => {
       });
       loadClients();
     } catch (error) {
-      console.error('Erro ao salvar cliente:', error);
+      devError('Erro ao salvar cliente:', error);
       toast({
         title: "Erro",
         description: "Não foi possível salvar o cliente.",
@@ -165,7 +166,7 @@ const ClientManagement = () => {
       });
       loadClients();
     } catch (error) {
-      console.error('Erro ao excluir cliente:', error);
+      devError('Erro ao excluir cliente:', error);
       toast({
         title: "Erro",
         description: "Não foi possível excluir o cliente.",
@@ -241,7 +242,7 @@ const ClientManagement = () => {
         description: `Arquivo ${fileName} baixado com sucesso.`
       });
     } catch (error) {
-      console.error('Erro ao exportar para Excel:', error);
+      devError('Erro ao exportar para Excel:', error);
       toast({
         title: "Erro",
         description: "Não foi possível exportar os dados para Excel.",

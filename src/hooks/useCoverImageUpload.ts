@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface UseCoverImageUploadProps {
   onUploadSuccess?: (url: string) => void;
@@ -97,7 +98,7 @@ export const useCoverImageUpload = ({
 
       return urlData.publicUrl;
     } catch (error: any) {
-      console.error('Erro no upload:', error);
+      devError('Erro no upload:', error);
       toast({
         title: "Erro no upload",
         description: error.message || "Não foi possível fazer o upload da imagem. Tente novamente.",

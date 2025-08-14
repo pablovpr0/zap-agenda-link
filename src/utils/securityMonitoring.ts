@@ -1,6 +1,7 @@
 
 // Security monitoring and logging utilities
 import { getNowInBrazil } from '@/utils/timezone';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export const logSecurityEvent = (event: {
   type: 'rate_limit_exceeded' | 'invalid_input' | 'unauthorized_access' | 'booking_attempt';
@@ -17,7 +18,7 @@ export const logSecurityEvent = (event: {
   };
   
   // Log to console for development
-  console.warn('🔒 Security Event:', logEntry);
+  devWarn('🔒 Security Event:', logEntry);
   
   // In production, you might want to send this to a security monitoring service
   // Example: sendToSecurityService(logEntry);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePublicBooking } from '@/hooks/usePublicBooking';
 import { useBookingEvents } from '@/utils/bookingEvents';
+import { useBookingValidation } from '@/hooks/useBookingValidation';
 import { useToast } from '@/hooks/use-toast';
 import LoadingState from '@/components/public-booking/LoadingState';
 import ErrorState from '@/components/public-booking/ErrorState';
@@ -10,11 +11,15 @@ import CollapsingHeader from '@/components/public-booking/CollapsingHeader';
 import ScheduleHeroCard from '@/components/public-booking/ScheduleHeroCard';
 import BookingDataCard from '@/components/public-booking/BookingDataCard';
 import ClientDataCard from '@/components/public-booking/ClientDataCard';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
+
+
 
 const ModernPublicBooking = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
   const { toast } = useToast();
   const { addEventListener, removeEventListener } = useBookingEvents();
+  const { validateBookingLimits, isValidating } = useBookingValidation();
 
 
 
@@ -87,9 +92,9 @@ const ModernPublicBooking = () => {
           const times = await generateAvailableTimes(selectedDate, serviceDuration);
           setAvailableTimes(times);
 
-          console.log('✅ [HORÁRIOS] Carregados:', times.length, 'horários disponíveis para', selectedDate);
+          devLog('✅ [HORÁRIOS] Carregados:', times.length, 'horários disponíveis para', selectedDate);
         } catch (error) {
-          console.error('❌ Erro ao carregar horários:', error);
+          devError('❌ Erro ao carregar horários:', error);
           setAvailableTimes([]);
           toast({
             title: "Erro ao carregar horários",
@@ -109,7 +114,7 @@ const ModernPublicBooking = () => {
     loadTimes();
   }, [selectedDate, selectedService, services, companyData?.id]);
 
-  // CORREÇÃO: Atualização automática dos horários a cada 3 segundos para garantir sincronização
+  // CORREÇÃO: Atualização automática dos horários a cada 2 segundos para resposta instantânea
   useEffect(() => {
     if (!selectedDate || !selectedService) return;
 
@@ -122,7 +127,7 @@ const ModernPublicBooking = () => {
         // Só atualizar se houver mudança nos horários
         if (JSON.stringify(times) !== JSON.stringify(availableTimes)) {
           setAvailableTimes(times);
-          console.log('🔄 [HORÁRIOS] Atualizados automaticamente:', times.length, 'disponíveis');
+          devLog('⚡ [HORÁRIOS] Atualizados automaticamente a cada 2s:', times.length, 'disponíveis');
           
           // Se o horário selecionado não está mais disponível, limpar
           if (selectedTime && !times.includes(selectedTime)) {
@@ -135,9 +140,9 @@ const ModernPublicBooking = () => {
           }
         }
       } catch (error) {
-        console.error('❌ Erro na atualização automática:', error);
+        devError('❌ Erro na atualização automática:', error);
       }
-    }, 3000); // A cada 3 segundos
+    }, 2000); // A cada 2 segundos
 
     return () => clearInterval(interval);
   }, [selectedDate, selectedService, availableTimes, selectedTime, services, generateAvailableTimes]);
@@ -216,6 +221,7 @@ const ModernPublicBooking = () => {
 
   return (
     <div className="min-h-screen public-page overflow-x-hidden">
+      
       {/* Collapsing Header */}
       <CollapsingHeader
         companyName={profile.company_name}

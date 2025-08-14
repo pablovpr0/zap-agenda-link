@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { normalizePhone, arePhoneNumbersEqual } from '@/utils/phoneNormalization';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export interface ClientData {
   name: string;
@@ -55,7 +56,7 @@ export const findClientByPhone = async (companyId: string, phone: string): Promi
 
     // Se encontrou múltiplos clientes com mesmo telefone, consolidar
     if (matchingClients.length > 1) {
-      console.log(`🔄 [CORREÇÃO] Encontrados ${matchingClients.length} clientes duplicados para telefone ${phone}`);
+      devLog(`🔄 [CORREÇÃO] Encontrados ${matchingClients.length} clientes duplicados para telefone ${phone}`);
       await consolidateDuplicateClients(companyId, matchingClients, normalizedPhone);
     }
 
@@ -73,7 +74,7 @@ export const findClientByPhone = async (companyId: string, phone: string): Promi
 
     return latestClient;
   } catch (error) {
-    console.error('Erro ao buscar cliente por telefone:', error);
+    devError('Erro ao buscar cliente por telefone:', error);
     return null;
   }
 };
@@ -95,8 +96,8 @@ const consolidateDuplicateClients = async (
     const keepClient = sortedClients[0]; // Manter o mais recente
     const clientsToRemove = sortedClients.slice(1); // Remover os outros
 
-    console.log(`🔄 [CONSOLIDAÇÃO] Mantendo cliente: ${keepClient.name} (${keepClient.id})`);
-    console.log(`🗑️ [CONSOLIDAÇÃO] Removendo ${clientsToRemove.length} duplicatas`);
+    devLog(`🔄 [CONSOLIDAÇÃO] Mantendo cliente: ${keepClient.name} (${keepClient.id})`);
+    devLog(`🗑️ [CONSOLIDAÇÃO] Removendo ${clientsToRemove.length} duplicatas`);
 
     // Atualizar agendamentos dos clientes duplicados para apontar para o cliente mantido
     for (const clientToRemove of clientsToRemove) {
@@ -105,7 +106,7 @@ const consolidateDuplicateClients = async (
         .update({ client_id: keepClient.id })
         .eq('client_id', clientToRemove.id);
 
-      console.log(`📋 [CONSOLIDAÇÃO] Agendamentos de ${clientToRemove.name} transferidos para ${keepClient.name}`);
+      devLog(`📋 [CONSOLIDAÇÃO] Agendamentos de ${clientToRemove.name} transferidos para ${keepClient.name}`);
     }
 
     // Remover clientes duplicados
@@ -121,9 +122,9 @@ const consolidateDuplicateClients = async (
       .update({ normalized_phone: normalizedPhone })
       .eq('id', keepClient.id);
 
-    console.log(`✅ [CONSOLIDAÇÃO] Duplicatas removidas, cliente único mantido: ${keepClient.name}`);
+    devLog(`✅ [CONSOLIDAÇÃO] Duplicatas removidas, cliente único mantido: ${keepClient.name}`);
   } catch (error) {
-    console.error('❌ Erro ao consolidar clientes duplicados:', error);
+    devError('❌ Erro ao consolidar clientes duplicados:', error);
   }
 };
 
@@ -146,7 +147,7 @@ export const createOrUpdateClient = async (
     const existingClient = await findClientByPhone(companyId, clientData.phone);
 
     if (existingClient) {
-      console.log(`📞 [CORREÇÃO] Cliente encontrado pelo telefone: ${existingClient.name} (${existingClient.phone})`);
+      devLog(`📞 [CORREÇÃO] Cliente encontrado pelo telefone: ${existingClient.name} (${existingClient.phone})`);
       
       // CORREÇÃO: Cliente já existe - SEMPRE atualizar com dados mais recentes
       const updateData: any = {
@@ -173,12 +174,12 @@ export const createOrUpdateClient = async (
         .single();
 
       if (error) {
-        console.error('Erro ao atualizar cliente:', error);
+        devError('Erro ao atualizar cliente:', error);
         // Retornar cliente existente mesmo com erro de atualização
         return { client: existingClient, isNew: false };
       }
 
-      console.log(`✅ [CORREÇÃO] Cliente atualizado: ${updatedClient.name} (mesmo telefone, dados atualizados)`);
+      devLog(`✅ [CORREÇÃO] Cliente atualizado: ${updatedClient.name} (mesmo telefone, dados atualizados)`);
       return { client: updatedClient, isNew: false };
     }
 
@@ -200,10 +201,10 @@ export const createOrUpdateClient = async (
       throw error;
     }
 
-    console.log(`✅ [CORREÇÃO] Novo cliente criado: ${newClient.name} (${newClient.phone})`);
+    devLog(`✅ [CORREÇÃO] Novo cliente criado: ${newClient.name} (${newClient.phone})`);
     return { client: newClient, isNew: true };
   } catch (error) {
-    console.error('Erro ao criar/atualizar cliente:', error);
+    devError('Erro ao criar/atualizar cliente:', error);
     throw error;
   }
 };
@@ -233,6 +234,6 @@ export const migrateExistingClients = async (companyId: string): Promise<void> =
       }
     }
   } catch (error) {
-    console.error('Erro na migração de clientes:', error);
+    devError('Erro na migração de clientes:', error);
   }
 };

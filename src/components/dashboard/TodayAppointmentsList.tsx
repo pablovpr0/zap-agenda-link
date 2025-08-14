@@ -6,6 +6,7 @@ import { ptBR } from 'date-fns/locale';
 import { useAppointmentActions } from '@/hooks/useAppointmentActions';
 import { useToast } from '@/hooks/use-toast';
 import { getNowInBrazil } from '@/utils/timezone';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 interface TodayAppointment {
   id: string;
   appointment_time: string;
@@ -44,7 +45,7 @@ const TodayAppointmentsList = ({
         window.dispatchEvent(new CustomEvent('appointmentCompleted'));
       });
     } catch (error) {
-      console.error('Erro ao marcar como concluído:', error);
+      devError('Erro ao marcar como concluído:', error);
     }
   };
 
@@ -58,7 +59,7 @@ const TodayAppointmentsList = ({
         }
       });
     } catch (error) {
-      console.error('Erro ao excluir agendamento:', error);
+      devError('Erro ao excluir agendamento:', error);
     }
   };
   const handleWhatsAppClick = (phone: string, clientName: string, appointmentTime: string) => {

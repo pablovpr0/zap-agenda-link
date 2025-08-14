@@ -12,7 +12,7 @@ export const logger = {
    */
   info: (message: string, data?: any) => {
     if (isDevelopment) {
-      console.log(`ℹ️ ${message}`, data ? sanitizeData(data) : '');
+      devLog(`ℹ️ ${message}`, data ? sanitizeData(data) : '');
     }
   },
 
@@ -21,10 +21,10 @@ export const logger = {
    */
   error: (message: string, error?: any) => {
     if (isDevelopment) {
-      console.error(`❌ ${message}`, error);
+      devError(`❌ ${message}`, error);
     } else {
       // Em produção, log apenas a mensagem sem dados sensíveis
-      console.error(`❌ ${message}`);
+      devError(`❌ ${message}`);
     }
   },
 
@@ -33,9 +33,9 @@ export const logger = {
    */
   warn: (message: string, data?: any) => {
     if (isDevelopment) {
-      console.warn(`⚠️ ${message}`, data ? sanitizeData(data) : '');
+      devWarn(`⚠️ ${message}`, data ? sanitizeData(data) : '');
     } else {
-      console.warn(`⚠️ ${message}`);
+      devWarn(`⚠️ ${message}`);
     }
   },
 
@@ -44,7 +44,7 @@ export const logger = {
    */
   debug: (message: string, data?: any) => {
     if (isDevelopment) {
-      console.log(`🔍 ${message}`, data ? sanitizeData(data) : '');
+      devLog(`🔍 ${message}`, data ? sanitizeData(data) : '');
     }
   },
 
@@ -53,7 +53,7 @@ export const logger = {
    */
   success: (message: string, data?: any) => {
     if (isDevelopment) {
-      console.log(`✅ ${message}`, data ? sanitizeData(data) : '');
+      devLog(`✅ ${message}`, data ? sanitizeData(data) : '');
     }
   }
 };

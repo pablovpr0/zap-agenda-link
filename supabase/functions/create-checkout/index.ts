@@ -9,8 +9,12 @@ const corsHeaders = {
 };
 
 const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
+  // Logs desabilitados em produção por segurança
+  const isDev = Deno.env.get("ENVIRONMENT") === "development";
+  if (isDev) {
+    const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+    console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
+  }
 };
 
 serve(async (req) => {
@@ -42,6 +46,26 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
+
+    // Check if user is admin
+    const { data: profileData, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) {
+      logStep("Error fetching profile", { error: profileError });
+    } else if (profileData?.is_admin) {
+      logStep("Admin user trying to create checkout - access already granted");
+      return new Response(JSON.stringify({ 
+        error: "Admin users don't need to subscribe",
+        redirect_to_dashboard: true 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
 

@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 const ReportsButton = () => {
   const { user } = useAuth();
@@ -77,7 +78,7 @@ Total de Atendimentos: ${appointments?.length || 0}`;
       return reportText;
 
     } catch (error) {
-      console.error('Erro ao gerar relatório:', error);
+      devError('Erro ao gerar relatório:', error);
       toast({
         title: "Erro",
         description: "Não foi possível gerar o relatório.",

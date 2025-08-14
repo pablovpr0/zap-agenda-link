@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Calendar, Clock, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 interface DaySchedule {
   day_of_week: number;
   is_active: boolean;
@@ -33,7 +34,7 @@ const ScheduleSettings = ({
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  console.log('🕐 ScheduleSettings: Component rendered', {
+  devLog('🕐 ScheduleSettings: Component rendered', {
     user: user?.id,
     loading,
     schedulesCount: schedules.length,
@@ -63,20 +64,20 @@ const ScheduleSettings = ({
   }, [user]);
   const loadSchedules = async () => {
     setLoading(true);
-    console.log('🔄 Loading schedules for user:', user?.id);
+    devLog('🔄 Loading schedules for user:', user?.id);
     try {
       // Since daily_schedules table exists but not in types, use direct query with any cast
       const {
         data,
         error
       } = await (supabase as any).from('daily_schedules').select('*').eq('company_id', user!.id).order('day_of_week');
-      console.log('📋 Schedule query result:', {
+      devLog('📋 Schedule query result:', {
         data,
         error,
         userID: user?.id
       });
       if (error) {
-        console.error('❌ Error loading schedules:', error);
+        devError('❌ Error loading schedules:', error);
         throw error;
       }
 
@@ -97,9 +98,9 @@ const ScheduleSettings = ({
         }
       }
       setSchedules(completeSchedules);
-      console.log('✅ Schedules loaded successfully:', completeSchedules);
+      devLog('✅ Schedules loaded successfully:', completeSchedules);
     } catch (error: any) {
-      console.error('❌ Erro ao carregar horários:', error);
+      devError('❌ Erro ao carregar horários:', error);
       setError(error.message || 'Erro desconhecido');
       toast({
         title: "Erro",
@@ -149,7 +150,7 @@ const ScheduleSettings = ({
         onScheduleUpdate();
       }
     } catch (error) {
-      console.error('Erro ao salvar horários:', error);
+      devError('Erro ao salvar horários:', error);
       toast({
         title: "Erro",
         description: "Não foi possível salvar os horários.",
@@ -162,7 +163,7 @@ const ScheduleSettings = ({
 
 
   // Debug: Always show component state
-  console.log('🔍 ScheduleSettings render state:', {
+  devLog('🔍 ScheduleSettings render state:', {
     loading,
     error,
     userExists: !!user,

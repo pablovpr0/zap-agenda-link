@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, X, Image } from 'lucide-react';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface ImageUploadProps {
   bucket: string;
@@ -69,7 +70,7 @@ const ImageUpload = ({
       reader.readAsDataURL(file);
 
     } catch (error: any) {
-      console.error('Erro no upload:', error);
+      devError('Erro no upload:', error);
       toast({
         title: "Erro no upload",
         description: "Não foi possível fazer o upload da imagem.",

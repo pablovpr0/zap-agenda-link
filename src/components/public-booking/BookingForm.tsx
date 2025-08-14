@@ -9,6 +9,7 @@ import ServiceSelection from '@/components/public-booking/ServiceSelection';
 import TimeSelection from '@/components/public-booking/TimeSelection';
 import ClientForm from '@/components/public-booking/ClientForm';
 import { Service } from '@/types/publicBooking';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface BookingFormProps {
   services: Service[];
@@ -46,7 +47,7 @@ const BookingForm = ({
         const selectedServiceData = services.find(s => s.id === selectedService);
         const serviceDuration = selectedServiceData?.duration;
         
-        console.log('🔄 Carregando horários para:', { selectedDate, selectedService, serviceDuration });
+        devLog('🔄 Carregando horários para:', { selectedDate, selectedService, serviceDuration });
         
         const times = await generateAvailableTimes(selectedDate, serviceDuration);
         setAvailableTimes(times);

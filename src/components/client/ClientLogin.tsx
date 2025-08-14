@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useClientAuth } from '@/hooks/useClientAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface ClientLoginProps {
   companyData: any;
@@ -72,7 +73,7 @@ const ClientLogin = ({ companyData, onLoginSuccess }: ClientLoginProps) => {
     try {
       // Extrair apenas o primeiro nome antes de salvar
       const firstName = extractFirstName(clientName.trim());
-      console.log('👤 Salvando cliente com primeiro nome:', firstName);
+      devLog('👤 Salvando cliente com primeiro nome:', firstName);
 
       // Criar cliente no banco com apenas o primeiro nome
       const { data: newClient, error } = await supabase
@@ -106,7 +107,7 @@ const ClientLogin = ({ companyData, onLoginSuccess }: ClientLoginProps) => {
       
       onLoginSuccess();
     } catch (error) {
-      console.error('Erro no cadastro:', error);
+      devError('Erro no cadastro:', error);
       toast({
         title: "Erro no cadastro",
         description: "Não foi possível completar o cadastro. Tente novamente.",

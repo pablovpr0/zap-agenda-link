@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 import { 
   fetchCompanySettings, 
   fetchCompanyProfile,
@@ -150,7 +151,7 @@ export const useCompanySettings = () => {
       }
 
     } catch (error: any) {
-      console.error('Erro ao carregar configurações:', error);
+      devError('Erro ao carregar configurações:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar as configurações.",
@@ -225,7 +226,7 @@ export const useCompanySettings = () => {
       window.dispatchEvent(new CustomEvent('settingsUpdated'));
 
     } catch (error: any) {
-      console.error('Erro ao salvar configurações:', error);
+      devError('Erro ao salvar configurações:', error);
       toast({
         title: "Erro",
         description: error.message || "Não foi possível salvar as configurações.",

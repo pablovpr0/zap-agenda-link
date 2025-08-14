@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, Calendar, MessageCircle, Sparkles, Copy, Check } from 'lucide-react';
 import { formatToBrasilia } from '@/utils/timezone';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface SuccessModalProps {
   isOpen: boolean;
@@ -84,7 +85,7 @@ Nome: ${appointmentData.clientName}`;
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Erro ao copiar:', err);
+      devError('Erro ao copiar:', err);
     }
   };
 

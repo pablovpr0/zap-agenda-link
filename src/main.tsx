@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { loadSavedTheme, applyTheme } from './utils/themes';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 // Aplicar tema salvo ao carregar a aplicação
 const savedTheme = loadSavedTheme();
@@ -28,10 +29,10 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then((registration) => {
-        console.log('SW registered: ', registration);
+        devLog('SW registered: ', registration);
       })
       .catch((registrationError) => {
-        console.log('SW registration failed: ', registrationError);
+        devLog('SW registration failed: ', registrationError);
       });
   });
 } else if ('serviceWorker' in navigator && import.meta.env.DEV) {

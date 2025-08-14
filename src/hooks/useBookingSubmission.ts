@@ -2,9 +2,13 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { BookingFormData, CompanySettings, Service } from '@/types/publicBooking';
 import { Professional } from '@/services/professionalsService';
-import { checkMonthlyLimit } from '@/utils/monthlyLimitUtils';
+import { checkMonthlyLimit, checkIfCompanyIsAdmin } from '@/utils/monthlyLimitUtils';
+import { checkSimultaneousBookingLimit, checkIfCompanyIsAdminForSimultaneous } from '@/utils/simultaneousBookingLimit';
 import { createAppointment, generateWhatsAppMessage } from '@/services/appointmentService';
 import { validateBookingForm } from '@/utils/inputValidation';
+import { triggerBookingUpdate } from '@/utils/realtimeBookingSync';
+import { validateAppointmentSlot } from '@/utils/appointmentConflictChecker';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export const useBookingSubmission = (
   companySettings: CompanySettings | null,
@@ -54,17 +58,55 @@ export const useBookingSubmission = (
         return false;
       }
 
-      // Check monthly limit with sanitized phone
+      // Check if company is admin
+      const isAdminCompany = await checkIfCompanyIsAdmin(companySettings.company_id);
+      const isAdminCompanySimultaneous = await checkIfCompanyIsAdminForSimultaneous(companySettings.company_id);
+      
+      // VALIDAÇÃO 1: Limite de agendamentos simultâneos
+      const simultaneousCheck = await checkSimultaneousBookingLimit(
+        companySettings.company_id,
+        sanitizedFormData.clientPhone,
+        isAdminCompanySimultaneous
+      );
+      
+      if (!simultaneousCheck.canBook) {
+        toast({
+          title: "Limite de agendamentos simultâneos atingido",
+          description: simultaneousCheck.message || "Você já possui o máximo de agendamentos ativos permitidos.",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      // VALIDAÇÃO 2: Limite mensal
       const canBook = await checkMonthlyLimit(
         companySettings.company_id,
         sanitizedFormData.clientPhone,
-        companySettings.monthly_appointments_limit
+        companySettings.monthly_appointments_limit,
+        isAdminCompany
       );
       
       if (!canBook) {
         toast({
-          title: "Limite de agendamentos atingido",
+          title: "Limite de agendamentos mensais atingido",
           description: `Este cliente já atingiu o limite de ${companySettings.monthly_appointments_limit} agendamentos por mês.`,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // VALIDAÇÃO FINAL: Verificar conflito de horário em tempo real
+      devLog('🔍 Verificação final de conflito de horário...');
+      const slotValidation = await validateAppointmentSlot(
+        companySettings.company_id,
+        sanitizedFormData.selectedDate,
+        sanitizedFormData.selectedTime
+      );
+
+      if (!slotValidation.isValid) {
+        toast({
+          title: "Horário não disponível",
+          description: slotValidation.message || "Este horário não está mais disponível.",
           variant: "destructive",
         });
         return false;
@@ -73,10 +115,13 @@ export const useBookingSubmission = (
       // Create appointment with sanitized data
       const result = await createAppointment(sanitizedFormData, companySettings, services, professionals);
       
+      // SINCRONIZAÇÃO EM TEMPO REAL: Notificar todos os clientes conectados
+      triggerBookingUpdate(companySettings.company_id, sanitizedFormData.selectedDate);
+      
       // CORREÇÃO: Invalidar TODO o cache da empresa após agendamento público
       const { invalidateTimeSlotsCache } = await import('@/services/publicBookingService');
       invalidateTimeSlotsCache(companySettings.company_id); // Sem data = invalida tudo
-      console.log(`🔄 [CORREÇÃO] TODO cache de horários invalidado após agendamento público`);
+      devLog(`🔄 [CORREÇÃO] TODO cache de horários invalidado após agendamento público`);
       
       toast({
         title: "Agendamento realizado com sucesso!",

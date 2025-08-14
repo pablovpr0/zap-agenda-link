@@ -1,6 +1,7 @@
 import { parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { utcToZonedTime, zonedTimeToUtc, format } from 'date-fns-tz';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 // Timezone do Brasil
 export const BRAZIL_TIMEZONE = 'America/Sao_Paulo';
@@ -135,7 +136,7 @@ export const debugTimezone = () => {
   const now = new Date();
   const brazilTime = getNowInBrazil();
 
-  console.log('🕐 Debug Timezone:', {
+  devLog('🕐 Debug Timezone:', {
     utc: now.toISOString(),
     brazil: format(brazilTime, 'yyyy-MM-dd HH:mm:ss', { timeZone: BRAZIL_TIMEZONE }),
     utc_formatted: format(now, 'yyyy-MM-dd HH:mm:ss'),

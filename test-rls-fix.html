@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Correção RLS - Agendamentos</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste de Correção RLS - Agendamentos</h1>
+        
+        <div class="test-section info">
+            <h3>📋 Informações do Teste</h3>
+            <p><strong>Empresa ID:</strong> 21a30258-691c-4d13-bdb6-ac9bb86398ee</p>
+            <p><strong>Data de Teste:</strong> 2025-08-19</p>
+            <p><strong>Objetivo:</strong> Verificar se usuários anônimos conseguem ler agendamentos para calcular disponibilidade</p>
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Testes Disponíveis</h3>
+            <button onclick="testAnonymousRead()">Testar Leitura Anônima</button>
+            <button onclick="testAvailabilityCalculation()">Testar Cálculo de Disponibilidade</button>
+            <button onclick="clearResults()">Limpar Resultados</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Configuração do Supabase
+        const SUPABASE_URL = "https://mjufryrwcedazffgxbws.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qdWZyeXJ3Y2VkYXpmZmd4YndzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4MTQyMjEsImV4cCI6MjA2NzM5MDIyMX0.eVDDrGPjXt4lLwuT2XI1o5OMPbBIdxww4VwgDjCT0jo";
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const companyId = '21a30258-691c-4d13-bdb6-ac9bb86398ee';
+        const testDate = '2025-08-19';
+
+        function addResult(title, content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-section ${type}`;
+            resultDiv.innerHTML = `
+                <h4>${title}</h4>
+                <pre>${content}</pre>
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testAnonymousRead() {
+            addResult('🔄 Iniciando Teste de Leitura Anônima...', 'Testando se usuário anônimo consegue ler agendamentos');
+
+            try {
+                // Verificar se estamos realmente como usuário anônimo
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (user) {
+                    addResult('⚠️ Aviso', `Usuário autenticado detectado: ${user.email}. Fazendo logout para teste anônimo...`, 'info');
+                    await supabase.auth.signOut();
+                }
+
+                // Tentar ler agendamentos como usuário anônimo
+                const { data: appointments, error } = await supabase
+                    .from('appointments')
+                    .select('appointment_time, status, duration')
+                    .eq('company_id', companyId)
+                    .eq('appointment_date', testDate)
+                    .neq('status', 'cancelled');
+
+                if (error) {
+                    addResult('❌ Erro na Leitura Anônima', `Erro: ${error.message}`, 'error');
+                    return;
+                }
+
+                const resultText = `
+✅ Sucesso! Usuário anônimo conseguiu ler agendamentos.
+
+📊 Resultados:
+- Total de agendamentos encontrados: ${appointments?.length || 0}
+- Agendamentos:
+${appointments?.map(apt => `  • ${apt.appointment_time} (${apt.status})`).join('\n') || '  Nenhum agendamento'}
+
+🎯 Status: ${appointments?.length > 0 ? 'CORREÇÃO FUNCIONOU!' : 'Nenhum agendamento encontrado'}
+                `;
+
+                addResult('✅ Teste de Leitura Anônima', resultText, appointments?.length > 0 ? 'success' : 'info');
+
+            } catch (error) {
+                addResult('❌ Erro no Teste', `Erro inesperado: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAvailabilityCalculation() {
+            addResult('🔄 Iniciando Teste de Cálculo de Disponibilidade...', 'Simulando o cálculo de horários disponíveis');
+
+            try {
+                // 1. Buscar agendamentos
+                const { data: appointments, error: appointmentsError } = await supabase
+                    .from('appointments')
+                    .select('appointment_time, status')
+                    .eq('company_id', companyId)
+                    .eq('appointment_date', testDate)
+                    .neq('status', 'cancelled');
+
+                if (appointmentsError) {
+                    addResult('❌ Erro ao Buscar Agendamentos', appointmentsError.message, 'error');
+                    return;
+                }
+
+                // 2. Buscar horário de funcionamento
+                const date = new Date(testDate + 'T12:00:00');
+                const dayOfWeek = date.getDay();
+
+                const { data: schedule, error: scheduleError } = await supabase
+                    .from('daily_schedules')
+                    .select('start_time, end_time')
+                    .eq('company_id', companyId)
+                    .eq('day_of_week', dayOfWeek)
+                    .eq('is_active', true)
+                    .single();
+
+                if (scheduleError) {
+                    addResult('❌ Erro ao Buscar Horário', scheduleError.message, 'error');
+                    return;
+                }
+
+                // 3. Calcular horários disponíveis
+                const occupiedTimes = new Set();
+                appointments?.forEach(apt => {
+                    occupiedTimes.add(apt.appointment_time.substring(0, 5));
+                });
+
+                const availableSlots = [];
+                const [startHour, startMin] = schedule.start_time.split(':').map(Number);
+                const [endHour, endMin] = schedule.end_time.split(':').map(Number);
+                
+                const startMinutes = startHour * 60 + startMin;
+                const endMinutes = endHour * 60 + endMin;
+
+                for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
+                    const hours = Math.floor(minutes / 60);
+                    const mins = minutes % 60;
+                    const timeSlot = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+
+                    if (!occupiedTimes.has(timeSlot)) {
+                        availableSlots.push(timeSlot);
+                    }
+                }
+
+                const resultText = `
+✅ Cálculo de Disponibilidade Concluído!
+
+📊 Dados Obtidos:
+- Agendamentos encontrados: ${appointments?.length || 0}
+- Horário de funcionamento: ${schedule.start_time} - ${schedule.end_time}
+- Horários ocupados: [${Array.from(occupiedTimes).join(', ')}]
+- Horários disponíveis: ${availableSlots.length}
+
+🕐 Horários Disponíveis:
+${availableSlots.map(time => `  • ${time}`).join('\n')}
+
+🎯 Comparação com Logs:
+- Tela Normal: 10 horários disponíveis
+- Tela Anônima (antes): 18 horários (erro - não via agendamentos)
+- Tela Anônima (agora): ${availableSlots.length} horários
+
+${availableSlots.length === 10 ? '✅ CORREÇÃO FUNCIONOU! Agora mostra os mesmos horários.' : '⚠️ Ainda há diferença nos resultados.'}
+                `;
+
+                addResult('📊 Resultado do Cálculo', resultText, availableSlots.length === 10 ? 'success' : 'info');
+
+            } catch (error) {
+                addResult('❌ Erro no Cálculo', `Erro inesperado: ${error.message}`, 'error');
+            }
+        }
+
+        // Executar teste inicial
+        window.addEventListener('load', () => {
+            addResult('🚀 Página Carregada', 'Pronto para executar testes. Clique nos botões acima para começar.');
+        });
+    </script>
+</body>
+</html>

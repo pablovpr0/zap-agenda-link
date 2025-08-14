@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, Clock, MapPin, Phone, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface NextAppointmentProps {
   clientPhone: string;
@@ -80,13 +81,13 @@ const NextAppointment = ({ clientPhone, companyId, companyData, onBack }: NextAp
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Erro ao buscar próximo agendamento:', error);
+        devError('Erro ao buscar próximo agendamento:', error);
         return;
       }
 
       setAppointment(appointmentData || null);
     } catch (error) {
-      console.error('Erro ao carregar próximo agendamento:', error);
+      devError('Erro ao carregar próximo agendamento:', error);
     } finally {
       setLoading(false);
     }

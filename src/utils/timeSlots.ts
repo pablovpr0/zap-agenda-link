@@ -1,5 +1,6 @@
 import { getTodayInBrazil, getCurrentTimeInBrazil, isDateTimePastInBrazil } from './timezone';
 import { format } from 'date-fns-tz';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export interface TimeSlotConfig {
   workingHoursStart: string; // HH:mm
@@ -29,7 +30,7 @@ export const generateAvailableTimeSlots = (
     serviceDuration = 60
   } = config;
 
-  console.log('🕐 Generating time slots for Brazil timezone:', {
+  devLog('🕐 Generating time slots for Brazil timezone:', {
     date,
     config,
     bookedTimes: bookedTimes.length
@@ -81,7 +82,7 @@ export const generateAvailableTimeSlots = (
     }
   }
 
-  console.log('✅ Generated time slots:', {
+  devLog('✅ Generated time slots:', {
     date,
     isToday,
     currentTime,

@@ -22,12 +22,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { fetchProfile } from '@/services/profileService';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 type ViewType = 'dashboard' | 'agenda' | 'settings' | 'clients' | 'services';
 
 const Index = () => {
   const { user, isLoading, signOut } = useAuth();
-  const { isDemoMode, isActive, loading: subscriptionLoading } = useSubscription();
+  const { isDemoMode, isActive, loading: subscriptionLoading, isAdmin } = useSubscription();
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [profileComplete, setProfileComplete] = useState(false);
@@ -57,20 +58,20 @@ const Index = () => {
     // Check if profile is complete and get company name
     const checkProfile = async () => {
       try {
-        console.log('Checking profile for user:', user.id);
+        devLog('Checking profile for user:', user.id);
         const profileData = await fetchProfile(user.id);
 
         if (!profileData || !profileData.company_name) {
-          console.log('Profile incomplete, redirecting to company setup');
+          devLog('Profile incomplete, redirecting to company setup');
           navigate('/company-setup');
           return;
         }
 
-        console.log('Profile complete:', profileData);
+        devLog('Profile complete:', profileData);
         setCompanyName(profileData.company_name);
         setProfileComplete(true);
       } catch (error) {
-        console.error('Error checking profile:', error);
+        devError('Error checking profile:', error);
         navigate('/company-setup');
       }
     };
@@ -83,7 +84,7 @@ const Index = () => {
       await signOut();
       navigate('/auth');
     } catch (error) {
-      console.error('Error signing out:', error);
+      devError('Error signing out:', error);
     }
   };
 
@@ -149,17 +150,6 @@ const Index = () => {
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <h1 className="text-lg md:text-xl font-bold text-whatsapp-green">ZapAgenda</h1>
-                {isDemoMode && (
-                  <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded-full font-medium">
-                    Demo
-                  </span>
-                )}
-                {isActive && (
-                  <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1">
-                    <Crown className="w-3 h-3" />
-                    Premium
-                  </span>
-                )}
               </div>
               <p className="text-xs md:text-sm text-whatsapp-muted">{companyName}</p>
             </div>
@@ -228,6 +218,26 @@ const Index = () => {
         {/* Main Content */}
         <div className="pb-4 md:pb-8">
           {renderContent()}
+        </div>
+
+        {/* Status Badge */}
+        <div className="text-center pb-6">
+          {isDemoMode && (
+            <span className="text-gray-400 text-xs font-medium">
+              Demo
+            </span>
+          )}
+          {isAdmin && (
+            <span className="text-gray-400 text-xs font-medium">
+              Admin
+            </span>
+          )}
+          {isActive && !isAdmin && (
+            <span className="text-gray-400 text-xs font-medium flex items-center justify-center gap-1">
+              <Crown className="w-3 h-3" />
+              Premium
+            </span>
+          )}
         </div>
       </div>
 

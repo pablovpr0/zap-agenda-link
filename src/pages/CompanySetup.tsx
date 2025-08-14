@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Store, AlertCircle } from 'lucide-react';
 import { fetchProfile, upsertProfile } from '@/services/profileService';
 import { createDefaultSettings } from '@/services/companySettingsService';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 const CompanySetup = () => {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ const CompanySetup = () => {
     if (isLoading) return;
 
     if (!user) {
-      console.log('No user found, redirecting to auth');
+      devLog('No user found, redirecting to auth');
       navigate('/auth');
       return;
     }
@@ -38,15 +39,15 @@ const CompanySetup = () => {
     if (!user) return;
 
     try {
-      console.log('Checking existing profile for user:', user.id);
+      devLog('Checking existing profile for user:', user.id);
       setCheckingProfile(true);
       setError(null);
       
       const profile = await fetchProfile(user.id);
-      console.log('Profile found:', profile);
+      devLog('Profile found:', profile);
       
       if (profile?.company_name && profile.company_name.trim()) {
-        console.log('Profile is complete, redirecting to main app');
+        devLog('Profile is complete, redirecting to main app');
         navigate('/', { replace: true });
         return;
       }
@@ -58,7 +59,7 @@ const CompanySetup = () => {
       }
       
     } catch (error: any) {
-      console.error('Error checking profile:', error);
+      devError('Error checking profile:', error);
       setError('Erro ao verificar perfil existente');
     } finally {
       setCheckingProfile(false);
@@ -93,24 +94,24 @@ const CompanySetup = () => {
     setError(null);
 
     try {
-      console.log('Starting company setup process for user:', user.id);
+      devLog('Starting company setup process for user:', user.id);
       
       const profileData = {
         company_name: companyName.trim(),
         business_type: businessType.trim() || null,
       };
 
-      console.log('Attempting to save profile with data:', profileData);
+      devLog('Attempting to save profile with data:', profileData);
       const profile = await upsertProfile(user.id, profileData);
-      console.log('Profile saved successfully:', profile);
+      devLog('Profile saved successfully:', profile);
 
       // Create default company settings (non-blocking)
       try {
-        console.log('Creating default company settings...');
+        devLog('Creating default company settings...');
         await createDefaultSettings(user.id, companyName.trim());
-        console.log('Default settings created successfully');
+        devLog('Default settings created successfully');
       } catch (settingsError: any) {
-        console.error('Error creating default settings (non-blocking):', settingsError);
+        devError('Error creating default settings (non-blocking):', settingsError);
         toast({
           title: "Parcialmente configurado",
           description: "Empresa criada, mas algumas configurações serão definidas depois.",
@@ -129,7 +130,7 @@ const CompanySetup = () => {
       }, 1500);
 
     } catch (error: any) {
-      console.error('Error in company setup:', error);
+      devError('Error in company setup:', error);
       
       const errorMessage = error?.message || "Erro inesperado ao configurar empresa";
       setError(errorMessage);

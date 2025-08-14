@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export interface AppointmentConflict {
   hasConflict: boolean;
@@ -16,7 +17,7 @@ export const validateAppointmentSlot = async (
   serviceDuration: number
 ): Promise<AppointmentConflict> => {
   try {
-    console.log('🔍 Validando slot de agendamento:', {
+    devLog('🔍 Validando slot de agendamento:', {
       companyId,
       appointmentDate,
       appointmentTime,
@@ -37,12 +38,12 @@ export const validateAppointmentSlot = async (
       .neq('status', 'cancelled');
 
     if (error) {
-      console.error('❌ Erro ao validar slot:', error);
+      devError('❌ Erro ao validar slot:', error);
       throw error;
     }
 
     if (!existingAppointments || existingAppointments.length === 0) {
-      console.log('✅ Nenhum agendamento existente, slot disponível');
+      devLog('✅ Nenhum agendamento existente, slot disponível');
       return { hasConflict: false };
     }
 
@@ -51,7 +52,7 @@ export const validateAppointmentSlot = async (
     const newStartMinutes = newHours * 60 + newMinutes;
     const newEndMinutes = newStartMinutes + serviceDuration;
 
-    console.log('🕐 Novo agendamento:', {
+    devLog('🕐 Novo agendamento:', {
       start: `${newHours}:${newMinutes.toString().padStart(2, '0')}`,
       end: `${Math.floor(newEndMinutes / 60)}:${(newEndMinutes % 60).toString().padStart(2, '0')}`,
       duration: serviceDuration
@@ -64,7 +65,7 @@ export const validateAppointmentSlot = async (
       const existingStartMinutes = existingHours * 60 + existingMins;
       const existingEndMinutes = existingStartMinutes + (existing.duration || 60);
 
-      console.log('🔍 Verificando conflito com:', {
+      devLog('🔍 Verificando conflito com:', {
         existing: existingTime,
         duration: existing.duration,
         service: existing.services?.name,
@@ -77,7 +78,7 @@ export const validateAppointmentSlot = async (
       );
 
       if (hasOverlap) {
-        console.log('❌ Conflito detectado!');
+        devLog('❌ Conflito detectado!');
         return {
           hasConflict: true,
           conflictDetails: {
@@ -89,11 +90,11 @@ export const validateAppointmentSlot = async (
       }
     }
 
-    console.log('✅ Nenhum conflito detectado, slot disponível');
+    devLog('✅ Nenhum conflito detectado, slot disponível');
     return { hasConflict: false };
 
   } catch (error) {
-    console.error('❌ Erro na validação de slot:', error);
+    devError('❌ Erro na validação de slot:', error);
     // Em caso de erro, assumir que há conflito para segurança
     return { hasConflict: true };
   }
@@ -137,7 +138,7 @@ export const getAlternativeSlots = async (
     return availableSlots.slice(0, 5); // Retornar apenas 5 alternativas
     
   } catch (error) {
-    console.error('❌ Erro ao buscar slots alternativos:', error);
+    devError('❌ Erro ao buscar slots alternativos:', error);
     return [];
   }
 };

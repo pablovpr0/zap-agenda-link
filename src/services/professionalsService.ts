@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export interface Professional {
   id: string;
@@ -21,11 +22,11 @@ export const fetchProfessionals = async (companyId: string): Promise<Professiona
     .eq('is_active', true);
 
   if (error) {
-    console.error('Erro ao buscar profissionais:', error);
+    devError('Erro ao buscar profissionais:', error);
     return [];
   }
 
-  console.log('Profissionais encontrados:', professionals?.length || 0);
+  devLog('Profissionais encontrados:', professionals?.length || 0);
   return professionals || [];
 };
 
@@ -44,7 +45,7 @@ export const createProfessional = async (companyId: string, professional: Omit<P
     .single();
 
   if (error) {
-    console.error('Erro ao criar profissional:', error);
+    devError('Erro ao criar profissional:', error);
     throw new Error('Erro ao criar profissional');
   }
 
@@ -66,7 +67,7 @@ export const updateProfessional = async (professionalId: string, professional: P
     .single();
 
   if (error) {
-    console.error('Erro ao atualizar profissional:', error);
+    devError('Erro ao atualizar profissional:', error);
     throw new Error('Erro ao atualizar profissional');
   }
 
@@ -80,7 +81,7 @@ export const deleteProfessional = async (professionalId: string) => {
     .eq('id', professionalId);
 
   if (error) {
-    console.error('Erro ao desativar profissional:', error);
+    devError('Erro ao desativar profissional:', error);
     throw new Error('Erro ao desativar profissional');
   }
 };

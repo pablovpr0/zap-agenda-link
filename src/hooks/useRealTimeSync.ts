@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface SyncOptions {
   onSettingsChange?: () => void;
@@ -15,7 +16,7 @@ export const useRealTimeSync = (options: SyncOptions = {}) => {
   const setupRealtimeSubscription = useCallback(() => {
     if (!user) return;
 
-    console.log('🔄 Setting up real-time sync for user:', user.id);
+    devLog('🔄 Setting up real-time sync for user:', user.id);
 
     // Subscribe to company_settings changes
     const settingsSubscription = supabase
@@ -29,7 +30,7 @@ export const useRealTimeSync = (options: SyncOptions = {}) => {
           filter: `company_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('📡 Company settings changed:', payload);
+          devLog('📡 Company settings changed:', payload);
           options.onSettingsChange?.();
         }
       )
@@ -47,7 +48,7 @@ export const useRealTimeSync = (options: SyncOptions = {}) => {
           filter: `company_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('📡 Schedule changed:', payload);
+          devLog('📡 Schedule changed:', payload);
           options.onScheduleChange?.();
         }
       )
@@ -65,7 +66,7 @@ export const useRealTimeSync = (options: SyncOptions = {}) => {
           filter: `id=eq.${user.id}`
         },
         (payload) => {
-          console.log('📡 Profile changed:', payload);
+          devLog('📡 Profile changed:', payload);
           options.onCompanyDataChange?.();
         }
       )
@@ -85,7 +86,7 @@ export const useRealTimeSync = (options: SyncOptions = {}) => {
 
   // Manual sync trigger
   const triggerSync = useCallback(() => {
-    console.log('🔄 Manual sync triggered');
+    devLog('🔄 Manual sync triggered');
     options.onSettingsChange?.();
     options.onScheduleChange?.();
     options.onCompanyDataChange?.();

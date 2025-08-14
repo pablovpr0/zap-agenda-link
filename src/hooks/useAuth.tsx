@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface AuthContextType {
   user: User | null;
@@ -42,7 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Error getting initial session:', error);
+          devError('Error getting initial session:', error);
         }
 
         if (isMounted) {
@@ -65,7 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         return () => subscription.unsubscribe();
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        devError('Error initializing auth:', error);
         if (isMounted) {
           setIsLoading(false);
           setInitialized(true);
@@ -89,13 +90,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       if (error) {
-        console.error('SignIn error:', error);
+        devError('SignIn error:', error);
         return { error: new Error(error.message) };
       }
 
       return {};
     } catch (error: any) {
-      console.error('SignIn catch error:', error);
+      devError('SignIn catch error:', error);
       return { error: new Error('Erro inesperado ao fazer login') };
     } finally {
       setIsLoading(false);
@@ -119,13 +120,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       if (error) {
-        console.error('SignUp error:', error);
+        devError('SignUp error:', error);
         return { error: new Error(error.message) };
       }
 
       return {};
     } catch (error: any) {
-      console.error('SignUp catch error:', error);
+      devError('SignUp catch error:', error);
       return { error: new Error('Erro inesperado ao criar conta') };
     } finally {
       setIsLoading(false);
@@ -137,11 +138,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('SignOut error:', error);
+        devError('SignOut error:', error);
         throw new Error(error.message);
       }
     } catch (error: any) {
-      console.error('SignOut catch error:', error);
+      devError('SignOut catch error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -158,13 +159,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       if (error) {
-        console.error('Reset password error:', error);
+        devError('Reset password error:', error);
         return { error: new Error(error.message) };
       }
 
       return {};
     } catch (error: any) {
-      console.error('Reset password catch error:', error);
+      devError('Reset password catch error:', error);
       return { error: new Error('Erro inesperado ao redefinir senha') };
     } finally {
       setIsLoading(false);

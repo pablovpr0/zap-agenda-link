@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { calculateDailyRevenue, calculateMonthlyRevenue, DailyRevenue } from '@/services/revenueService';
 import { useToast } from '@/hooks/use-toast';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export const useRevenue = () => {
   const { user } = useAuth();
@@ -21,7 +22,7 @@ export const useRevenue = () => {
       const revenue = await calculateDailyRevenue(user.id, targetDate);
       setDailyRevenue(revenue);
     } catch (error: any) {
-      console.error('Erro ao carregar receita diária:', error);
+      devError('Erro ao carregar receita diária:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar a receita do dia.",
@@ -46,7 +47,7 @@ export const useRevenue = () => {
       const revenue = await calculateMonthlyRevenue(user.id, targetYear, targetMonth);
       setMonthlyRevenue(revenue);
     } catch (error: any) {
-      console.error('Erro ao carregar receita mensal:', error);
+      devError('Erro ao carregar receita mensal:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar a receita do mês.",
@@ -67,7 +68,7 @@ export const useRevenue = () => {
   // Escutar eventos de agendamento concluído para atualizar receita automaticamente
   useEffect(() => {
     const handleAppointmentCompleted = () => {
-      console.log('Agendamento concluído detectado, atualizando receita...');
+      devLog('Agendamento concluído detectado, atualizando receita...');
       if (user) {
         loadDailyRevenue();
         // Também recarregar receita mensal se já foi carregada

@@ -1,14 +1,22 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { getNowInBrazil } from '@/utils/timezone';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export const checkMonthlyLimit = async (
   companyId: string,
   clientPhone: string,
-  monthlyAppointmentsLimit?: number
+  monthlyAppointmentsLimit?: number,
+  isAdminCompany?: boolean
 ) => {
+  // Se a empresa é administrada por um admin, não aplicar limitações
+  if (isAdminCompany) {
+    devLog('👑 Empresa administrada por admin - ignorando limite mensal');
+    return true;
+  }
+
   if (!monthlyAppointmentsLimit) {
-    console.log('📊 Limite mensal não configurado, permitindo agendamento');
+    devLog('📊 Limite mensal não configurado, permitindo agendamento');
     return true;
   }
 
@@ -22,9 +30,9 @@ export const checkMonthlyLimit = async (
     const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
     const startOfNextMonth = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01`;
     
-    console.log(`📊 Verificando limite mensal para cliente ${clientPhone}`);
-    console.log(`📅 Período: ${startOfMonth} até ${startOfNextMonth}`);
-    console.log(`📊 Limite configurado: ${monthlyAppointmentsLimit}`);
+    devLog(`📊 Verificando limite mensal para cliente ${clientPhone}`);
+    devLog(`📅 Período: ${startOfMonth} até ${startOfNextMonth}`);
+    devLog(`📊 Limite configurado: ${monthlyAppointmentsLimit}`);
     
     // Buscar cliente por telefone
     const { data: client, error: clientError } = await supabase
@@ -35,12 +43,12 @@ export const checkMonthlyLimit = async (
       .maybeSingle();
     
     if (clientError) {
-      console.error('❌ Erro ao buscar cliente:', clientError);
+      devError('❌ Erro ao buscar cliente:', clientError);
       return true; // Em caso de erro, permitir agendamento
     }
     
     if (!client) {
-      console.log('👤 Cliente novo, permitindo agendamento');
+      devLog('👤 Cliente novo, permitindo agendamento');
       return true; // Novo cliente, pode agendar
     }
 
@@ -55,19 +63,39 @@ export const checkMonthlyLimit = async (
       .neq('status', 'cancelled');
 
     if (appointmentsError) {
-      console.error('❌ Erro ao buscar agendamentos:', appointmentsError);
+      devError('❌ Erro ao buscar agendamentos:', appointmentsError);
       return true; // Em caso de erro, permitir agendamento
     }
 
     const appointmentCount = appointments?.length || 0;
-    console.log(`📊 Cliente ${clientPhone} tem ${appointmentCount} agendamentos confirmados este mês`);
+    devLog(`📊 Cliente ${clientPhone} tem ${appointmentCount} agendamentos confirmados este mês`);
     
     const canBook = appointmentCount < monthlyAppointmentsLimit;
-    console.log(`✅ Pode agendar: ${canBook}`);
+    devLog(`✅ Pode agendar: ${canBook}`);
     
     return canBook;
   } catch (error) {
-    console.error('❌ Erro ao verificar limite mensal:', error);
+    devError('❌ Erro ao verificar limite mensal:', error);
     return true; // Em caso de erro, permitir agendamento
+  }
+};
+
+export const checkIfCompanyIsAdmin = async (companyId: string): Promise<boolean> => {
+  try {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', companyId)
+      .single();
+
+    if (error) {
+      devError('❌ Erro ao verificar se empresa é admin:', error);
+      return false;
+    }
+
+    return profile?.is_admin || false;
+  } catch (error) {
+    devError('❌ Erro ao verificar se empresa é admin:', error);
+    return false;
   }
 };

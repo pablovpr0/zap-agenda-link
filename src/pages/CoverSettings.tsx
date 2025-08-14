@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import CoverImageSettings from '@/components/settings/CoverImageSettings';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 const CoverSettings = () => {
   const {
     user
@@ -30,14 +31,14 @@ const CoverSettings = () => {
           error
         } = await supabase.from('company_settings').select('cover_image_url').eq('company_id', user.id).single();
         if (error) {
-          console.error('Erro ao carregar foto de capa atual:', error);
+          devError('Erro ao carregar foto de capa atual:', error);
           return;
         }
         if (data?.cover_image_url) {
           setCurrentCoverUrl(data.cover_image_url);
         }
       } catch (error) {
-        console.error('Erro ao carregar foto de capa:', error);
+        devError('Erro ao carregar foto de capa:', error);
       }
     };
     loadCurrentCover();
@@ -47,7 +48,7 @@ const CoverSettings = () => {
     return null;
   }
   const handleSaveCover = async (coverUrl: string) => {
-    console.log('Salvando foto de capa:', coverUrl);
+    devLog('Salvando foto de capa:', coverUrl);
     try {
       const {
         error
@@ -55,7 +56,7 @@ const CoverSettings = () => {
         cover_image_url: coverUrl
       }).eq('company_id', user!.id);
       if (error) {
-        console.error('Erro ao salvar foto de capa:', error);
+        devError('Erro ao salvar foto de capa:', error);
         toast({
           title: "Erro",
           description: "Não foi possível salvar a foto de capa.",
@@ -71,7 +72,7 @@ const CoverSettings = () => {
       // Disparar evento para atualizar outros componentes
       window.dispatchEvent(new CustomEvent('coverImageUpdated'));
     } catch (error: any) {
-      console.error('Erro ao salvar foto de capa:', error);
+      devError('Erro ao salvar foto de capa:', error);
       toast({
         title: "Erro",
         description: "Não foi possível salvar a foto de capa.",

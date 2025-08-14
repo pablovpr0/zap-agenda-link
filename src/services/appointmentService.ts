@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { brazilDateTimeToUtc, formatDatabaseTimestamp, getNowInBrazil } from '@/utils/timezone';
 import { formatAppointmentDateWithWeekday } from '@/utils/dateUtils';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export interface AppointmentData {
   id?: string;
@@ -48,7 +49,7 @@ export const getCompanyAppointments = async (companyId: string, startDate?: stri
     const { data, error } = await query;
 
     if (error) {
-      console.error('❌ Error fetching appointments:', error);
+      devError('❌ Error fetching appointments:', error);
       throw error;
     }
 
@@ -63,7 +64,7 @@ export const getCompanyAppointments = async (companyId: string, startDate?: stri
     return formattedAppointments || [];
 
   } catch (error) {
-    console.error('❌ Failed to fetch appointments:', error);
+    devError('❌ Failed to fetch appointments:', error);
     throw error;
   }
 };
@@ -149,14 +150,14 @@ export const checkTimeConflict = async (
     const { data, error } = await query;
 
     if (error) {
-      console.error('❌ Error checking time conflict:', error);
+      devError('❌ Error checking time conflict:', error);
       throw error;
     }
 
     return (data?.length || 0) > 0;
 
   } catch (error) {
-    console.error('❌ Failed to check time conflict:', error);
+    devError('❌ Failed to check time conflict:', error);
     throw error;
   }
 };
@@ -255,7 +256,7 @@ const checkTimeSlotAvailability = async (
       const [aptHours, aptMinutes] = aptTime.split(':').map(Number);
       const aptStartMinutes = aptHours * 60 + aptMinutes;
 
-      console.log(`🔍 Verificando conflito com agendamento ${aptTime} (${aptDuration}min)`);
+      devLog(`🔍 Verificando conflito com agendamento ${aptTime} (${aptDuration}min)`);
 
       // LÓGICA DE BLOQUEIO: Verificar se há sobreposição
       // Agendamento existente ocupa slots baseado na sua duração
@@ -340,7 +341,7 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
       .maybeSingle();
 
     if (checkError) {
-      console.error('❌ Erro ao verificar slot:', checkError);
+      devError('❌ Erro ao verificar slot:', checkError);
       throw new Error('Erro ao verificar disponibilidade do horário');
     }
 
@@ -373,7 +374,7 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
       });
 
       clientId = client.id;
-      console.log(`📞 [CORREÇÃO DUPLICAÇÃO] Cliente processado: ${client.name} (${client.phone}) - ID: ${client.id}`);
+      devLog(`📞 [CORREÇÃO DUPLICAÇÃO] Cliente processado: ${client.name} (${client.phone}) - ID: ${client.id}`);
     }
 
     if (!clientId) {
@@ -381,7 +382,7 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
     }
 
     // INSERÇÃO COM VERIFICAÇÃO FINAL: Usar uma transação para garantir atomicidade
-    console.log('🔒 Tentando criar agendamento:', {
+    devLog('🔒 Tentando criar agendamento:', {
       company_id: appointmentData.company_id,
       appointment_date: appointmentData.appointment_date,
       appointment_time: appointmentData.appointment_time,
@@ -418,7 +419,7 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
         throw new Error('Este horário não está mais disponível. Por favor, escolha outro horário.');
       }
       
-      console.error('❌ Erro ao criar agendamento:', error);
+      devError('❌ Erro ao criar agendamento:', error);
       throw error;
     }
     

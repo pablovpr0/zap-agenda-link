@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export const useAppointmentActions = () => {
   const { toast } = useToast();
@@ -18,7 +19,7 @@ export const useAppointmentActions = () => {
         .eq('id', appointmentId);
 
       if (error) {
-        console.error('Erro ao excluir agendamento:', error);
+        devError('Erro ao excluir agendamento:', error);
         throw new Error('Erro ao excluir agendamento');
       }
 
@@ -29,7 +30,7 @@ export const useAppointmentActions = () => {
 
       if (onSuccess) onSuccess();
     } catch (error: any) {
-      console.error('Erro ao excluir agendamento:', error);
+      devError('Erro ao excluir agendamento:', error);
       toast({
         title: "Erro",
         description: error.message || "Não foi possível excluir o agendamento.",
@@ -49,7 +50,7 @@ export const useAppointmentActions = () => {
         .eq('id', appointmentId);
 
       if (error) {
-        console.error('Erro ao cancelar agendamento:', error);
+        devError('Erro ao cancelar agendamento:', error);
         throw new Error('Erro ao cancelar agendamento');
       }
 
@@ -60,7 +61,7 @@ export const useAppointmentActions = () => {
 
       if (onSuccess) onSuccess();
     } catch (error: any) {
-      console.error('Erro ao cancelar agendamento:', error);
+      devError('Erro ao cancelar agendamento:', error);
       toast({
         title: "Erro",
         description: error.message || "Não foi possível cancelar o agendamento.",
@@ -95,7 +96,7 @@ export const useAppointmentActions = () => {
         .eq('id', appointmentId);
 
       if (error) {
-        console.error('Erro ao atualizar agendamento:', error);
+        devError('Erro ao atualizar agendamento:', error);
         throw new Error('Erro ao atualizar agendamento');
       }
 
@@ -106,7 +107,7 @@ export const useAppointmentActions = () => {
 
       if (onSuccess) onSuccess();
     } catch (error: any) {
-      console.error('Erro ao atualizar agendamento:', error);
+      devError('Erro ao atualizar agendamento:', error);
       toast({
         title: "Erro",
         description: error.message || "Não foi possível atualizar o agendamento.",
@@ -129,7 +130,7 @@ export const useAppointmentActions = () => {
         .eq('id', appointmentId);
 
       if (error) {
-        console.error('Erro ao marcar agendamento como concluído:', error);
+        devError('Erro ao marcar agendamento como concluído:', error);
         throw new Error('Erro ao marcar agendamento como concluído');
       }
 
@@ -140,7 +141,7 @@ export const useAppointmentActions = () => {
 
       if (onSuccess) onSuccess();
     } catch (error: any) {
-      console.error('Erro ao marcar como concluído:', error);
+      devError('Erro ao marcar como concluído:', error);
       toast({
         title: "Erro",
         description: error.message || "Não foi possível marcar o agendamento como concluído.",

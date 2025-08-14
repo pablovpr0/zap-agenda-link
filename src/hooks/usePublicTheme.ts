@@ -4,6 +4,7 @@ import { CompanySettings } from '@/types/publicBooking';
 import { themes, getThemeById, applyTheme, Theme } from '@/utils/themes';
 import { applyPublicTheme } from '@/types/publicTheme';
 import { loadPublicThemeBySlug } from '@/services/publicThemeService';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export const usePublicTheme = (companySettings: CompanySettings | null) => {
   useEffect(() => {
@@ -15,7 +16,7 @@ export const usePublicTheme = (companySettings: CompanySettings | null) => {
         const publicThemeSettings = await loadPublicThemeBySlug(companySettings.slug);
         
         if (publicThemeSettings) {
-          console.log('🎨 Aplicando tema personalizado:', publicThemeSettings);
+          devLog('🎨 Aplicando tema personalizado:', publicThemeSettings);
           applyPublicTheme(publicThemeSettings.theme_color, publicThemeSettings.dark_mode);
           return;
         }
@@ -24,7 +25,7 @@ export const usePublicTheme = (companySettings: CompanySettings | null) => {
         const selectedThemeId = (companySettings as any).selected_theme_id;
         const themeColor = (companySettings as any).theme_color || '#19c662';
         
-        console.log('🎨 Aplicando tema padrão para empresa:', {
+        devLog('🎨 Aplicando tema padrão para empresa:', {
           slug: companySettings.slug,
           selectedThemeId,
           themeColor
@@ -35,7 +36,7 @@ export const usePublicTheme = (companySettings: CompanySettings | null) => {
         // Primeiro, tentar usar o tema selecionado pelo ID
         if (selectedThemeId) {
           selectedTheme = getThemeById(selectedThemeId);
-          console.log('🎨 Tema encontrado por ID:', selectedTheme?.name);
+          devLog('🎨 Tema encontrado por ID:', selectedTheme?.name);
         }
         
         // Se não encontrou por ID, procurar por cor similar
@@ -43,7 +44,7 @@ export const usePublicTheme = (companySettings: CompanySettings | null) => {
           for (const theme of themes) {
             if (theme.colors.primary.toLowerCase() === themeColor.toLowerCase()) {
               selectedTheme = theme;
-              console.log('🎨 Tema encontrado por cor:', selectedTheme.name);
+              devLog('🎨 Tema encontrado por cor:', selectedTheme.name);
               break;
             }
           }
@@ -52,14 +53,14 @@ export const usePublicTheme = (companySettings: CompanySettings | null) => {
         // Se ainda não encontrou, criar um tema customizado
         if (!selectedTheme) {
           selectedTheme = createCustomTheme(themeColor, companySettings.slug);
-          console.log('🎨 Tema customizado criado:', selectedTheme.name);
+          devLog('🎨 Tema customizado criado:', selectedTheme.name);
         }
 
         // Aplicar o tema na página pública usando o sistema antigo
         applyPublicThemeOld(selectedTheme, companySettings);
         
       } catch (error) {
-        console.error('Erro ao carregar tema público:', error);
+        devError('Erro ao carregar tema público:', error);
         // Aplicar tema padrão em caso de erro
         applyPublicTheme('green', false);
       }
@@ -128,7 +129,7 @@ const applyPublicThemeOld = (theme: Theme, companySettings: CompanySettings) => 
   root.style.setProperty('--theme-background', theme.colors.background);
   root.style.setProperty('--theme-gradient', theme.colors.gradient);
   
-  console.log('✅ Tema público aplicado:', {
+  devLog('✅ Tema público aplicado:', {
     theme: theme.name,
     colors: theme.colors
   });

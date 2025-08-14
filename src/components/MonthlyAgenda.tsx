@@ -11,6 +11,7 @@ import AppointmentDialog from './monthly-agenda/AppointmentDialog';
 import BackButton from './BackButton';
 import { useToast } from '@/hooks/use-toast';
 import { getNowInBrazil } from '@/utils/timezone';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface MonthlyAgendaProps {
   onBack?: () => void;
@@ -52,7 +53,7 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
   const handleDateClick = (date: Date) => {
     const dayAppointments = getAppointmentsForDate(date);
     if (dayAppointments.length > 0) {
-      console.log('Selecionando data:', format(date, 'yyyy-MM-dd'), 'com', dayAppointments.length, 'agendamentos');
+      devLog('Selecionando data:', format(date, 'yyyy-MM-dd'), 'com', dayAppointments.length, 'agendamentos');
       setSelectedDate(date);
     } else {
       // Mensagem quando não há agendamentos

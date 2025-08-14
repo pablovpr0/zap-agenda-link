@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface ClientData {
   id: string;
@@ -29,7 +30,7 @@ export const useClientAuth = () => {
         setCurrentClient(clientData);
         setIsAuthenticated(true);
       } catch (error) {
-        console.error('Erro ao recuperar dados do cliente:', error);
+        devError('Erro ao recuperar dados do cliente:', error);
         localStorage.removeItem('zapagenda_client');
       }
     }
@@ -38,7 +39,7 @@ export const useClientAuth = () => {
   const loginWithPhone = async (phone: string, companyId: string) => {
     setLoading(true);
     try {
-      console.log('🔍 Buscando cliente pelo telefone:', phone);
+      devLog('🔍 Buscando cliente pelo telefone:', phone);
       
       // Verificar se cliente já existe pelo telefone
       const { data: existingClient, error } = await supabase
@@ -54,7 +55,7 @@ export const useClientAuth = () => {
 
       if (existingClient) {
         // Cliente existente - fazer login
-        console.log('✅ Cliente encontrado:', existingClient.name);
+        devLog('✅ Cliente encontrado:', existingClient.name);
         const clientData = {
           id: existingClient.id,
           name: existingClient.name,
@@ -69,12 +70,12 @@ export const useClientAuth = () => {
         return { isFirstTime: false, client: clientData };
       } else {
         // Primeiro acesso - apenas armazenar telefone
-        console.log('📱 Primeiro acesso para o telefone:', phone);
+        devLog('📱 Primeiro acesso para o telefone:', phone);
         localStorage.setItem('zapagenda_temp_phone', phone);
         return { isFirstTime: true, phone };
       }
     } catch (error) {
-      console.error('Erro no login:', error);
+      devError('Erro no login:', error);
       throw error;
     } finally {
       setLoading(false);
@@ -89,7 +90,7 @@ export const useClientAuth = () => {
       name: firstName
     };
     
-    console.log('📝 Completando registro com primeiro nome:', firstName);
+    devLog('📝 Completando registro com primeiro nome:', firstName);
     
     setCurrentClient(updatedClientData);
     setIsAuthenticated(true);

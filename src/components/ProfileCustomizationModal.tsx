@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { User, Palette, Upload, Settings } from 'lucide-react';
 import ImageUpload from './ImageUpload';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 interface ProfileCustomizationModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -65,7 +66,7 @@ const ProfileCustomizationModal = ({
         setPhone((settings as any).phone || '');
       }
     } catch (error: any) {
-      console.error('Erro ao carregar dados do perfil:', error);
+      devError('Erro ao carregar dados do perfil:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os dados do perfil.",
@@ -145,7 +146,7 @@ const ProfileCustomizationModal = ({
       onSuccess();
       onClose();
     } catch (error: any) {
-      console.error('Erro ao salvar perfil:', error);
+      devError('Erro ao salvar perfil:', error);
       toast({
         title: "Erro",
         description: error.message || "Não foi possível salvar o perfil. Tente novamente.",

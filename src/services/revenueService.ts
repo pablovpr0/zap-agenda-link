@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export interface DailyRevenue {
   date: string;
@@ -36,7 +37,7 @@ export const calculateDailyRevenue = async (
       .order('appointment_time');
 
     if (error) {
-      console.error('Erro ao buscar agendamentos para receita:', error);
+      devError('Erro ao buscar agendamentos para receita:', error);
       throw error;
     }
 
@@ -80,7 +81,7 @@ export const calculateDailyRevenue = async (
     };
 
   } catch (error) {
-    console.error('Erro ao calcular receita diária:', error);
+    devError('Erro ao calcular receita diária:', error);
     throw error;
   }
 };
@@ -116,7 +117,7 @@ export const calculateMonthlyRevenue = async (
       .order('appointment_date, appointment_time');
 
     if (error) {
-      console.error('Erro ao buscar agendamentos mensais:', error);
+      devError('Erro ao buscar agendamentos mensais:', error);
       throw error;
     }
 
@@ -176,7 +177,7 @@ export const calculateMonthlyRevenue = async (
     };
 
   } catch (error) {
-    console.error('Erro ao calcular receita mensal:', error);
+    devError('Erro ao calcular receita mensal:', error);
     throw error;
   }
 };
@@ -195,13 +196,13 @@ export const updateAppointmentStatus = async (
       .eq('id', appointmentId);
 
     if (error) {
-      console.error('Erro ao atualizar status do agendamento:', error);
+      devError('Erro ao atualizar status do agendamento:', error);
       throw error;
     }
 
-    console.log(`Status do agendamento ${appointmentId} atualizado para ${newStatus}`);
+    devLog(`Status do agendamento ${appointmentId} atualizado para ${newStatus}`);
   } catch (error) {
-    console.error('Erro ao atualizar status:', error);
+    devError('Erro ao atualizar status:', error);
     throw error;
   }
 };

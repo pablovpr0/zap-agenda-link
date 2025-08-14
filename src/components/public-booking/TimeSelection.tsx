@@ -1,4 +1,5 @@
 
+import { useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ interface TimeSelectionProps {
   onTimeSelect: (time: string) => void;
   isLoading?: boolean;
   onRefresh?: () => void;
+  autoRefreshInterval?: number; // Intervalo em ms para atualização automática
 }
 
 const TimeSelection = ({ 
@@ -16,8 +18,20 @@ const TimeSelection = ({
   selectedTime, 
   onTimeSelect, 
   isLoading = false,
-  onRefresh 
+  onRefresh,
+  autoRefreshInterval = 5000 // 5 segundos por padrão
 }: TimeSelectionProps) => {
+
+  // Auto-refresh para manter horários sincronizados
+  useEffect(() => {
+    if (!onRefresh || isLoading) return;
+
+    const interval = setInterval(() => {
+      onRefresh();
+    }, autoRefreshInterval);
+
+    return () => clearInterval(interval);
+  }, [onRefresh, isLoading, autoRefreshInterval]);
 
   if (isLoading) {
     return (

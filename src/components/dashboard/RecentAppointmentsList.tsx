@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppointmentActions } from '@/hooks/useAppointmentActions';
 import { useToast } from '@/hooks/use-toast';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface RecentAppointment {
   id: string;
@@ -39,7 +40,7 @@ const RecentAppointmentsList = ({
         window.dispatchEvent(new CustomEvent('appointmentCompleted'));
       });
     } catch (error) {
-      console.error('Erro ao marcar como concluído:', error);
+      devError('Erro ao marcar como concluído:', error);
     }
   };
 

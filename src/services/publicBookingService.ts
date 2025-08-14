@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CompanySettings, Profile, Service } from '@/types/publicBooking';
 import { Professional } from '@/services/professionalsService';
 import { getNowInBrazil, getTodayInBrazil, getCurrentTimeInBrazil } from '@/utils/timezone';
+import { devLog, devError } from '@/utils/console';
 
 export const loadCompanyDataBySlug = async (companySlug: string) => {
   if (!companySlug || companySlug.trim() === '') {
@@ -172,45 +173,56 @@ const generateSimpleTimeSlots = (
   if (isToday) {
     try {
       currentTime = getCurrentTimeInBrazil();
-      console.log('⏰ [HOJE] Hora atual obtida:', currentTime);
+      devLog('⏰ [HOJE] Hora atual obtida:', currentTime);
     } catch (error) {
-      console.error('❌ Erro ao obter hora atual, usando fallback:', error);
+      devError('❌ Erro ao obter hora atual, usando fallback:', error);
       // Fallback: calcular hora atual manualmente
       const now = new Date();
       const brazilTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
       currentTime = `${brazilTime.getHours().toString().padStart(2, '0')}:${brazilTime.getMinutes().toString().padStart(2, '0')}`;
-      console.log('⏰ [FALLBACK] Hora calculada:', currentTime);
+      devLog('⏰ [FALLBACK] Hora calculada:', currentTime);
     }
   }
 
-  // Gerar slots bloqueados com lógica corrigida
+  // CORREÇÃO CRÍTICA: Bloquear TODOS os horários ocupados
   const blockedSlots = new Set<string>();
+  
+  devLog(`🚫 [BLOQUEIO] Processando ${bookedAppointments.length} agendamentos para bloquear horários`);
+  
   for (const apt of bookedAppointments) {
-    const aptTime = normalizeTime(apt.appointment_time);
-    const duration = apt.duration || 60;
+    // CORREÇÃO CRÍTICA: Normalizar corretamente o horário do banco
+    let aptTime = apt.appointment_time;
     
-    // LÓGICA CORRIGIDA: Bloquear slots baseado na duração específica
-    let slotsToBlock = 1; // Por padrão, bloqueia apenas 1 slot
-    
-    if (duration === 30) {
-      slotsToBlock = 1; // 30min = apenas o horário selecionado
-    } else if (duration === 60) {
-      slotsToBlock = 2; // 60min = horário selecionado + próximo
-    } else {
-      slotsToBlock = Math.ceil(duration / 30); // Para durações maiores
+    // Se vem do banco como "09:00:00", converter para "09:00"
+    if (aptTime.length === 8) {
+      aptTime = aptTime.substring(0, 5);
     }
+    
+    devLog(`🚫 [BLOQUEIO] Agendamento original: ${apt.appointment_time} -> Normalizado: ${aptTime} - Status: ${apt.status}`);
+    
+    // SEMPRE bloquear o horário exato do agendamento
+    blockedSlots.add(aptTime);
+    devLog(`🚫 [BLOQUEIO] Horário ${aptTime} BLOQUEADO`);
+    
+    // Bloquear horários adicionais baseado na duração
+    const duration = apt.duration || apt.services?.duration || 60;
+    const slotsToBlock = Math.ceil(duration / 30);
     
     const [hours, minutes] = aptTime.split(':').map(Number);
     const startMinutes = hours * 60 + minutes;
     
-    for (let i = 0; i < slotsToBlock; i++) {
+    for (let i = 1; i < slotsToBlock; i++) { // Começar do 1 pois o 0 já foi bloqueado
       const slotMinutes = startMinutes + (i * 30);
       const slotHours = Math.floor(slotMinutes / 60);
       const slotMins = slotMinutes % 60;
       const slot = `${slotHours.toString().padStart(2, '0')}:${slotMins.toString().padStart(2, '0')}`;
       blockedSlots.add(slot);
+      devLog(`🚫 [BLOQUEIO] Horário adicional ${slot} BLOQUEADO (duração: ${duration}min)`);
     }
   }
+  
+  devLog(`🚫 [BLOQUEIO] Total de horários bloqueados: ${blockedSlots.size}`);
+  devLog(`🚫 [BLOQUEIO] Horários bloqueados: [${Array.from(blockedSlots).join(', ')}]`);
 
   // Gerar horários de 30 em 30 minutos
   const [startHour, startMin] = start.split(':').map(Number);
@@ -260,8 +272,18 @@ const generateSimpleTimeSlots = (
       }
     }
     
-    if (!isDuringLunch && !blockedSlots.has(timeSlot)) {
+    // Debug detalhado para cada slot
+    const isBlocked = blockedSlots.has(timeSlot);
+    const reason = [];
+    
+    if (isDuringLunch) reason.push('almoço');
+    if (isBlocked) reason.push('agendado');
+    
+    if (!isDuringLunch && !isBlocked) {
       availableSlots.push(timeSlot);
+      devLog(`✅ [SLOT] ${timeSlot} - DISPONÍVEL`);
+    } else {
+      devLog(`❌ [SLOT] ${timeSlot} - BLOQUEADO (${reason.join(', ')})`);
     }
   }
 
@@ -280,22 +302,17 @@ const CACHE_DURATION = 2000; // ULTRA REDUZIDO: 2 segundos para máxima precisã
  * CORREÇÃO CRÍTICA: Invalidação mais agressiva para evitar conflitos
  */
 export const invalidateTimeSlotsCache = (companyId: string, date?: string) => {
+  // CACHE DESABILITADO - SEMPRE BUSCAR DADOS FRESCOS
+  devLog(`🔄 [CACHE DESABILITADO] Cache não é mais usado - dados sempre frescos`);
+  
   if (date) {
-    // Invalidar todos os caches relacionados à data (diferentes durações de serviço)
-    Object.keys(timeSlotsCache).forEach(key => {
-      if (key.includes(`${companyId}-${date}`)) {
-        delete timeSlotsCache[key];
-      }
+    // Trigger real-time update para todos os clientes conectados
+    import('@/utils/realtimeBookingSync').then(({ triggerBookingUpdate }) => {
+      triggerBookingUpdate(companyId, date);
+      devLog(`📡 [SYNC] Sincronização disparada para ${companyId} na data ${date}`);
+    }).catch(() => {
+      // Ignore import errors in case module is not available
     });
-    console.log(`🔄 [CORREÇÃO CRÍTICA] Cache invalidado para empresa ${companyId} na data ${date}`);
-  } else {
-    // Invalidar todo o cache da empresa
-    Object.keys(timeSlotsCache).forEach(key => {
-      if (key.startsWith(companyId)) {
-        delete timeSlotsCache[key];
-      }
-    });
-    console.log(`🔄 [CORREÇÃO CRÍTICA] Todo cache invalidado para empresa ${companyId}`);
   }
 };
 
@@ -335,14 +352,14 @@ export const verifyTimeSlotAvailability = async (
         (serviceEndMinutes > conflictMinutes && serviceEndMinutes <= conflictEndMinutes) ||
         (requestedMinutes <= conflictMinutes && serviceEndMinutes >= conflictEndMinutes)
       ) {
-        console.log(`🚨 [CORREÇÃO CRÍTICA] Conflito detectado: ${selectedTime} conflita com ${conflict.appointment_time}`);
+        devLog(`🚨 [CORREÇÃO CRÍTICA] Conflito detectado: ${selectedTime} conflita com ${conflict.appointment_time}`);
         return false;
       }
     }
 
     return true;
   } catch (error) {
-    console.error('❌ Erro ao verificar disponibilidade:', error);
+    devError('❌ Erro ao verificar disponibilidade:', error);
     return false;
   }
 };
@@ -365,49 +382,20 @@ export const checkAvailableTimes = async (
   serviceDuration?: number,
   forceRefresh: boolean = false
 ) => {
-  // CORREÇÃO CRÍTICA: Opção para forçar busca sem cache
-  const cacheKey = `${companyId}-${selectedDate}-${serviceDuration || 60}`;
-  const cached = timeSlotsCache[cacheKey];
-  const now = Date.now();
-  
-  // Se forceRefresh = true, pular cache completamente
-  if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
-    // VERIFICAÇÃO ADICIONAL: Re-verificar agendamentos recentes mesmo com cache
-    const { data: recentBookings } = await supabase
-      .from('appointments')
-      .select('appointment_time')
-      .eq('company_id', companyId)
-      .eq('appointment_date', selectedDate)
-      .in('status', ['confirmed', 'completed', 'in_progress'])
-      .gte('created_at', new Date(now - 10000).toISOString()); // Últimos 10 segundos
-    
-    if (recentBookings && recentBookings.length > 0) {
-      // Se há agendamentos recentes, invalidar cache e buscar dados frescos
-      delete timeSlotsCache[cacheKey];
-      console.log(`🔄 [CORREÇÃO CRÍTICA] Cache invalidado devido a agendamentos recentes`);
-    } else {
-      console.log(`📋 [CACHE] Retornando horários do cache: ${cached.data.length} slots`);
-      return cached.data;
-    }
-  }
-  
-  if (forceRefresh) {
-    console.log(`🔄 [FORÇA] Buscando horários sem cache para ${selectedDate}`);
-  }
+  devLog(`🔄 [NOVA VERSÃO] Buscando horários para ${selectedDate}`);
 
   try {
-    // ETAPA 1: Validar data
+    // 1. Validar data
     const today = getTodayInBrazil();
-    
     if (selectedDate < today) {
+      devLog(`❌ Data ${selectedDate} é anterior a hoje ${today}`);
       return [];
     }
 
-    // ETAPA 2: Verificar dia da semana
+    // 2. Buscar configuração do dia
     const date = new Date(selectedDate + 'T12:00:00');
     const dayOfWeek = date.getDay();
 
-    // ETAPA 3: Buscar configuração
     const { data: dailySchedule, error: scheduleError } = await supabase
       .from('daily_schedules')
       .select('*')
@@ -415,75 +403,90 @@ export const checkAvailableTimes = async (
       .eq('day_of_week', dayOfWeek)
       .maybeSingle();
 
-    if (scheduleError) {
+    if (scheduleError || !dailySchedule || !dailySchedule.is_active) {
+      devLog(`❌ Dia ${dayOfWeek} não configurado ou inativo`);
       return [];
     }
 
-    if (!dailySchedule || !dailySchedule.is_active) {
+    devLog(`✅ Configuração encontrada: ${dailySchedule.start_time} - ${dailySchedule.end_time}`);
+
+    // 3. Buscar TODOS os agendamentos não cancelados
+    const { data: appointments, error: appointmentsError } = await supabase
+      .from('appointments')
+      .select('appointment_time, duration, status')
+      .eq('company_id', companyId)
+      .eq('appointment_date', selectedDate)
+      .neq('status', 'cancelled');
+
+    if (appointmentsError) {
+      devError('❌ Erro ao buscar agendamentos:', appointmentsError);
       return [];
     }
 
-    // ETAPA 4: Buscar agendamentos confirmados e concluídos (AJUSTE 1: Incluir todos os status que bloqueiam horários)
-    const { data: bookedAppointments } = await supabase
-      .from('appointments')
-      .select('appointment_time, duration, status, services(duration)')
-      .eq('company_id', companyId)
-      .eq('appointment_date', selectedDate)
-      .in('status', ['confirmed', 'completed', 'in_progress']);
+    devLog(`📋 Agendamentos encontrados: ${appointments?.length || 0}`);
+    
+    // 4. Criar set de horários ocupados (SIMPLES E DIRETO)
+    const occupiedTimes = new Set<string>();
+    if (appointments) {
+      appointments.forEach(apt => {
+        // Normalizar horário: "09:00:00" -> "09:00"
+        const timeNormalized = apt.appointment_time.substring(0, 5);
+        occupiedTimes.add(timeNormalized);
+        devLog(`🚫 Horário ocupado: ${timeNormalized} (status: ${apt.status})`);
+      });
+    }
 
-    // ETAPA 5: Gerar horários (versão simplificada) - AJUSTE 1: Horários ocupados são automaticamente removidos
-    const availableSlots = generateSimpleTimeSlots(
-      dailySchedule.start_time,
-      dailySchedule.end_time,
-      serviceDuration || 60,
-      bookedAppointments || [],
-      dailySchedule.has_lunch_break,
-      dailySchedule.lunch_start,
-      dailySchedule.lunch_end,
-      selectedDate
-    );
-
-    // Armazenar no cache
-    timeSlotsCache[cacheKey] = {
-      data: availableSlots,
-      timestamp: now
-    };
-
-    // CORREÇÃO CRÍTICA: Verificação final em tempo real antes de retornar
-    const finalVerification = await supabase
-      .from('appointments')
-      .select('appointment_time')
-      .eq('company_id', companyId)
-      .eq('appointment_date', selectedDate)
-      .in('status', ['confirmed', 'completed', 'in_progress']);
-
-    if (finalVerification.data) {
-      const recentlyBookedTimes = new Set(
-        finalVerification.data.map(apt => apt.appointment_time.substring(0, 5))
-      );
+    // 5. Gerar todos os horários possíveis
+    const allSlots = [];
+    const [startHour, startMin] = dailySchedule.start_time.split(':').map(Number);
+    const [endHour, endMin] = dailySchedule.end_time.split(':').map(Number);
+    
+    const startTotalMin = startHour * 60 + startMin;
+    const endTotalMin = endHour * 60 + endMin;
+    
+    for (let minutes = startTotalMin; minutes < endTotalMin; minutes += 30) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      const timeSlot = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
       
-      // Filtrar horários que foram agendados após o cache
-      const finalAvailableSlots = availableSlots.filter(slot => !recentlyBookedTimes.has(slot));
-      
-      if (finalAvailableSlots.length !== availableSlots.length) {
-        console.log(`🚨 [CORREÇÃO CRÍTICA] ${availableSlots.length - finalAvailableSlots.length} horários removidos por conflito de concorrência`);
-        
-        // Atualizar cache com dados corretos
-        timeSlotsCache[cacheKey] = {
-          data: finalAvailableSlots,
-          timestamp: now
-        };
-        
-        return finalAvailableSlots;
+      // Verificar se não é horário passado (se for hoje)
+      const isToday = selectedDate === today;
+      if (isToday) {
+        try {
+          const currentTime = getCurrentTimeInBrazil();
+          const [currentHours, currentMinutes] = currentTime.split(':').map(Number);
+          const currentTotalMin = currentHours * 60 + currentMinutes;
+          
+          if (minutes <= currentTotalMin) {
+            continue; // Pular horários passados
+          }
+        } catch (error) {
+          // Se não conseguir obter hora atual, continuar
+        }
       }
+      
+      allSlots.push(timeSlot);
     }
 
-    console.log(`✅ [CORREÇÃO CRÍTICA] Horários verificados para ${selectedDate}: ${availableSlots.length} slots (${availableSlots.join(', ')})`);
+    // 6. Filtrar horários ocupados
+    const availableSlots = allSlots.filter(slot => {
+      const isOccupied = occupiedTimes.has(slot);
+      if (isOccupied) {
+        devLog(`❌ ${slot} - OCUPADO`);
+      } else {
+        devLog(`✅ ${slot} - DISPONÍVEL`);
+      }
+      return !isOccupied;
+    });
+
+    devLog(`🎯 RESULTADO FINAL: ${availableSlots.length} horários disponíveis de ${allSlots.length} possíveis`);
+    devLog(`🕐 Horários disponíveis: [${availableSlots.join(', ')}]`);
+    devLog(`🚫 Horários ocupados: [${Array.from(occupiedTimes).join(', ')}]`);
 
     return availableSlots;
 
   } catch (error: any) {
-    console.error('❌ Erro ao buscar horários disponíveis:', error);
+    devError('❌ Erro ao buscar horários disponíveis:', error);
     return [];
   }
 };

@@ -9,8 +9,12 @@ const corsHeaders = {
 };
 
 const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
+  // Logs desabilitados em produção por segurança
+  const isDev = Deno.env.get("ENVIRONMENT") === "development";
+  if (isDev) {
+    const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+    console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
+  }
 };
 
 serve(async (req) => {
@@ -42,6 +46,41 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
+
+    // Check if user is admin
+    const { data: profileData, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) {
+      logStep("Error fetching profile", { error: profileError });
+    } else if (profileData?.is_admin) {
+      logStep("User is admin - granting full access");
+      
+      // Update subscription record for admin
+      await supabaseClient.from("subscriptions").upsert({
+        user_id: user.id,
+        stripe_customer_id: null,
+        stripe_subscription_id: null,
+        status: "active",
+        current_period_start: new Date().toISOString(),
+        current_period_end: null, // Admin doesn't have expiration
+        cancel_at_period_end: false,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+
+      return new Response(JSON.stringify({ 
+        subscribed: true, 
+        status: "active",
+        current_period_end: null,
+        is_admin: true
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
 

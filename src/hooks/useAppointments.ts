@@ -9,6 +9,7 @@ import {
   AppointmentData 
 } from '@/services/appointmentService';
 import { getTodayInBrazil, debugTimezone } from '@/utils/timezone';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export const useAppointments = (dateRange?: { start?: string; end?: string }) => {
   const { user } = useAuth();
@@ -42,7 +43,7 @@ export const useAppointments = (dateRange?: { start?: string; end?: string }) =>
       const todayData = await getTodayAppointments(user.id);
       setTodayAppointments(todayData);
 
-      console.log('📅 Appointments loaded:', {
+      devLog('📅 Appointments loaded:', {
         total: data.length,
         today: todayData.length,
         todayDate: getTodayInBrazil()
@@ -50,7 +51,7 @@ export const useAppointments = (dateRange?: { start?: string; end?: string }) =>
 
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar agendamentos');
-      console.error('❌ Error loading appointments:', err);
+      devError('❌ Error loading appointments:', err);
     } finally {
       setLoading(false);
     }
@@ -76,7 +77,7 @@ export const useAppointments = (dateRange?: { start?: string; end?: string }) =>
       
       return newAppointment;
     } catch (error) {
-      console.error('❌ Error creating appointment:', error);
+      devError('❌ Error creating appointment:', error);
       throw error;
     }
   };
@@ -91,7 +92,7 @@ export const useAppointments = (dateRange?: { start?: string; end?: string }) =>
       
       return updatedAppointment;
     } catch (error) {
-      console.error('❌ Error updating appointment:', error);
+      devError('❌ Error updating appointment:', error);
       throw error;
     }
   };
@@ -106,7 +107,7 @@ export const useAppointments = (dateRange?: { start?: string; end?: string }) =>
       
       return cancelledAppointment;
     } catch (error) {
-      console.error('❌ Error cancelling appointment:', error);
+      devError('❌ Error cancelling appointment:', error);
       throw error;
     }
   };

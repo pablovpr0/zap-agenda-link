@@ -17,7 +17,12 @@ interface SubscriptionModalProps {
 }
 
 const SubscriptionModal = ({ isOpen, onClose }: SubscriptionModalProps) => {
-  const { createCheckout } = useSubscription();
+  const { createCheckout, isAdmin } = useSubscription();
+
+  // Se é admin, não mostrar o modal
+  if (isAdmin) {
+    return null;
+  }
 
   const handleActivatePlan = async () => {
     await createCheckout();

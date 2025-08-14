@@ -18,6 +18,7 @@ import { Trash2, Edit, X } from 'lucide-react';
 import { useState } from 'react';
 import { useAppointmentActions } from '@/hooks/useAppointmentActions';
 import { format } from 'date-fns';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface AppointmentActionsProps {
   appointmentId: string;
@@ -56,7 +57,7 @@ const AppointmentActions = ({
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   const handleUpdate = async () => {
-    console.log('Atualizando agendamento:', { appointmentId, newDate, newTime, clientPhone, clientName });
+    devLog('Atualizando agendamento:', { appointmentId, newDate, newTime, clientPhone, clientName });
     await updateAppointment(appointmentId, newDate, newTime, clientPhone, clientName, () => {
       setIsEditOpen(false);
       if (onSuccess) onSuccess();

@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, Clock, User, Phone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface ClientHistoryProps {
   clientPhone: string;
@@ -70,13 +71,13 @@ const ClientHistory = ({ clientPhone, companyId, onBack }: ClientHistoryProps) =
         .order('appointment_time', { ascending: false });
 
       if (error) {
-        console.error('Erro ao buscar histórico:', error);
+        devError('Erro ao buscar histórico:', error);
         return;
       }
 
       setAppointments(appointmentsData || []);
     } catch (error) {
-      console.error('Erro ao carregar histórico:', error);
+      devError('Erro ao carregar histórico:', error);
     } finally {
       setLoading(false);
     }

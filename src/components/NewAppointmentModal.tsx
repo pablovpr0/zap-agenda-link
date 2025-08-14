@@ -17,6 +17,7 @@ import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { createOrUpdateClient, findClientByPhone } from '@/services/clientService';
 import { formatPhoneForDisplay } from '@/utils/phoneNormalization';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface NewAppointmentModalProps {
   isOpen: boolean;
@@ -128,7 +129,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
         }
       }
     } catch (error) {
-      console.error('Erro ao verificar cliente por telefone:', error);
+      devError('Erro ao verificar cliente por telefone:', error);
     } finally {
       setCheckingPhone(false);
     }
@@ -175,7 +176,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       if (error) throw error;
       setClients(data || []);
     } catch (error) {
-      console.error('Erro ao carregar clientes:', error);
+      devError('Erro ao carregar clientes:', error);
     }
   };
 
@@ -192,7 +193,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       if (error) throw error;
       setServices(data || []);
     } catch (error) {
-      console.error('Erro ao carregar serviços:', error);
+      devError('Erro ao carregar serviços:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os serviços.",
@@ -215,7 +216,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       if (error) throw error;
       setProfessionals(data || []);
     } catch (error) {
-      console.error('Erro ao carregar profissionais:', error);
+      devError('Erro ao carregar profissionais:', error);
     }
   };
 
@@ -227,7 +228,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
     try {
       const formattedDate = format(selectedDate, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' });
       
-      console.log(`🕐 [AJUSTE 3] Carregando horários para agendamento manual: ${formattedDate}`);
+      devLog(`🕐 [AJUSTE 3] Carregando horários para agendamento manual: ${formattedDate}`);
       
       // Import the updated checkAvailableTimes function
       const { checkAvailableTimes } = await import('@/services/publicBookingService');
@@ -239,10 +240,10 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
         selectedService.duration
       );
 
-      console.log(`✅ [AJUSTE 3] Horários carregados para agendamento manual: ${times.length} slots disponíveis`);
+      devLog(`✅ [AJUSTE 3] Horários carregados para agendamento manual: ${times.length} slots disponíveis`);
       setAvailableTimes(times);
     } catch (error) {
-      console.error('❌ [AJUSTE 3] Erro ao carregar horários:', error);
+      devError('❌ [AJUSTE 3] Erro ao carregar horários:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os horários disponíveis.",
@@ -343,7 +344,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       // CORREÇÃO: Invalidar TODO o cache da empresa após criar agendamento
       const { invalidateTimeSlotsCache } = await import('@/services/publicBookingService');
       invalidateTimeSlotsCache(user!.id); // Sem data = invalida tudo
-      console.log(`🔄 [CORREÇÃO] TODO cache de horários invalidado após agendamento manual`);
+      devLog(`🔄 [CORREÇÃO] TODO cache de horários invalidado após agendamento manual`);
 
       toast({
         title: "Agendamento criado!",
@@ -354,7 +355,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       onClose();
 
     } catch (error: any) {
-      console.error('Erro ao criar agendamento:', error);
+      devError('Erro ao criar agendamento:', error);
       toast({
         title: "Erro",
         description: "Não foi possível criar o agendamento. Tente novamente.",

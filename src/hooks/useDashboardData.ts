@@ -7,6 +7,7 @@ import { generatePublicBookingUrl } from '@/lib/domainConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardData } from '@/types/dashboard';
 import { getNowInBrazil, getTodayInBrazil } from '@/utils/timezone';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 export const useDashboardData = (companyName?: string) => {
   const { user } = useAuth();
@@ -66,7 +67,7 @@ export const useDashboardData = (companyName?: string) => {
         .order('appointment_time');
 
       if (todayError) {
-        console.error('Error fetching today appointments:', todayError);
+        devError('Error fetching today appointments:', todayError);
       }
 
       // Total clients
@@ -76,7 +77,7 @@ export const useDashboardData = (companyName?: string) => {
         .eq('company_id', user.id);
 
       if (clientsError) {
-        console.error('Error fetching clients:', clientsError);
+        devError('Error fetching clients:', clientsError);
       }
 
       // Monthly revenue - only from COMPLETED appointments (not scheduled)
@@ -93,7 +94,7 @@ export const useDashboardData = (companyName?: string) => {
         .eq('status', 'completed'); // Only count completed appointments for revenue
 
       if (monthlyError) {
-        console.error('Error fetching completed appointments:', monthlyError);
+        devError('Error fetching completed appointments:', monthlyError);
       }
 
       // Calculate monthly revenue from completed appointments
@@ -118,7 +119,7 @@ export const useDashboardData = (companyName?: string) => {
         .limit(5);
 
       if (recentError) {
-        console.error('Error fetching recent appointments:', recentError);
+        devError('Error fetching recent appointments:', recentError);
       }
 
       // Format data
@@ -152,7 +153,7 @@ export const useDashboardData = (companyName?: string) => {
       });
 
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      devError('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
     }
@@ -169,7 +170,7 @@ export const useDashboardData = (companyName?: string) => {
   // Escutar atualizações de configurações para recarregar dados
   useEffect(() => {
     const handleSettingsUpdated = () => {
-      console.log('Configurações atualizadas detectadas, recarregando dashboard...');
+      devLog('Configurações atualizadas detectadas, recarregando dashboard...');
       if (user?.id) {
         loadData();
       }

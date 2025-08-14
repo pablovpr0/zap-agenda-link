@@ -4,6 +4,7 @@ import { useDashboardData } from '@/hooks/useDashboardData';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
 import DashboardContent from './dashboard/DashboardContent';
 import NewAppointmentModal from './NewAppointmentModal';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 interface MerchantDashboardProps {
   companyName: string;
@@ -16,7 +17,7 @@ const MerchantDashboard = ({ companyName, onViewChange }: MerchantDashboardProps
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
 
   const handleNewAppointmentSuccess = () => {
-    console.log('Novo agendamento criado, atualizando dashboard...');
+    devLog('Novo agendamento criado, atualizando dashboard...');
     refreshData(); // Recarregar dados após criar agendamento
   };
 

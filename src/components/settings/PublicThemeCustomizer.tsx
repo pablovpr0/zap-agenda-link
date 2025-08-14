@@ -8,6 +8,7 @@ import { Palette, Monitor, Moon, Sun, Eye, Save, Check, AlertCircle } from 'luci
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { savePublicThemeSettings, loadPublicThemeSettings } from '@/services/publicThemeService';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 // Cores disponíveis (sistema original + 16 novas cores)
 const THEME_COLORS = [{
@@ -133,7 +134,7 @@ const PublicThemeCustomizer = ({
           setDarkMode(settings.dark_mode);
         }
       } catch (error) {
-        console.error('Erro ao carregar configurações:', error);
+        devError('Erro ao carregar configurações:', error);
       } finally {
         setLoading(false);
       }
@@ -210,7 +211,7 @@ const PublicThemeCustomizer = ({
         description: "Tema da área pública atualizado com sucesso. Seus clientes verão as mudanças imediatamente."
       });
     } catch (error) {
-      console.error('Erro ao salvar tema:', error);
+      devError('Erro ao salvar tema:', error);
       toast({
         title: "❌ Erro ao salvar",
         description: "Não foi possível salvar as configurações. Tente novamente.",

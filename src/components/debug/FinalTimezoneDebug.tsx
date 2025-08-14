@@ -11,6 +11,7 @@ import {
   debugTimezone 
 } from '@/utils/timezone';
 import { generateAvailableTimeSlots } from '@/utils/timeSlots';
+import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
 const FinalTimezoneDebug = () => {
   const [currentTime, setCurrentTime] = useState({
@@ -47,7 +48,7 @@ const FinalTimezoneDebug = () => {
   };
 
   const runComprehensiveTests = () => {
-    console.log('🧪 Executando testes completos de timezone...');
+    devLog('🧪 Executando testes completos de timezone...');
 
     // Teste 1: Geração de horários
     const config = {
@@ -77,7 +78,7 @@ const FinalTimezoneDebug = () => {
       return slotHour >= 12 && slotHour < 13;
     });
 
-    console.log('📊 Resultados dos testes:', {
+    devLog('📊 Resultados dos testes:', {
       today,
       currentTime,
       totalSlots: timeSlots.length,
