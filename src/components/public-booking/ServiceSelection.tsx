@@ -17,23 +17,26 @@ interface Service {
 interface ServiceSelectionProps {
   services: Service[];
   selectedService: string;
-  onServiceChange: (serviceId: string) => void;
+  onServiceSelect: (serviceId: string) => void;
 }
 
-const ServiceSelection = ({ services, selectedService, onServiceChange }: ServiceSelectionProps) => {
+const ServiceSelection = ({ services, selectedService, onServiceSelect }: ServiceSelectionProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const selectedServiceData = services.find(s => s.id === selectedService);
 
+  const handleServiceSelect = (serviceId: string) => {
+    onServiceSelect(serviceId);
+    setIsModalOpen(false);
+  };
+
   return (
     <div className="space-y-2">
-      <Label className="text-gray-700 font-medium">Escolha o serviço</Label>
-      
       <Button
         type="button"
         variant="outline"
         onClick={() => setIsModalOpen(true)}
-        className="w-full justify-between h-auto p-3 public-border-primary border-opacity-30 focus:public-border-primary focus:ring-opacity-20 bg-opacity-10 public-bg-primary hover:bg-opacity-20"
+        className="w-full justify-between h-auto p-3"
       >
         {selectedServiceData ? (
           <div className="flex justify-between items-center w-full">
@@ -42,7 +45,7 @@ const ServiceSelection = ({ services, selectedService, onServiceChange }: Servic
               <Clock className="w-3 h-3" />
               {selectedServiceData.duration}min
               {selectedServiceData.price && (
-                <span className="font-medium public-primary">
+                <span className="font-medium text-primary">
                   R$ {selectedServiceData.price.toFixed(2)}
                 </span>
               )}
@@ -58,7 +61,7 @@ const ServiceSelection = ({ services, selectedService, onServiceChange }: Servic
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         services={services}
-        onServiceSelect={onServiceChange}
+        onServiceSelect={handleServiceSelect}
       />
     </div>
   );
