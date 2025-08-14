@@ -1,86 +1,53 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { devLog } from '@/utils/console';
+import { devLog, devError } from '@/utils/console';
 
-/**
- * Função para se inscrever em atualizações de agendamentos em tempo real
- * Monitora mudanças na tabela appointments para uma empresa específica
- */
-export const subscribeToBookingUpdates = (
-  companyId: string,
-  selectedDate: string,
-  onUpdate: () => void
-) => {
-  devLog(`📡 [REALTIME] Iniciando sincronização para empresa ${companyId} na data ${selectedDate}`);
+// Channel para sincronização em tempo real de agendamentos
+let bookingChannel: any = null;
 
-  // Configurar subscription para mudanças na tabela appointments
-  const subscription = supabase
-    .channel(`appointments-${companyId}-${selectedDate}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*', // Escutar INSERT, UPDATE, DELETE
-        schema: 'public',
-        table: 'appointments',
-        filter: `company_id=eq.${companyId}`,
-      },
-      (payload) => {
-        devLog(`🔄 [REALTIME] Mudança detectada:`, payload);
-        
-        // Verificar se a mudança afeta a data selecionada
-        const appointmentDate = payload.new?.appointment_date || payload.old?.appointment_date;
-        
-        if (appointmentDate === selectedDate) {
-          devLog(`✅ [REALTIME] Mudança relevante para ${selectedDate} - atualizando horários`);
-          onUpdate();
-        } else {
-          devLog(`ℹ️ [REALTIME] Mudança em data diferente (${appointmentDate}) - ignorando`);
-        }
-      }
-    )
-    .subscribe((status) => {
-      devLog(`📡 [REALTIME] Status da subscription:`, status);
-    });
+export const initializeBookingSync = (companyId: string, onBookingUpdate: () => void) => {
+  if (bookingChannel) {
+    supabase.removeChannel(bookingChannel);
+  }
 
-  // Retornar função para cancelar a subscription
-  return () => {
-    devLog(`📡 [REALTIME] Cancelando subscription para ${companyId}-${selectedDate}`);
-    subscription.unsubscribe();
-  };
+  devLog('🔄 Inicializando sincronização em tempo real de agendamentos para empresa:', companyId);
+
+  bookingChannel = supabase
+    .channel(`booking-updates-${companyId}`)
+    .on('broadcast', { event: 'booking-update' }, (payload: any) => {
+      devLog('📡 Recebido evento de atualização de agendamento:', payload);
+      onBookingUpdate();
+    })
+    .subscribe();
+
+  return bookingChannel;
 };
 
-/**
- * Função para notificar sobre criação de agendamento
- * Útil para disparar eventos customizados
- */
-export const notifyAppointmentCreated = (appointmentData: {
-  companyId: string;
-  date: string;
-  time: string;
-}) => {
-  // Disparar evento customizado para outros componentes
-  const event = new CustomEvent('appointment_created', {
-    detail: appointmentData
+export const triggerBookingUpdate = (companyId: string, appointmentDate?: string) => {
+  if (!bookingChannel) {
+    devError('❌ Canal de sincronização não inicializado');
+    return;
+  }
+
+  const payload = {
+    company_id: companyId,
+    appointment_date: appointmentDate || new Date().toISOString().split('T')[0],
+    timestamp: new Date().toISOString()
+  };
+
+  devLog('📤 Enviando evento de atualização de agendamento:', payload);
+
+  bookingChannel.send({
+    type: 'broadcast',
+    event: 'booking-update',
+    payload
   });
-  
-  window.dispatchEvent(event);
-  devLog(`📢 [REALTIME] Evento appointment_created disparado:`, appointmentData);
 };
 
-/**
- * Função para escutar eventos de agendamento
- */
-export const listenToAppointmentEvents = (
-  eventType: string,
-  callback: (data: any) => void
-) => {
-  const handler = (event: CustomEvent) => {
-    callback(event.detail);
-  };
-
-  window.addEventListener(eventType, handler as EventListener);
-
-  // Retornar função para remover o listener
-  return () => {
-    window.removeEventListener(eventType, handler as EventListener);
-  };
+export const cleanupBookingSync = () => {
+  if (bookingChannel) {
+    supabase.removeChannel(bookingChannel);
+    bookingChannel = null;
+    devLog('🧹 Limpeza da sincronização de agendamentos concluída');
+  }
 };

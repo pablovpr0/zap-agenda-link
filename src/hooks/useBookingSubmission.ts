@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { BookingFormData, CompanySettings, Service } from '@/types/publicBooking';
@@ -6,7 +7,6 @@ import { checkMonthlyLimit, checkIfCompanyIsAdmin } from '@/utils/monthlyLimitUt
 import { checkSimultaneousBookingLimit, checkIfCompanyIsAdminForSimultaneous } from '@/utils/simultaneousBookingLimit';
 import { createAppointment, generateWhatsAppMessage } from '@/services/appointmentService';
 import { validateBookingForm } from '@/utils/inputValidation';
-import { triggerBookingUpdate } from '@/utils/realtimeBookingSync';
 import { validateAppointmentSlot } from '@/utils/appointmentConflictChecker';
 import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
@@ -114,9 +114,6 @@ export const useBookingSubmission = (
       
       // Create appointment with sanitized data
       const result = await createAppointment(sanitizedFormData, companySettings, services, professionals);
-      
-      // SINCRONIZAÇÃO EM TEMPO REAL: Notificar todos os clientes conectados
-      triggerBookingUpdate(companySettings.company_id, sanitizedFormData.selectedDate);
       
       // CORREÇÃO: Invalidar TODO o cache da empresa após agendamento público
       const { invalidateTimeSlotsCache } = await import('@/services/publicBookingService');

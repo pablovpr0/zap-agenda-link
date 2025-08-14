@@ -1,114 +1,89 @@
-/**
- * Sistema de logging seguro para produção
- * 
- * Logs são exibidos apenas em desenvolvimento e não expõem dados sensíveis
- */
 
-const isDevelopment = import.meta.env.DEV;
+import { devLog, devError, devWarn } from '@/utils/console';
 
-export const logger = {
-  /**
-   * Log de informação - apenas em desenvolvimento
-   */
-  info: (message: string, data?: any) => {
-    if (isDevelopment) {
-      devLog(`ℹ️ ${message}`, data ? sanitizeData(data) : '');
-    }
-  },
+interface LogData {
+  action: string;
+  details?: any;
+  userId?: string;
+  companyId?: string;
+  timestamp?: string;
+}
 
-  /**
-   * Log de erro - sempre exibido mas dados sanitizados
-   */
-  error: (message: string, error?: any) => {
-    if (isDevelopment) {
-      devError(`❌ ${message}`, error);
-    } else {
-      // Em produção, log apenas a mensagem sem dados sensíveis
-      devError(`❌ ${message}`);
-    }
-  },
-
-  /**
-   * Log de aviso - sempre exibido mas dados sanitizados
-   */
-  warn: (message: string, data?: any) => {
-    if (isDevelopment) {
-      devWarn(`⚠️ ${message}`, data ? sanitizeData(data) : '');
-    } else {
-      devWarn(`⚠️ ${message}`);
-    }
-  },
-
-  /**
-   * Log de debug - apenas em desenvolvimento
-   */
-  debug: (message: string, data?: any) => {
-    if (isDevelopment) {
-      devLog(`🔍 ${message}`, data ? sanitizeData(data) : '');
-    }
-  },
-
-  /**
-   * Log de sucesso - apenas em desenvolvimento
-   */
-  success: (message: string, data?: any) => {
-    if (isDevelopment) {
-      devLog(`✅ ${message}`, data ? sanitizeData(data) : '');
-    }
+export const logUserAction = (data: LogData) => {
+  try {
+    const logEntry = {
+      ...data,
+      timestamp: data.timestamp || new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      url: window.location.href
+    };
+    
+    devLog('👤 User Action:', logEntry);
+    
+    // In production, you might want to send this to an analytics service
+    // analytics.track(data.action, logEntry);
+    
+  } catch (error) {
+    devError('❌ Error logging user action:', error);
   }
 };
 
-/**
- * Sanitiza dados removendo informações sensíveis
- */
-function sanitizeData(data: any): any {
-  if (!data) return data;
-
-  // Se é string, verificar se contém dados sensíveis
-  if (typeof data === 'string') {
-    // Mascarar IDs que parecem ser UUIDs
-    return data.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '***-***-***');
-  }
-
-  // Se é objeto, sanitizar recursivamente
-  if (typeof data === 'object' && data !== null) {
-    const sanitized: any = Array.isArray(data) ? [] : {};
+export const logError = (error: any, context?: string) => {
+  try {
+    const errorData = {
+      message: error?.message || String(error),
+      stack: error?.stack,
+      context,
+      timestamp: new Date().toISOString(),
+      url: window.location.href
+    };
     
-    for (const key in data) {
-      if (data.hasOwnProperty(key)) {
-        // Campos sensíveis que devem ser mascarados
-        const sensitiveFields = [
-          'company_id', 'companyId', 'id', 'client_id', 'clientId',
-          'phone', 'email', 'password', 'token', 'key', 'secret'
-        ];
-
-        if (sensitiveFields.includes(key.toLowerCase())) {
-          sanitized[key] = '***';
-        } else {
-          sanitized[key] = sanitizeData(data[key]);
-        }
-      }
-    }
+    devError('🚨 Application Error:', errorData);
     
-    return sanitized;
+    // In production, send to error tracking service
+    // errorTracking.captureException(error, { extra: errorData });
+    
+  } catch (logError) {
+    devError('❌ Error in error logging:', logError);
   }
+};
 
-  return data;
-}
+export const logBookingEvent = (event: string, data?: any) => {
+  try {
+    const eventData = {
+      event,
+      data,
+      timestamp: new Date().toISOString(),
+      url: window.location.href
+    };
+    
+    devLog('📅 Booking Event:', eventData);
+    
+  } catch (error) {
+    devWarn('⚠️ Warning: Could not log booking event:', error);
+  }
+};
 
-/**
- * Log específico para performance - apenas em desenvolvimento
- */
-export const performanceLogger = {
-  start: (operation: string) => {
-    if (isDevelopment) {
-      console.time(`⏱️ ${operation}`);
-    }
-  },
+export const logPerformance = (metric: string, value: number, unit = 'ms') => {
+  try {
+    const perfData = {
+      metric,
+      value,
+      unit,
+      timestamp: new Date().toISOString()
+    };
+    
+    devLog('⚡ Performance Metric:', perfData);
+    
+  } catch (error) {
+    devWarn('⚠️ Warning: Could not log performance metric:', error);
+  }
+};
 
-  end: (operation: string) => {
-    if (isDevelopment) {
-      console.timeEnd(`⏱️ ${operation}`);
-    }
+export const logDebug = (message: string, data?: any) => {
+  try {
+    devLog(`🐛 Debug: ${message}`, data);
+  } catch (error) {
+    // Silent fail for debug logs
   }
 };

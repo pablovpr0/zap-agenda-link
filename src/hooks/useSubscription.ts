@@ -140,7 +140,7 @@ export const useSubscription = () => {
 
       devLog('✅ Checkout criado:', data.url);
       
-      // Redirect to Stripe Checkout
+      // Redirect to Stripe Checkout in the same window for full screen experience
       window.location.href = data.url;
       
     } catch (error) {

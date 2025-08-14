@@ -1,100 +1,181 @@
-import { supabase } from '@/integrations/supabase/client';
-import { devLog, devError } from '@/utils/console';
 
-/**
- * Função de debug para verificar por que horários ocupados ainda aparecem
- */
-export const debugBookingAvailability = async (
-  companyId: string,
-  selectedDate: string
-) => {
-  devLog('🔍 [DEBUG] Iniciando debug de disponibilidade de horários');
-  devLog('📅 [DEBUG] Empresa:', companyId, 'Data:', selectedDate);
+import { supabase } from '@/integrations/supabase/client';
+import { devLog, devError, devWarn } from '@/utils/console';
+
+interface DebugBookingParams {
+  companyId: string;
+  date: string;
+  professionalId?: string;
+  serviceId?: string;
+}
+
+export const debugBookingAvailability = async ({
+  companyId,
+  date,
+  professionalId,
+  serviceId
+}: DebugBookingParams) => {
+  devLog('🔍 [DEBUG] Iniciando debug de disponibilidade de agendamentos');
+  devLog('📋 [DEBUG] Parâmetros:', { companyId, date, professionalId, serviceId });
 
   try {
-    // 1. Verificar agendamentos existentes
+    // 1. Verificar configurações da empresa
+    devLog('1️⃣ [DEBUG] Verificando configurações da empresa...');
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select(`
+        id,
+        company_name,
+        working_hours_start,
+        working_hours_end,
+        lunch_break_enabled,
+        lunch_start_time,
+        lunch_end_time,
+        working_days,
+        appointment_interval,
+        advance_booking_limit
+      `)
+      .eq('id', companyId)
+      .single();
+
+    if (companyError) {
+      devError('❌ [DEBUG] Erro ao buscar empresa:', companyError);
+      return;
+    }
+
+    devLog('✅ [DEBUG] Empresa encontrada:', company);
+
+    // 2. Verificar agendamentos existentes
+    devLog('2️⃣ [DEBUG] Verificando agendamentos existentes...');
     const { data: appointments, error: appointmentsError } = await supabase
       .from('appointments')
-      .select('*')
+      .select(`
+        id,
+        appointment_date,
+        appointment_time,
+        duration,
+        status,
+        professional_id,
+        service_id
+      `)
       .eq('company_id', companyId)
-      .eq('appointment_date', selectedDate);
+      .eq('appointment_date', date)
+      .in('status', ['scheduled', 'confirmed']);
 
     if (appointmentsError) {
       devError('❌ [DEBUG] Erro ao buscar agendamentos:', appointmentsError);
       return;
     }
 
-    devLog('📋 [DEBUG] Agendamentos encontrados:', appointments?.length || 0);
+    devLog('📅 [DEBUG] Agendamentos existentes:', appointments);
+
+    // 3. Verificar profissionais
+    if (professionalId) {
+      devLog('3️⃣ [DEBUG] Verificando profissional...');
+      const { data: professional, error: professionalError } = await supabase
+        .from('professionals')
+        .select('*')
+        .eq('id', professionalId)
+        .eq('company_id', companyId)
+        .single();
+
+      if (professionalError) {
+        devError('❌ [DEBUG] Erro ao buscar profissional:', professionalError);
+      } else {
+        devLog('👨‍💼 [DEBUG] Profissional encontrado:', professional);
+      }
+    }
+
+    // 4. Verificar serviços
+    if (serviceId) {
+      devLog('4️⃣ [DEBUG] Verificando serviço...');
+      const { data: service, error: serviceError } = await supabase
+        .from('services')
+        .select('*')
+        .eq('id', serviceId)
+        .eq('company_id', companyId)
+        .single();
+
+      if (serviceError) {
+        devError('❌ [DEBUG] Erro ao buscar serviço:', serviceError);
+      } else {
+        devLog('🛎️ [DEBUG] Serviço encontrado:', service);
+      }
+    }
+
+    // 5. Verificar se é dia de trabalho
+    const dateObj = new Date(date + 'T12:00:00');
+    const dayOfWeek = dateObj.getDay();
+    const workingDays = company.working_days || [1, 2, 3, 4, 5];
     
-    if (appointments && appointments.length > 0) {
-      appointments.forEach((apt, index) => {
-        devLog(`📝 [DEBUG] Agendamento ${index + 1}:`, {
-          id: apt.id,
-          time: apt.appointment_time,
-          status: apt.status,
-          client_id: apt.client_id,
-          service_id: apt.service_id,
-          created_at: apt.created_at
-        });
-      });
-    }
+    devLog('5️⃣ [DEBUG] Verificação de dia útil:');
+    devLog('📅 [DEBUG] Dia da semana:', dayOfWeek);
+    devLog('🗓️ [DEBUG] Dias de trabalho:', workingDays);
+    devLog('✅ [DEBUG] É dia útil?', workingDays.includes(dayOfWeek));
 
-    // 2. Verificar agendamentos apenas com status que bloqueiam horários
-    const { data: blockingAppointments, error: blockingError } = await supabase
-      .from('appointments')
-      .select('appointment_time, duration, status, services(duration)')
-      .eq('company_id', companyId)
-      .eq('appointment_date', selectedDate)
-      .in('status', ['confirmed', 'completed', 'in_progress']);
+    // 6. Gerar horários disponíveis teoricamente
+    devLog('6️⃣ [DEBUG] Gerando horários teóricos...');
+    const theoreticalSlots = generateTheoreticalTimeSlots(company);
+    devLog('⏰ [DEBUG] Horários teóricos:', theoreticalSlots);
 
-    if (blockingError) {
-      devError('❌ [DEBUG] Erro ao buscar agendamentos bloqueadores:', blockingError);
-      return;
-    }
-
-    devLog('🚫 [DEBUG] Agendamentos que bloqueiam horários:', blockingAppointments?.length || 0);
+    // 7. Filtrar horários ocupados
+    const occupiedSlots = appointments?.map(apt => apt.appointment_time) || [];
+    const availableSlots = theoreticalSlots.filter(slot => !occupiedSlots.includes(slot));
     
-    if (blockingAppointments && blockingAppointments.length > 0) {
-      blockingAppointments.forEach((apt, index) => {
-        devLog(`🚫 [DEBUG] Bloqueador ${index + 1}:`, {
-          time: apt.appointment_time,
-          status: apt.status,
-          duration: apt.duration,
-          service_duration: apt.services?.duration
-        });
-      });
-    }
-
-    // 3. Verificar configuração do dia
-    const date = new Date(selectedDate + 'T12:00:00');
-    const dayOfWeek = date.getDay();
-
-    const { data: dailySchedule, error: scheduleError } = await supabase
-      .from('daily_schedules')
-      .select('*')
-      .eq('company_id', companyId)
-      .eq('day_of_week', dayOfWeek);
-
-    if (scheduleError) {
-      devError('❌ [DEBUG] Erro ao buscar configuração do dia:', scheduleError);
-      return;
-    }
-
-    devLog('⚙️ [DEBUG] Configuração do dia da semana:', dayOfWeek, dailySchedule);
-
-    // 4. Verificar cache atual
-    const cacheKey = `${companyId}-${selectedDate}-60`;
-    devLog('💾 [DEBUG] Chave do cache:', cacheKey);
+    devLog('7️⃣ [DEBUG] Análise final:');
+    devLog('🚫 [DEBUG] Horários ocupados:', occupiedSlots);
+    devLog('✅ [DEBUG] Horários disponíveis:', availableSlots);
 
     return {
-      totalAppointments: appointments?.length || 0,
-      blockingAppointments: blockingAppointments?.length || 0,
-      dailyScheduleActive: dailySchedule?.[0]?.is_active || false,
-      appointments: appointments || [],
-      blockingAppointments: blockingAppointments || []
+      company,
+      appointments,
+      theoreticalSlots,
+      occupiedSlots,
+      availableSlots,
+      isWorkingDay: workingDays.includes(dayOfWeek)
     };
 
   } catch (error) {
-    devError('❌ [DEBUG] Erro geral no debug:', error);
+    devError('💥 [DEBUG] Erro geral no debug:', error);
+    return null;
   }
+};
+
+const generateTheoreticalTimeSlots = (company: any): string[] => {
+  const slots: string[] = [];
+  const startTime = company.working_hours_start || '09:00';
+  const endTime = company.working_hours_end || '18:00';
+  const interval = company.appointment_interval || 30;
+  
+  const start = timeToMinutes(startTime);
+  const end = timeToMinutes(endTime);
+  
+  for (let minutes = start; minutes < end; minutes += interval) {
+    const timeStr = minutesToTime(minutes);
+    
+    // Skip lunch break if enabled
+    if (company.lunch_break_enabled && company.lunch_start_time && company.lunch_end_time) {
+      const lunchStart = timeToMinutes(company.lunch_start_time);
+      const lunchEnd = timeToMinutes(company.lunch_end_time);
+      
+      if (minutes >= lunchStart && minutes < lunchEnd) {
+        continue;
+      }
+    }
+    
+    slots.push(timeStr);
+  }
+  
+  return slots;
+};
+
+const timeToMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+const minutesToTime = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 };
