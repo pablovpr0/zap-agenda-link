@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { format, parse, isValid, isWithinInterval } from 'date-fns';
 import { devLog, devError, devWarn, devInfo } from '@/utils/console';
@@ -24,6 +25,83 @@ export const invalidateTimeSlotsCache = (companyId?: string, date?: string) => {
     const key = `${companyId}-${date}`;
     delete timeSlotsCache[key];
     devWarn(`🧹 Cache de horários para ${companyId} em ${date} esvaziado!`);
+  }
+};
+
+// Function to load company data by slug
+export const loadCompanyDataBySlug = async (slug: string) => {
+  try {
+    devLog(`🔍 Carregando dados da empresa pelo slug: ${slug}`);
+
+    // Get company settings
+    const { data: settings, error: settingsError } = await supabase
+      .from('company_settings')
+      .select('*')
+      .eq('slug', slug)
+      .single();
+
+    if (settingsError) {
+      devError('Erro ao buscar configurações da empresa:', settingsError);
+      throw new Error(`Empresa não encontrada: ${settingsError.message}`);
+    }
+
+    if (!settings) {
+      throw new Error('Empresa não encontrada');
+    }
+
+    // Get profile data
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', settings.company_id)
+      .single();
+
+    if (profileError) {
+      devWarn('Erro ao buscar perfil da empresa:', profileError);
+    }
+
+    // Get services data
+    const { data: servicesData, error: servicesError } = await supabase
+      .from('services')
+      .select('*')
+      .eq('company_id', settings.company_id)
+      .eq('is_active', true);
+
+    if (servicesError) {
+      devWarn('Erro ao buscar serviços:', servicesError);
+    }
+
+    devLog('✅ Dados da empresa carregados com sucesso');
+    return {
+      settings,
+      profileData,
+      servicesData: servicesData || []
+    };
+
+  } catch (error) {
+    devError('Erro geral ao carregar dados da empresa:', error);
+    throw error;
+  }
+};
+
+// Function to fetch active professionals
+export const fetchActiveProfessionals = async (companyId: string) => {
+  try {
+    const { data: professionals, error } = await supabase
+      .from('professionals')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('is_active', true);
+
+    if (error) {
+      devError('Erro ao buscar profissionais:', error);
+      throw error;
+    }
+
+    return professionals || [];
+  } catch (error) {
+    devError('Erro geral ao buscar profissionais:', error);
+    throw error;
   }
 };
 
@@ -100,7 +178,7 @@ export const checkAvailableTimes = async (
     // Get company working hours and schedule settings
     const { data: companySettings, error: settingsError } = await supabase
       .from('company_settings')
-      .select('working_days, working_hours, lunch_break_start, lunch_break_end, booking_advance_limit, time_slot_interval')
+      .select('working_days, working_hours_start, working_hours_end, lunch_break_enabled, lunch_start_time, lunch_end_time, advance_booking_limit, appointment_interval')
       .eq('company_id', companyId)
       .single();
 
@@ -134,10 +212,12 @@ export const checkAvailableTimes = async (
 
     const {
       working_days: workingDays,
-      working_hours: workingHours,
-      lunch_break_start: lunchBreakStart,
-      lunch_break_end: lunchBreakEnd,
-      time_slot_interval: timeSlotInterval
+      working_hours_start: startTime,
+      working_hours_end: endTime,
+      lunch_break_enabled,
+      lunch_start_time: lunchBreakStart,
+      lunch_end_time: lunchBreakEnd,
+      appointment_interval: timeSlotInterval
     } = companySettings;
 
     // Validate working days
@@ -149,7 +229,6 @@ export const checkAvailableTimes = async (
     }
 
     // Parse working hours
-    const [startTime, endTime] = workingHours;
     if (!startTime || !endTime) {
       devError('Horário de funcionamento inválido');
       return [];
@@ -174,7 +253,7 @@ export const checkAvailableTimes = async (
 
       // Increment time
       const [currentHours, currentMinutes] = currentTime.split(':').map(Number);
-      const nextMinutes = currentMinutes + timeSlotInterval;
+      const nextMinutes = currentMinutes + (timeSlotInterval || 30);
       const nextHours = currentHours + Math.floor(nextMinutes / 60);
       const remainingMinutes = nextMinutes % 60;
 
@@ -182,7 +261,7 @@ export const checkAvailableTimes = async (
     }
 
     // Remove time slots during lunch break
-    if (lunchBreakStart && lunchBreakEnd) {
+    if (lunch_break_enabled && lunchBreakStart && lunchBreakEnd) {
       const filteredTimeSlots = availableTimeSlots.filter(time => {
         return !(time >= lunchBreakStart && time < lunchBreakEnd);
       });
