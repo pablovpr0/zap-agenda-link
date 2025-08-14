@@ -18,12 +18,17 @@ export const useBookingSubmission = (
 ) => {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
+  const [validationStep, setValidationStep] = useState<string>('');
 
   const submitBooking = async (formData: BookingFormData) => {
     setSubmitting(true);
+    setValidationStep('Validando dados...');
     
     try {
-      // Input validation and sanitization
+      devLog('🚀 [OTIMIZADO] Iniciando processo de agendamento');
+
+      // Step 1: Input validation and sanitization
+      setValidationStep('Verificando dados do formulário...');
       const validation = validateBookingForm({
         clientName: formData.clientName,
         clientPhone: formData.clientPhone,
@@ -43,7 +48,6 @@ export const useBookingSubmission = (
         return false;
       }
       
-      // Use sanitized data
       const sanitizedFormData = {
         ...formData,
         ...validation.sanitizedData
@@ -58,16 +62,22 @@ export const useBookingSubmission = (
         return false;
       }
 
-      // Check if company is admin
+      // Step 2: Check company admin status
+      setValidationStep('Verificando tipo de conta...');
       const isAdminCompany = await checkIfCompanyIsAdmin(companySettings.company_id);
       const isAdminCompanySimultaneous = await checkIfCompanyIsAdminForSimultaneous(companySettings.company_id);
       
-      // VALIDAÇÃO 1: Limite de agendamentos simultâneos
+      devLog(`👑 Status admin: geral=${isAdminCompany}, simultâneo=${isAdminCompanySimultaneous}`);
+
+      // Step 3: VALIDAÇÃO REFORÇADA - Limite de agendamentos simultâneos
+      setValidationStep('Verificando limite de agendamentos simultâneos...');
       const simultaneousCheck = await checkSimultaneousBookingLimit(
         companySettings.company_id,
         sanitizedFormData.clientPhone,
         isAdminCompanySimultaneous
       );
+      
+      devLog('🔍 Resultado validação simultânea:', simultaneousCheck);
       
       if (!simultaneousCheck.canBook) {
         toast({
@@ -78,7 +88,8 @@ export const useBookingSubmission = (
         return false;
       }
       
-      // VALIDAÇÃO 2: Limite mensal
+      // Step 4: VALIDAÇÃO REFORÇADA - Limite mensal
+      setValidationStep('Verificando limite mensal...');
       const canBook = await checkMonthlyLimit(
         companySettings.company_id,
         sanitizedFormData.clientPhone,
@@ -95,8 +106,10 @@ export const useBookingSubmission = (
         return false;
       }
 
-      // VALIDAÇÃO FINAL: Verificar conflito de horário em tempo real
-      devLog('🔍 Verificação final de conflito de horário...');
+      // Step 5: VALIDAÇÃO CRÍTICA - Verificar conflito de horário em tempo real
+      setValidationStep('Verificando disponibilidade do horário...');
+      devLog('🔍 [CRÍTICO] Verificação final de conflito de horário...');
+      
       const slotValidation = await validateAppointmentSlot(
         companySettings.company_id,
         sanitizedFormData.selectedDate,
@@ -104,35 +117,80 @@ export const useBookingSubmission = (
       );
 
       if (!slotValidation.isValid) {
+        devError('❌ [CRÍTICO] Horário não disponível:', slotValidation.message);
         toast({
           title: "Horário não disponível",
-          description: slotValidation.message || "Este horário não está mais disponível.",
+          description: slotValidation.message || "Este horário foi reservado por outro cliente. Por favor, escolha outro horário.",
           variant: "destructive",
         });
         return false;
       }
+
+      // Step 6: DUPLA VALIDAÇÃO via Edge Function
+      setValidationStep('Validação final de segurança...');
+      try {
+        const { data: finalValidation, error: validationError } = await (window as any).supabase.functions.invoke('validate-booking-limits', {
+          body: { 
+            companyId: companySettings.company_id, 
+            clientPhone: sanitizedFormData.clientPhone 
+          }
+        });
+
+        if (validationError || !finalValidation?.canBook) {
+          devError('❌ [DUPLA-VALIDAÇÃO] Falhou na validação final');
+          toast({
+            title: "Validação de segurança falhou",
+            description: "Por favor, verifique seus limites de agendamento e tente novamente.",
+            variant: "destructive",
+          });
+          return false;
+        }
+      } catch (error) {
+        devWarn('⚠️ [DUPLA-VALIDAÇÃO] Erro na validação final - prosseguindo');
+      }
       
-      // Create appointment with sanitized data
+      // Step 7: Create appointment
+      setValidationStep('Criando agendamento...');
       const result = await createAppointment(sanitizedFormData, companySettings, services, professionals);
       
-      // CORREÇÃO: Invalidar TODO o cache da empresa após agendamento público
+      // Step 8: INVALIDAÇÃO AGRESSIVA DO CACHE
+      setValidationStep('Atualizando disponibilidade...');
       const { invalidateTimeSlotsCache } = await import('@/services/publicBookingService');
-      invalidateTimeSlotsCache(companySettings.company_id); // Sem data = invalida tudo
-      devLog(`🔄 [CORREÇÃO] TODO cache de horários invalidado após agendamento público`);
+      
+      // Invalidar cache específico da data
+      invalidateTimeSlotsCache(companySettings.company_id, sanitizedFormData.selectedDate);
+      // Invalidar TODO o cache da empresa
+      invalidateTimeSlotsCache(companySettings.company_id);
+      
+      // Limpar cache do sessionStorage também
+      const cacheKey = `${companySettings.company_id}-${sanitizedFormData.selectedDate}`;
+      sessionStorage.removeItem(cacheKey);
+      sessionStorage.removeItem(`${cacheKey}-time`);
+      
+      devLog(`🔄 [OTIMIZADO] Cache invalidado agressivamente após agendamento`);
       
       toast({
         title: "Agendamento realizado com sucesso!",
         description: `Agendamento confirmado para ${result.formattedDate} às ${sanitizedFormData.selectedTime}.`,
       });
 
-      // Callback para atualizar horários disponíveis
+      // Step 9: Callback para atualização imediata
       if (onBookingSuccess) {
-        onBookingSuccess();
+        setTimeout(onBookingSuccess, 100); // Pequeno delay para garantir que o cache foi limpo
       }
 
-      // Send WhatsApp message with sanitized data
+      // Step 10: Trigger manual de atualização em tempo real
+      window.dispatchEvent(new CustomEvent('bookingUpdate', { 
+        detail: { 
+          companyId: companySettings.company_id, 
+          date: sanitizedFormData.selectedDate,
+          time: sanitizedFormData.selectedTime,
+          action: 'created'
+        } 
+      }));
+
+      // Step 11: Send WhatsApp message
       if (companySettings.phone) {
-        
         const message = generateWhatsAppMessage(
           sanitizedFormData.clientName,
           sanitizedFormData.clientPhone,
@@ -150,13 +208,15 @@ export const useBookingSubmission = (
         }, 1000);
       }
 
+      devLog('✅ [OTIMIZADO] Agendamento concluído com sucesso');
       return true;
       
     } catch (error: any) {
+      devError('❌ [OTIMIZADO] Erro no processo de agendamento:', error);
       
       let errorMessage = "Não foi possível realizar o agendamento. Tente novamente.";
       
-      // Handle specific error messages from database functions
+      // Handle specific error messages
       if (error.message?.includes('Required parameters cannot be null')) {
         errorMessage = "Todos os campos obrigatórios devem ser preenchidos.";
       } else if (error.message?.includes('Company not found or not active')) {
@@ -164,7 +224,7 @@ export const useBookingSubmission = (
       } else if (error.message?.includes('Service not found or inactive')) {
         errorMessage = "O serviço selecionado não está mais disponível.";
       } else if (error.message?.includes('Time slot already booked')) {
-        errorMessage = "Este horário não está mais disponível. Por favor, escolha outro horário.";
+        errorMessage = "Este horário foi reservado por outro cliente. Por favor, escolha outro horário.";
       } else if (error.message?.includes('Cannot book appointments in the past')) {
         errorMessage = "Não é possível agendar para datas passadas.";
       } else if (error.message?.includes('Name must be between')) {
@@ -172,6 +232,8 @@ export const useBookingSubmission = (
       } else if (error.message?.includes('Invalid phone number format')) {
         errorMessage = "Formato de telefone inválido.";
       } else if (error.message?.includes('Muitas tentativas')) {
+        errorMessage = error.message;
+      } else if (error.message?.includes('limite')) {
         errorMessage = error.message;
       } else if (error.message) {
         errorMessage = error.message;
@@ -186,11 +248,13 @@ export const useBookingSubmission = (
       return false;
     } finally {
       setSubmitting(false);
+      setValidationStep('');
     }
   };
 
   return {
     submitBooking,
-    submitting
+    submitting,
+    validationStep
   };
 };

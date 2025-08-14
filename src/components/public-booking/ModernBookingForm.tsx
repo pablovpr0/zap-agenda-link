@@ -1,194 +1,232 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { useAvailableTimes } from '@/hooks/useAvailableTimes';
+import { useBookingSubmission } from '@/hooks/useBookingSubmission';
+import { useBookingLimitsCheck } from '@/hooks/useBookingLimitsCheck';
+import { usePublicBooking } from '@/hooks/usePublicBooking';
+import { useParams } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import ClientForm from './ClientForm';
+import ServiceSelection from './ServiceSelection';
+import DateSelection from '@/components/time-slot-picker/DateSelection';
+import TimeSelection from './TimeSelection';
+import BookingLimitsIndicator from './BookingLimitsIndicator';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Calendar, Clock, User, Phone, Mail, CheckCircle } from 'lucide-react';
-import { formatToBrasilia } from '@/utils/timezone';
-import { toast } from 'sonner';
-import { devLog, devError } from '@/utils/console';
-import { validatePhone, validateEmail, validateName } from '@/utils/inputValidation';
+import { Calendar, Clock, User } from 'lucide-react';
+import { devLog } from '@/utils/console';
+import { BookingFormData } from '@/types/publicBooking';
+import { formatInBrazilTimezone } from '@/utils/timezone';
 
-interface BookingFormData {
-  serviceName: string;
-  servicePrice?: number;
-  serviceDuration: number;
-  selectedDate: string;
-  selectedTime: string;
-  clientName: string;
-  clientPhone: string;
-  clientEmail: string;
-}
+const ModernBookingForm = () => {
+  const { companySlug } = useParams<{ companySlug: string }>();
+  const { companySettings, services, professionals } = usePublicBooking(companySlug || '');
+  
+  const [formData, setFormData] = useState<BookingFormData>({
+    clientName: '',
+    clientPhone: '',
+    clientEmail: '',
+    selectedDate: '',
+    selectedTime: '',
+    selectedService: '',
+    selectedProfessional: ''
+  });
 
-interface ModernBookingFormProps {
-  formData: BookingFormData;
-  onSubmit: (data: BookingFormData) => Promise<void>;
-  isSubmitting: boolean;
-}
+  const {
+    generateAvailableDates,
+    generateAvailableTimes,
+    availableTimes,
+    isLoading: timesLoading,
+    refreshTimes,
+    isConnected,
+    isSyncing,
+    lastSync,
+    nextRefresh
+  } = useAvailableTimes(companySettings);
 
-const ModernBookingForm: React.FC<ModernBookingFormProps> = ({
-  formData,
-  onSubmit,
-  isSubmitting
-}) => {
-  const [localFormData, setLocalFormData] = useState(formData);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { limits, isLoading: limitsLoading, refreshLimits } = useBookingLimitsCheck(
+    companySettings?.company_id || '',
+    formData.clientPhone
+  );
+
+  const { submitBooking, submitting, validationStep } = useBookingSubmission(
+    companySettings,
+    services,
+    professionals,
+    () => {
+      // Callback após sucesso - limpar form e atualizar tudo
+      setFormData({
+        clientName: '',
+        clientPhone: '',
+        clientEmail: '',
+        selectedDate: '',
+        selectedTime: '',
+        selectedService: '',
+        selectedProfessional: ''
+      });
+      refreshTimes();
+      refreshLimits();
+    }
+  );
 
   useEffect(() => {
-    setLocalFormData(formData);
-  }, [formData]);
+    generateAvailableDates();
+  }, [companySettings, generateAvailableDates]);
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!validateName(localFormData.clientName)) {
-      newErrors.clientName = 'Nome deve ter pelo menos 2 caracteres';
+  useEffect(() => {
+    if (formData.selectedDate && companySettings) {
+      generateAvailableTimes(formData.selectedDate);
     }
+  }, [formData.selectedDate, companySettings, generateAvailableTimes]);
 
-    if (!validatePhone(localFormData.clientPhone)) {
-      newErrors.clientPhone = 'Telefone deve ter formato válido';
+  // Refresh limites quando telefone mudar
+  useEffect(() => {
+    if (formData.clientPhone && formData.clientPhone.length >= 10) {
+      refreshLimits();
     }
-
-    if (!validateEmail(localFormData.clientEmail)) {
-      newErrors.clientEmail = 'Email deve ter formato válido';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  }, [formData.clientPhone, refreshLimits]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      toast.error('Por favor, corrija os erros no formulário');
+    // Validação final antes de submeter
+    if (!limits?.canBook) {
       return;
     }
 
-    try {
-      await onSubmit(localFormData);
-    } catch (error) {
-      devError('Erro ao enviar formulário:', error);
-      toast.error('Erro ao confirmar agendamento');
+    const success = await submitBooking(formData);
+    if (success) {
+      devLog('✅ Agendamento realizado com sucesso');
     }
   };
 
-  const formatSelectedDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    return formatToBrasilia(new Date(dateStr + 'T12:00:00'), "EEEE, dd 'de' MMMM 'de' yyyy");
+  const canProceedToBooking = () => {
+    return formData.clientName && 
+           formData.clientPhone && 
+           formData.selectedDate && 
+           formData.selectedTime && 
+           formData.selectedService &&
+           limits?.canBook &&
+           !submitting;
   };
 
+  if (!companySettings) {
+    return <div>Carregando...</div>;
+  }
+
   return (
-    <div className="max-w-md mx-auto p-4">
-      <Card className="bg-white shadow-xl border-0 rounded-3xl overflow-hidden">
-        <CardContent className="p-0">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-green-500 to-blue-500 p-6 text-white">
-            <h2 className="text-2xl font-bold mb-2">Confirmar Agendamento</h2>
-            <p className="opacity-90">Preencha seus dados para finalizar</p>
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Calendar className="w-5 h-5" />
+          Agendar Horário
+        </CardTitle>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* Informações de Limites */}
+          <BookingLimitsIndicator 
+            limits={limits}
+            isLoading={limitsLoading}
+            className="mb-4"
+          />
+
+          {/* Dados do Cliente */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Seus Dados
+            </h3>
+            <ClientForm
+              clientName={formData.clientName}
+              clientPhone={formData.clientPhone}
+              clientEmail={formData.clientEmail}
+              onClientNameChange={(value) => setFormData(prev => ({ ...prev, clientName: value }))}
+              onClientPhoneChange={(value) => setFormData(prev => ({ ...prev, clientPhone: value }))}
+              onClientEmailChange={(value) => setFormData(prev => ({ ...prev, clientEmail: value }))}
+            />
           </div>
 
-          {/* Booking Summary */}
-          <div className="p-6 bg-gray-50 border-b">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <div>
-                  <p className="font-semibold">{localFormData.serviceName}</p>
-                  {localFormData.servicePrice && (
-                    <p className="text-sm text-gray-600">R$ {localFormData.servicePrice.toFixed(2)}</p>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-blue-500" />
-                <p className="text-sm">{formatSelectedDate(localFormData.selectedDate)}</p>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-purple-500" />
-                <p className="text-sm">{localFormData.selectedTime} ({localFormData.serviceDuration} min)</p>
-              </div>
-            </div>
+          {/* Seleção de Serviço */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Escolha o Serviço</h3>
+            <ServiceSelection
+              services={services}
+              selectedService={formData.selectedService}
+              onServiceSelect={(serviceId) => setFormData(prev => ({ ...prev, selectedService: serviceId }))}
+            />
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            {/* Name Field */}
-            <div className="space-y-2">
-              <Label htmlFor="clientName" className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                Nome completo
-              </Label>
-              <Input
-                id="clientName"
-                type="text"
-                value={localFormData.clientName}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, clientName: e.target.value }))}
-                className={`${errors.clientName ? 'border-red-500' : ''}`}
-                placeholder="Seu nome completo"
-                required
-              />
-              {errors.clientName && (
-                <p className="text-red-500 text-sm">{errors.clientName}</p>
-              )}
-            </div>
+          {/* Seleção de Data */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Escolha a Data</h3>
+            <DateSelection
+              selectedDate={formData.selectedDate}
+              onDateSelect={(date) => setFormData(prev => ({ ...prev, selectedDate: date, selectedTime: '' }))}
+              generateAvailableDates={generateAvailableDates}
+            />
+          </div>
 
-            {/* Phone Field */}
-            <div className="space-y-2">
-              <Label htmlFor="clientPhone" className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                Telefone
-              </Label>
-              <Input
-                id="clientPhone"
-                type="tel"
-                value={localFormData.clientPhone}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, clientPhone: e.target.value }))}
-                className={`${errors.clientPhone ? 'border-red-500' : ''}`}
-                placeholder="(11) 99999-9999"
-                required
+          {/* Seleção de Horário */}
+          {formData.selectedDate && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Escolha o Horário
+              </h3>
+              <TimeSelection
+                availableTimes={availableTimes}
+                selectedTime={formData.selectedTime}
+                onTimeSelect={(time) => setFormData(prev => ({ ...prev, selectedTime: time }))}
+                isLoading={timesLoading}
+                onRefresh={refreshTimes}
+                isConnected={isConnected}
+                isSyncing={isSyncing}
+                lastSync={lastSync}
+                nextRefresh={nextRefresh}
               />
-              {errors.clientPhone && (
-                <p className="text-red-500 text-sm">{errors.clientPhone}</p>
-              )}
             </div>
+          )}
 
-            {/* Email Field */}
-            <div className="space-y-2">
-              <Label htmlFor="clientEmail" className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                Email
-              </Label>
-              <Input
-                id="clientEmail"
-                type="email"
-                value={localFormData.clientEmail}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, clientEmail: e.target.value }))}
-                className={`${errors.clientEmail ? 'border-red-500' : ''}`}
-                placeholder="seu@email.com"
-                required
-              />
-              {errors.clientEmail && (
-                <p className="text-red-500 text-sm">{errors.clientEmail}</p>
-              )}
+          {/* Resumo e Botão de Confirmação */}
+          {formData.selectedDate && formData.selectedTime && (
+            <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+              <h4 className="font-semibold">Resumo do Agendamento</h4>
+              <div className="text-sm space-y-1">
+                <p><strong>Data:</strong> {formatInBrazilTimezone(formData.selectedDate, 'EEEE, dd \'de\' MMMM \'de\' yyyy')}</p>
+                <p><strong>Horário:</strong> {formData.selectedTime}</p>
+                <p><strong>Cliente:</strong> {formData.clientName}</p>
+                {formData.selectedService && (
+                  <p><strong>Serviço:</strong> {services.find(s => s.id === formData.selectedService)?.name}</p>
+                )}
+              </div>
             </div>
+          )}
 
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
-            >
-              {isSubmitting ? 'Confirmando...' : 'Confirmar Agendamento'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          {/* Status de Validação */}
+          {submitting && validationStep && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span className="text-sm text-blue-800">{validationStep}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Botão de Confirmação */}
+          <Button
+            type="submit"
+            disabled={!canProceedToBooking()}
+            className="w-full h-12 text-lg"
+          >
+            {submitting ? 'Processando...' : 'Confirmar Agendamento'}
+          </Button>
+
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

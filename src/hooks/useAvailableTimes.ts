@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CompanySettings } from '@/types/publicBooking';
 import { generateAvailableDates, generateTimeSlots } from '@/utils/dateUtils';
 import { checkAvailableTimes } from '@/services/publicBookingService';
@@ -12,6 +12,14 @@ export const useAvailableTimes = (companySettings: CompanySettings | null) => {
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentDate, setCurrentDate] = useState<string>('');
+  const [isConnected, setIsConnected] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState<Date>(new Date());
+  const [nextRefresh, setNextRefresh] = useState<number>(0);
+  
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
+  const lastLoadRef = useRef<number>(0);
 
   const generateAvailableDatesForCompany = async () => {
     if (!companySettings) {
@@ -44,69 +52,158 @@ export const useAvailableTimes = (companySettings: CompanySettings | null) => {
     }
   };
 
-  // Função para buscar horários com sincronização em tempo real
+  // Função otimizada para buscar horários com debounce inteligente
   const loadAvailableTimes = useCallback(async (selectedDate: string, serviceDuration?: number, forceRefresh = false) => {
     if (!companySettings || !selectedDate) {
       setAvailableTimes([]);
       return [];
     }
     
+    const now = Date.now();
+    
+    // Debounce: evitar chamadas muito frequentes (exceto se forçado)
+    if (!forceRefresh && now - lastLoadRef.current < 500) {
+      devLog('🔄 Debounce ativo - ignorando chamada duplicada');
+      return availableTimes;
+    }
+    
+    lastLoadRef.current = now;
     setIsLoading(true);
-    setCurrentDate(selectedDate);
+    setIsSyncing(true);
     
     try {
-      devLog(`🔄 Carregando horários para ${selectedDate} (force: ${forceRefresh})`);
+      devLog(`🔄 [OTIMIZADO] Carregando horários para ${selectedDate} (force: ${forceRefresh})`);
       
-      // USAR VERSÃO SIMPLES PARA TESTE
+      // Cache inteligente - usar dados em cache se recente (menos de 30s)
+      const cacheKey = `${companySettings.company_id}-${selectedDate}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+      const cacheTime = sessionStorage.getItem(`${cacheKey}-time`);
+      
+      if (!forceRefresh && cachedData && cacheTime) {
+        const cacheAge = now - parseInt(cacheTime);
+        if (cacheAge < 30000) { // 30 segundos
+          devLog('📋 Usando dados do cache (30s)');
+          const times = JSON.parse(cachedData);
+          setAvailableTimes(times);
+          setLastSync(new Date());
+          return times;
+        }
+      }
+
       const times = await getSimpleAvailableTimes(
         companySettings.company_id,
         selectedDate
       );
 
+      // Atualizar cache
+      sessionStorage.setItem(cacheKey, JSON.stringify(times));
+      sessionStorage.setItem(`${cacheKey}-time`, now.toString());
+
       setAvailableTimes(times);
+      setCurrentDate(selectedDate);
+      setLastSync(new Date());
+      setIsConnected(true);
+      
+      devLog(`✅ [OTIMIZADO] ${times.length} horários carregados com sucesso`);
       return times;
       
     } catch (error) {
       devLog('❌ Erro ao carregar horários:', error);
       setAvailableTimes([]);
+      setIsConnected(false);
       return [];
     } finally {
       setIsLoading(false);
+      setIsSyncing(false);
     }
   }, [companySettings]);
 
-  // Configurar sincronização em tempo real + refresh automático
+  // Contador regressivo para próximo refresh
+  const startCountdown = useCallback(() => {
+    setNextRefresh(1); // 1 segundo
+    
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+    }
+    
+    countdownRef.current = setInterval(() => {
+      setNextRefresh(prev => {
+        if (prev <= 1) {
+          return 1; // Reset para 1 segundo
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  // Configurar sincronização em tempo real otimizada
   useEffect(() => {
     if (!companySettings || !currentDate) return;
 
-    devLog(`📡 Configurando sincronização para ${currentDate}`);
+    devLog(`📡 [OTIMIZADO] Configurando sincronização para ${currentDate}`);
     
+    // WebSocket real-time subscription
     const unsubscribe = subscribeToBookingUpdates(
       companySettings.company_id,
       currentDate,
       () => {
-        devLog(`🔄 Sincronização ativada - recarregando horários para ${currentDate}`);
-        loadAvailableTimes(currentDate, undefined, true); // Force refresh
+        devLog(`🔄 [REALTIME] Mudança detectada - recarregando ${currentDate}`);
+        setIsSyncing(true);
+        loadAvailableTimes(currentDate, undefined, true);
       }
     );
 
-    // Refresh automático a cada 2 segundos para resposta instantânea
-    const autoRefresh = setInterval(() => {
-      devLog(`⚡ Auto-refresh executado para ${currentDate}`);
+    // Auto-refresh otimizado - reduzido para 1 segundo
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+    }
+    
+    refreshIntervalRef.current = setInterval(() => {
+      devLog(`⚡ [AUTO-REFRESH] Executando para ${currentDate}`);
       loadAvailableTimes(currentDate, undefined, true);
-    }, 2000);
+    }, 1000); // Reduzido de 2000ms para 1000ms
+
+    // Iniciar countdown
+    startCountdown();
 
     return () => {
       unsubscribe();
-      clearInterval(autoRefresh);
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
     };
-  }, [companySettings, currentDate, loadAvailableTimes]);
+  }, [companySettings, currentDate, loadAvailableTimes, startCountdown]);
+
+  // Cleanup ao desmontar
+  useEffect(() => {
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
+    };
+  }, []);
+
+  const refreshTimes = useCallback(() => {
+    setIsSyncing(true);
+    return loadAvailableTimes(currentDate, undefined, true);
+  }, [currentDate, loadAvailableTimes]);
 
   return {
     generateAvailableDates: generateAvailableDatesForCompany,
     generateAvailableTimes: loadAvailableTimes,
     availableTimes,
     isLoading,
-    refreshTimes: () => loadAvailableTimes(currentDate, undefined, true)
+    refreshTimes,
+    // Novos estados para UI
+    isConnected,
+    isSyncing,
+    lastSync,
+    nextRefresh
   };
 };
