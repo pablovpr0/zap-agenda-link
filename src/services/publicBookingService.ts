@@ -1,8 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { format, parse, isValid, isWithinInterval } from 'date-fns';
 import { devLog, devError, devWarn, devInfo } from '@/utils/console';
-import { BRAZIL_TIMEZONE, getNowInBrazil } from '@/utils/timezone';
-import { utcToZonedTime } from 'date-fns-tz';
+import { BRAZIL_TIMEZONE, getTodayInBrazil, getCurrentTimeInBrazil } from '@/utils/timezone';
+import { toZonedTime } from 'date-fns-tz';
 
 // In-memory cache for available time slots (reset daily)
 let timeSlotsCache: { [key: string]: string[] } = {};
@@ -291,8 +291,6 @@ const generateTimeSlots = async (
   lunchBreakStart?: string,
   lunchBreakEnd?: string
 ): Promise<string[]> => {
-  const { getTodayInBrazil, getCurrentTimeInBrazil } = await import('@/utils/timezone');
-  
   const availableTimeSlots: string[] = [];
   const today = getTodayInBrazil();
   const currentTime = getCurrentTimeInBrazil();
