@@ -24,7 +24,7 @@ const CalendarHeader = ({ currentDate, onPreviousMonth, onNextMonth }: CalendarH
         </Button>
         <div className="text-center min-w-[120px] md:min-w-[140px]">
           <p className="font-medium text-gray-800 text-sm md:text-base">
-            {format(currentDate, 'MMMM yyyy', { locale: ptBR, timeZone: 'America/Sao_Paulo' })}
+            {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={onNextMonth}>

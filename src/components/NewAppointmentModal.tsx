@@ -226,7 +226,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
 
     setLoadingTimes(true);
     try {
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' });
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       
       devLog(`🕐 [AJUSTE 3] Carregando horários para agendamento manual: ${formattedDate}`);
       
@@ -254,8 +254,6 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       setLoadingTimes(false);
     }
   };
-
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -304,7 +302,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       }
 
       // CORREÇÃO CRÍTICA: Verificar disponibilidade em tempo real antes de criar agendamento
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' });
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
       
       const { verifyTimeSlotAvailability } = await import('@/services/publicBookingService');
       const isAvailable = await verifyTimeSlotAvailability(

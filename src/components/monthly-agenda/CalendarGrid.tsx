@@ -50,7 +50,7 @@ const CalendarGrid = ({ currentDate, calendarDays, getAppointmentsForDate, onDat
               onClick={() => isCurrentMonth && onDateClick(date)}
             >
               <div className="text-xs md:text-sm font-medium">
-                {format(date, 'd', { timeZone: 'America/Sao_Paulo' })}
+                {format(date, 'd')}
               </div>
               {hasAppointments && isCurrentMonth && (
                 <div className="mt-1">
