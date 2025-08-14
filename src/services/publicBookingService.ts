@@ -41,6 +41,7 @@ export const loadCompanyDataBySlug = async (companySlug: string) => {
         company_name: 'Empresa',
         business_type: 'Serviços',
         profile_image_url: null,
+        is_admin: false,
         created_at: getNowInBrazil().toISOString(),
         updated_at: getNowInBrazil().toISOString()
       };

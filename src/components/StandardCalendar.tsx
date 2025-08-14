@@ -51,8 +51,8 @@ const StandardCalendar = ({
     if (disabled || !isDateAvailable(date)) return;
     
     if (onDateSelect) {
-      // Seleção imediata da data
-      const dateString = format(date, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' });
+      // Seleção imediata da data usando formato simples
+      const dateString = format(date, 'yyyy-MM-dd');
       onDateSelect(dateString);
       
       // Log para debug
@@ -113,7 +113,7 @@ const StandardCalendar = ({
         {calendarDays.map((date) => {
           const isCurrentMonth = isSameMonth(date, currentMonth);
           const isAvailable = isDateAvailable(date);
-          const isSelected = selectedDate === format(date, 'yyyy-MM-dd', { timeZone: 'America/Sao_Paulo' });
+          const isSelected = selectedDate === format(date, 'yyyy-MM-dd');
           const isTodayDate = highlightToday && isToday(date);
           
           return (

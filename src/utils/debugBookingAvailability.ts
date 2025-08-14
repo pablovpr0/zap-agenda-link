@@ -22,10 +22,9 @@ export const debugBookingAvailability = async ({
     // 1. Verificar configurações da empresa
     devLog('1️⃣ [DEBUG] Verificando configurações da empresa...');
     const { data: company, error: companyError } = await supabase
-      .from('companies')
+      .from('company_settings')
       .select(`
-        id,
-        company_name,
+        company_id,
         working_hours_start,
         working_hours_end,
         lunch_break_enabled,
@@ -35,7 +34,7 @@ export const debugBookingAvailability = async ({
         appointment_interval,
         advance_booking_limit
       `)
-      .eq('id', companyId)
+      .eq('company_id', companyId)
       .single();
 
     if (companyError) {

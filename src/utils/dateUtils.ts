@@ -1,6 +1,6 @@
 
 import { format, parse, isValid, startOfDay, endOfDay, addDays, subDays, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
-import { formatToBrasilia, parseBrasiliaDate } from './timezone';
+import { formatToBrasilia, getNowInBrazil } from './timezone';
 import { ptBR } from 'date-fns/locale';
 
 export const formatDateForDisplay = (date: Date | string): string => {
@@ -47,7 +47,7 @@ export const formatDateForInput = (date: Date | string): string => {
 };
 
 export const getCurrentBrasiliaDate = (): Date => {
-  return parseBrasiliaDate(new Date());
+  return getNowInBrazil();
 };
 
 export const isDateInPast = (date: Date | string, compareToNow = true): boolean => {
@@ -91,7 +91,42 @@ export const getDaysInMonth = (date: Date | string): Date[] => {
 export const formatMonthYear = (date: Date | string): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   if (!isValid(dateObj)) return '';
-  return formatToBrasilia(dateObj, 'MMMM yyyy', {
-    locale: ptBR
-  });
+  return formatToBrasilia(dateObj, 'MMMM yyyy');
+};
+
+// Adicionar funções ausentes
+export const generateAvailableDates = (workingDays: number[], advanceBookingLimit: number): Date[] => {
+  const dates: Date[] = [];
+  const today = getCurrentBrasiliaDate();
+  const maxDate = addDays(today, advanceBookingLimit);
+  
+  let currentDate = today;
+  while (currentDate <= maxDate) {
+    if (workingDays.includes(currentDate.getDay())) {
+      dates.push(currentDate);
+    }
+    currentDate = addDays(currentDate, 1);
+  }
+  
+  return dates;
+};
+
+export const generateTimeSlots = (startTime: string, endTime: string, interval: number): string[] => {
+  const slots: string[] = [];
+  const start = new Date(`1970-01-01T${startTime}`);
+  const end = new Date(`1970-01-01T${endTime}`);
+  
+  let current = start;
+  while (current < end) {
+    slots.push(current.toTimeString().substr(0, 5));
+    current = new Date(current.getTime() + interval * 60 * 1000);
+  }
+  
+  return slots;
+};
+
+export const formatAppointmentDateWithWeekday = (date: Date | string): string => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  if (!isValid(dateObj)) return '';
+  return formatToBrasilia(dateObj, "EEEE, dd 'de' MMMM");
 };
