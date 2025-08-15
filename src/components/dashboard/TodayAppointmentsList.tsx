@@ -48,10 +48,8 @@ const TodayAppointmentsList = ({
       devError('Erro ao marcar como concluído:', error);
     }
   };
-
   const handleDeleteAppointment = async (appointmentId: string, clientName: string, clientPhone: string) => {
     if (!confirm(`Tem certeza que deseja excluir o agendamento de ${clientName}?`)) return;
-    
     try {
       await deleteAppointment(appointmentId, clientPhone, clientName, () => {
         if (onRefresh) {
@@ -113,8 +111,7 @@ const TodayAppointmentsList = ({
       <CardContent>
         {/* Layout simplificado em 2 linhas */}
         <div className="space-y-3">
-          {sortedAppointments.map(appointment => (
-            <div key={appointment.id} className="bg-white rounded-lg p-3 border border-gray-200 hover:bg-gray-50 transition-colors">
+          {sortedAppointments.map(appointment => <div key={appointment.id} className="bg-white rounded-lg p-3 border border-gray-200 hover:bg-gray-50 transition-colors">
               {/* Linha 1: Horário, Nome e Telefone + Status */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -132,57 +129,32 @@ const TodayAppointmentsList = ({
                   
                   {/* Telefone */}
                   <div className="text-gray-600 min-w-0">
-                    <span className="text-sm">{appointment.client_phone}</span>
+                    
                   </div>
                 </div>
                 
                 {/* Status */}
-                {appointment.status === 'completed' && (
-                  <div className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-1 rounded ml-2">
+                {appointment.status === 'completed' && <div className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-1 rounded ml-2">
                     <CheckCircle className="w-3 h-3" />
                     <span className="hidden sm:inline">Concluído</span>
-                  </div>
-                )}
+                  </div>}
               </div>
               
               {/* Linha 2: Ações no canto esquerdo */}
               <div className="flex justify-start gap-3">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => handleWhatsAppClick(appointment.client_phone, appointment.client_name, appointment.appointment_time)}
-                  className="h-8 w-8 p-0 text-green-600 hover:bg-green-50"
-                  title="Enviar lembrete via WhatsApp"
-                >
+                <Button variant="ghost" size="sm" onClick={() => handleWhatsAppClick(appointment.client_phone, appointment.client_name, appointment.appointment_time)} className="h-8 w-8 p-0 text-green-600 hover:bg-green-50" title="Enviar lembrete via WhatsApp">
                   <MessageSquare className="w-4 h-4" />
                 </Button>
 
-                {appointment.status !== 'completed' && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleCompleteAppointment(appointment.id, appointment.client_name)}
-                    disabled={isUpdating}
-                    className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50"
-                    title="Marcar como concluído"
-                  >
+                {appointment.status !== 'completed' && <Button variant="ghost" size="sm" onClick={() => handleCompleteAppointment(appointment.id, appointment.client_name)} disabled={isUpdating} className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50" title="Marcar como concluído">
                     <CheckCircle className="w-4 h-4" />
-                  </Button>
-                )}
+                  </Button>}
 
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => handleDeleteAppointment(appointment.id, appointment.client_name, appointment.client_phone)}
-                  disabled={isDeleting}
-                  className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
-                  title="Excluir agendamento"
-                >
+                <Button variant="ghost" size="sm" onClick={() => handleDeleteAppointment(appointment.id, appointment.client_name, appointment.client_phone)} disabled={isDeleting} className="h-8 w-8 p-0 text-red-600 hover:bg-red-50" title="Excluir agendamento">
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
-            </div>
-          ))}
+            </div>)}
         </div>
       </CardContent>
     </Card>;
