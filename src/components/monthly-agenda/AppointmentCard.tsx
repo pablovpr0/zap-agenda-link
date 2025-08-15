@@ -1,9 +1,8 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Clock, User, MessageSquare } from 'lucide-react';
+import { Clock, User } from 'lucide-react';
 import AppointmentActions from './AppointmentActions';
-import AppointmentInfo from './AppointmentInfo';
 
 interface MonthlyAppointment {
   id: string;
@@ -51,49 +50,31 @@ const AppointmentCard = ({
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'Confirmado';
-      case 'cancelled':
-        return 'Cancelado';
-      case 'completed':
-        return 'Concluído';
-      default:
-        return status;
-    }
-  };
-
   return (
     <div>
-      <div className="bg-white rounded-lg p-4 border border-gray-200 hover:bg-gray-50 transition-colors">
-        <div className="space-y-3">
-          {/* Primeira linha: Horário, Nome e Telefone */}
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="flex items-center gap-2 text-primary font-medium">
-              <Clock className="w-4 h-4" />
+      <div className="bg-white rounded-lg p-3 border border-gray-200 hover:bg-gray-50 transition-colors">
+        <div className="flex items-center justify-between gap-2">
+          {/* Lado esquerdo: Horário e Cliente */}
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="flex items-center gap-1 text-primary font-semibold text-sm">
+              <Clock className="w-3 h-3" />
               <span>{appointment.appointment_time.substring(0, 5)}</span>
             </div>
             
-            <div className="flex items-center gap-2 min-w-0">
-              <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
-              <span className="font-medium text-gray-800 truncate">{appointment.client_name}</span>
-            </div>
-            
-            <div className="flex items-center gap-2 text-gray-600 min-w-0">
-              <MessageSquare className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">{appointment.client_phone}</span>
+            <div className="flex items-center gap-1 min-w-0 flex-1">
+              <User className="w-3 h-3 text-gray-500 flex-shrink-0" />
+              <span className="font-medium text-gray-800 truncate text-sm">{appointment.client_name}</span>
             </div>
 
             {appointment.status === 'completed' && (
-              <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
-                Concluído
+              <Badge className="bg-green-100 text-green-800 border-green-200 text-xs px-2 py-1">
+                ✓
               </Badge>
             )}
           </div>
           
-          {/* Segunda linha: Ações */}
-          <div className="flex justify-end">
+          {/* Lado direito: Ações */}
+          <div className="flex-shrink-0">
             <AppointmentActions
               appointment={appointment}
               onWhatsAppClick={onWhatsAppClick}
