@@ -43,20 +43,22 @@ const AppointmentDialog = ({
 
   return (
     <Dialog open={!!selectedDate} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto [&>button]:hidden">
-        <DialogHeader className="pb-4">
-          <DialogTitle className="flex items-center justify-between text-lg md:text-xl">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto p-4 sm:p-6 [&>button]:hidden">
+        <DialogHeader className="pb-3 sm:pb-4">
+          <DialogTitle className="flex items-center justify-between text-base sm:text-lg md:text-xl">
             <span className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary" />
-              Agendamentos de {format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              <span className="text-sm sm:text-base">
+                Agendamentos de {format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              </span>
             </span>
-            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
-              <X className="w-4 h-4" />
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-6 w-6 sm:h-8 sm:w-8 p-0">
+              <X className="w-3 h-3 sm:w-4 sm:h-4" />
             </Button>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {appointments.map((appointment, index) => (
             <AppointmentCard
               key={appointment.id}
