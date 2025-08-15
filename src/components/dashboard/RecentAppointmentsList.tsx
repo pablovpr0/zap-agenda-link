@@ -1,11 +1,14 @@
+
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, Phone, User, CheckCircle, MessageSquare } from 'lucide-react';
+import { Calendar, Clock, User, CheckCircle, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAppointmentActions } from '@/hooks/useAppointmentActions';
 import { useToast } from '@/hooks/use-toast';
 import { devLog, devError, devWarn, devInfo } from '@/utils/console';
+
 interface RecentAppointment {
   id: string;
   appointment_date: string;
@@ -15,23 +18,27 @@ interface RecentAppointment {
   service_name: string;
   status: string;
 }
+
 interface RecentAppointmentsListProps {
   appointments: RecentAppointment[];
   loading?: boolean;
   onRefresh?: () => void;
 }
+
+const ITEMS_PER_PAGE = 5;
+
 const RecentAppointmentsList = ({
   appointments,
   loading,
   onRefresh
 }: RecentAppointmentsListProps) => {
+  const [currentPage, setCurrentPage] = useState(1);
   const {
     completeAppointment,
     isUpdating
   } = useAppointmentActions();
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+
   const handleCompleteAppointment = async (appointmentId: string, clientName: string) => {
     try {
       await completeAppointment(appointmentId, clientName, () => {
@@ -44,17 +51,10 @@ const RecentAppointmentsList = ({
       devError('Erro ao marcar como concluído:', error);
     }
   };
-  const handleWhatsAppClick = (phone: string, clientName: string, appointmentDate: string, appointmentTime: string) => {
-    const cleanPhone = phone.replace(/\D/g, '');
-    const formattedDate = format(new Date(appointmentDate + 'T12:00:00'), "dd 'de' MMMM", {
-      locale: ptBR
-    });
-    const message = `Olá, ${clientName}! 👋\n\n` + `🔔 *LEMBRETE DO SEU AGENDAMENTO*\n\n` + `📅 *Data:* ${formattedDate}\n` + `⏰ *Horário:* ${appointmentTime.substring(0, 5)}\n\n` + `Estamos esperando por você! ✨\n\n` + `Se precisar de alguma coisa, estamos à disposição! 😊`;
-    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-  };
+
   if (loading) {
-    return <Card>
+    return (
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-primary" />
@@ -66,10 +66,13 @@ const RecentAppointmentsList = ({
             Carregando agendamentos...
           </div>
         </CardContent>
-      </Card>;
+      </Card>
+    );
   }
+
   if (appointments.length === 0) {
-    return <Card>
+    return (
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-primary" />
@@ -81,9 +84,33 @@ const RecentAppointmentsList = ({
             Nenhum agendamento recente
           </div>
         </CardContent>
-      </Card>;
+      </Card>
+    );
   }
-  return <Card>
+
+  // Ordenar do mais recente para o mais antigo (por data e hora de criação)
+  const sortedAppointments = appointments.sort((a, b) => {
+    const dateTimeA = new Date(`${a.appointment_date}T${a.appointment_time}`);
+    const dateTimeB = new Date(`${b.appointment_date}T${b.appointment_time}`);
+    return dateTimeB.getTime() - dateTimeA.getTime();
+  });
+
+  // Calcular paginação
+  const totalPages = Math.ceil(sortedAppointments.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentAppointments = sortedAppointments.slice(startIndex, endIndex);
+
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  };
+
+  return (
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="w-5 h-5 text-primary" />
@@ -92,27 +119,81 @@ const RecentAppointmentsList = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {appointments.map(appointment => <div key={appointment.id} className="flex items-center justify-between p-3 rounded-lg border bg-gray-50 hover:bg-gray-100 transition-colors">
-              <div className="flex items-center gap-4 min-w-0 flex-1 text-sm">
-                <span className="font-medium text-gray-800 truncate">
-                  {appointment.client_name}
-                </span>
+          {currentAppointments.map(appointment => (
+            <div key={appointment.id} className="flex items-center justify-between p-3 rounded-lg border bg-gray-50 hover:bg-gray-100 transition-colors">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                {/* Serviço */}
+                <div className="flex items-center gap-1 min-w-0">
+                  <Briefcase className="w-3 h-3 text-gray-500 flex-shrink-0" />
+                  <span className="text-sm font-medium text-gray-800 truncate">
+                    {appointment.service_name}
+                  </span>
+                </div>
+
+                {/* Nome do cliente */}
+                <div className="flex items-center gap-1 min-w-0">
+                  <User className="w-3 h-3 text-gray-500 flex-shrink-0" />
+                  <span className="text-sm text-gray-700 truncate">
+                    {appointment.client_name}
+                  </span>
+                </div>
                 
-                <span className="text-gray-600 flex-shrink-0">
+                {/* Data */}
+                <span className="text-sm text-gray-600 flex-shrink-0">
                   {format(new Date(appointment.appointment_date + 'T12:00:00'), 'dd/MM')}
                 </span>
-                <span className="text-gray-600 flex-shrink-0">
-                  {appointment.appointment_time.substring(0, 5)}
-                </span>
+
+                {/* Horário */}
+                <div className="flex items-center gap-1 text-sm text-gray-600 flex-shrink-0">
+                  <Clock className="w-3 h-3" />
+                  <span>{appointment.appointment_time.substring(0, 5)}</span>
+                </div>
               </div>
               
-              {appointment.status === 'completed' && <div className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-1 rounded flex-shrink-0">
+              {/* Status */}
+              {appointment.status === 'completed' && (
+                <div className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-1 rounded flex-shrink-0">
                   <CheckCircle className="w-3 h-3" />
                   <span>Concluído</span>
-                </div>}
-            </div>)}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
+
+        {/* Paginação */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div className="text-sm text-gray-500">
+              Página {currentPage} de {totalPages}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePreviousPage}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-1"
+              >
+                Próximo
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
-    </Card>;
+    </Card>
+  );
 };
+
 export default RecentAppointmentsList;
