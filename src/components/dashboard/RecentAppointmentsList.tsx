@@ -118,45 +118,45 @@ const RecentAppointmentsList = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {currentAppointments.map(appointment => (
-            <div key={appointment.id} className="flex items-center justify-between p-3 rounded-lg border bg-gray-50 hover:bg-gray-100 transition-colors">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                {/* Serviço */}
-                <div className="flex items-center gap-1 min-w-0">
-                  <Briefcase className="w-3 h-3 text-gray-500 flex-shrink-0" />
-                  <span className="text-sm font-medium text-gray-800 truncate">
-                    {appointment.service_name}
+            <div key={appointment.id} className="p-3 rounded-lg border bg-gray-50 hover:bg-gray-100 transition-colors">
+              {/* Primeira linha: Nome do cliente, Data, Horário e Status */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  {/* Nome do cliente */}
+                  <div className="flex items-center gap-1 min-w-0">
+                    <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <span className="text-sm font-medium text-gray-800 truncate">
+                      {appointment.client_name}
+                    </span>
+                  </div>
+                  
+                  {/* Data */}
+                  <span className="text-sm text-gray-600 flex-shrink-0">
+                    {format(new Date(appointment.appointment_date + 'T12:00:00'), 'dd/MM')}
                   </span>
-                </div>
 
-                {/* Nome do cliente */}
-                <div className="flex items-center gap-1 min-w-0">
-                  <User className="w-3 h-3 text-gray-500 flex-shrink-0" />
-                  <span className="text-sm text-gray-700 truncate">
-                    {appointment.client_name}
-                  </span>
+                  {/* Horário */}
+                  <div className="flex items-center gap-1 text-sm text-gray-600 flex-shrink-0">
+                    <Clock className="w-4 h-4" />
+                    <span>{appointment.appointment_time.substring(0, 5)}</span>
+                  </div>
                 </div>
                 
-                {/* Data */}
-                <span className="text-sm text-gray-600 flex-shrink-0">
-                  {format(new Date(appointment.appointment_date + 'T12:00:00'), 'dd/MM')}
-                </span>
-
-                {/* Horário */}
-                <div className="flex items-center gap-1 text-sm text-gray-600 flex-shrink-0">
-                  <Clock className="w-3 h-3" />
-                  <span>{appointment.appointment_time.substring(0, 5)}</span>
-                </div>
+                {/* Status - apenas ícone */}
+                {appointment.status === 'completed' && (
+                  <div className="flex items-center justify-center w-6 h-6 bg-green-100 rounded-full flex-shrink-0">
+                    <CheckCircle className="w-4 h-4 text-green-700" />
+                  </div>
+                )}
               </div>
-              
-              {/* Status */}
-              {appointment.status === 'completed' && (
-                <div className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-1 rounded flex-shrink-0">
-                  <CheckCircle className="w-3 h-3" />
-                  <span>Concluído</span>
-                </div>
-              )}
+
+              {/* Segunda linha: Serviço */}
+              <div className="flex items-center gap-1 text-sm text-gray-700 ml-1">
+                <Briefcase className="w-3 h-3 text-gray-500 flex-shrink-0" />
+                <span className="truncate">{appointment.service_name}</span>
+              </div>
             </div>
           ))}
         </div>
