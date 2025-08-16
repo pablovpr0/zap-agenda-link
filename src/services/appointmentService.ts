@@ -5,23 +5,7 @@ import { formatAppointmentDateWithWeekday } from '@/utils/dateUtils';
 import { createOrUpdateClient } from './clientService';
 import { isTimeSlotAvailable } from './availableTimesService';
 import { devLog, devError, devWarn, devInfo } from '@/utils/console';
-
-export interface AppointmentData {
-  id?: string;
-  company_id: string;
-  client_id?: string;
-  client_name?: string;
-  client_phone?: string;
-  client_email?: string;
-  service_id: string;
-  professional_id?: string;
-  appointment_date: string;
-  appointment_time: string;
-  status?: 'confirmed' | 'completed' | 'cancelled';
-  notes?: string;
-  created_at?: string;
-  updated_at?: string;
-}
+import { AppointmentData, CreateAppointmentData, AppointmentRow } from '@/types/appointment';
 
 /**
  * Busca agendamentos de uma empresa formatando timestamps para horário do Brasil
@@ -82,7 +66,7 @@ export const getTodayAppointments = async (companyId: string) => {
  */
 export const updateAppointment = async (appointmentId: string, updates: Partial<AppointmentData>) => {
   try {
-    const updateData: any = {
+    const updateData = {
       ...updates,
       updated_at: new Date().toISOString()
     };
@@ -185,7 +169,7 @@ export const checkTimeConflict = async (
 };
 
 /**
- * Valida limite de agendamentos por cliente
+ * Valida limite de agendamentos por cliente - versão simplificada
  */
 const validateClientBookingLimit = async (
   companyId: string,
@@ -194,64 +178,33 @@ const validateClientBookingLimit = async (
 ): Promise<{ canBook: boolean; message?: string }> => {
   try {
     // Buscar configurações da empresa
-    const { data: settings, error: settingsError } = await supabase
+    const { data: settings } = await supabase
       .from('company_settings')
       .select('max_simultaneous_appointments')
       .eq('company_id', companyId)
-      .maybeSingle();
-
-    if (settingsError) {
-      devWarn('⚠️ Erro ao buscar configurações, usando limite padrão');
-    }
+      .single();
 
     const maxAppointments = settings?.max_simultaneous_appointments || 3;
     const today = getTodayInBrazil();
 
-    // Query com rpc ou função mais simples para evitar problemas de tipo
-    try {
-      const appointmentsQuery = supabase
-        .from('appointments')
-        .select('id, status')
-        .eq('company_id', companyId)
-        .eq('client_phone', clientPhone)
-        .gte('appointment_date', today);
+    // Query simplificada usando raw SQL para evitar problemas de tipo
+    const { data: appointments } = await supabase
+      .rpc('get_client_active_appointments', {
+        p_company_id: companyId,
+        p_client_phone: clientPhone,
+        p_from_date: today,
+        p_exclude_appointment_id: excludeAppointmentId || null
+      });
 
-      // Executar query de forma mais direta
-      const result = await appointmentsQuery;
-      
-      if (result.error) {
-        devError('❌ Erro ao verificar limite de agendamentos:', result.error);
-        return { canBook: true };
-      }
+    const activeCount = appointments || 0;
+    const canBook = activeCount < maxAppointments;
 
-      // Processar dados manualmente
-      let activeCount = 0;
-      
-      if (result.data) {
-        for (const apt of result.data) {
-          const status = apt.status || 'confirmed';
-          const isActive = ['confirmed', 'scheduled'].includes(status);
-          const shouldExclude = excludeAppointmentId && apt.id === excludeAppointmentId;
-          
-          if (isActive && !shouldExclude) {
-            activeCount++;
-          }
-        }
-      }
+    devLog(`📊 Cliente tem ${activeCount}/${maxAppointments} agendamentos ativos`);
 
-      const canBook = activeCount < maxAppointments;
-
-      devLog(`📊 Cliente tem ${activeCount}/${maxAppointments} agendamentos ativos`);
-
-      return {
-        canBook,
-        message: canBook ? undefined : `Limite de ${maxAppointments} agendamentos simultâneos atingido`
-      };
-
-    } catch (queryError) {
-      devError('❌ Erro na query de agendamentos:', queryError);
-      return { canBook: true };
-    }
+    return {
+      canBook,
+      message: canBook ? undefined : `Limite de ${maxAppointments} agendamentos simultâneos atingido`
+    };
 
   } catch (error) {
     devError('❌ Erro na validação de limite:', error);
@@ -262,7 +215,7 @@ const validateClientBookingLimit = async (
 /**
  * Cria um novo agendamento com validações completas
  */
-const createAppointmentOriginal = async (appointmentData: AppointmentData): Promise<any> => {
+const createAppointmentOriginal = async (appointmentData: CreateAppointmentData): Promise<AppointmentRow> => {
   try {
     devLog('🔄 Criando agendamento:', {
       company_id: appointmentData.company_id,
@@ -360,7 +313,7 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData): Prom
     }
 
     devLog(`✅ Agendamento criado com sucesso: ${data.id}`);
-    return data;
+    return data as AppointmentRow;
 
   } catch (error) {
     devError('❌ Erro no createAppointmentOriginal:', error);
@@ -379,7 +332,7 @@ export const createAppointment = async (
 ): Promise<any> => {
   // Se recebeu apenas um parâmetro (AppointmentData), usar a função original
   if (!companySettings) {
-    return createAppointmentOriginal(formDataOrAppointment as AppointmentData);
+    return createAppointmentOriginal(formDataOrAppointment as CreateAppointmentData);
   }
 
   // Se recebeu múltiplos parâmetros, processar como BookingFormData
@@ -391,7 +344,7 @@ export const createAppointment = async (
     const selectedProfessional = professionals?.find(p => p.id === formData.selectedProfessional);
 
     // Criar dados do agendamento
-    const appointmentData: AppointmentData = {
+    const appointmentData: CreateAppointmentData = {
       company_id: companySettings.company_id,
       client_name: formData.clientName,
       client_phone: formData.clientPhone,
@@ -449,3 +402,6 @@ export const generateWhatsAppMessage = (
   
   return message;
 };
+
+// Re-export the AppointmentData type for backward compatibility
+export type { AppointmentData };
