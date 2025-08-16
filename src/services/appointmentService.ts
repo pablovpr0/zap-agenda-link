@@ -1,4 +1,5 @@
 
+
 import { supabase } from '@/integrations/supabase/client';
 import { formatDatabaseTimestamp, getNowInBrazil, getTodayInBrazil } from '@/utils/timezone';
 import { formatAppointmentDateWithWeekday } from '@/utils/dateUtils';
@@ -209,7 +210,8 @@ const validateClientBookingLimit = async (
     // Contar agendamentos ativos do cliente usando uma query simples
     const today = getTodayInBrazil();
     
-    let baseQuery = supabase
+    // Construir query base sem encadeamento complexo
+    const appointmentsQuery = supabase
       .from('appointments')
       .select('id')
       .eq('company_id', companyId)
@@ -217,11 +219,12 @@ const validateClientBookingLimit = async (
       .in('status', ['confirmed', 'scheduled'])
       .gte('appointment_date', today);
 
-    if (excludeAppointmentId) {
-      baseQuery = baseQuery.neq('id', excludeAppointmentId);
-    }
+    // Aplicar filtro adicional se necessário
+    const finalQuery = excludeAppointmentId 
+      ? appointmentsQuery.neq('id', excludeAppointmentId)
+      : appointmentsQuery;
 
-    const { data: appointments, error } = await baseQuery;
+    const { data: appointments, error } = await finalQuery;
 
     if (error) {
       devError('❌ Erro ao verificar limite de agendamentos:', error);
