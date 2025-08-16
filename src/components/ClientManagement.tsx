@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,12 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Users, Plus, Phone, Mail, Search, Edit, Trash2, MessageCircle, Download } from 'lucide-react';
+import { Users, Plus, Phone, Mail, Search, Edit, Trash2, MessageCircle, Download, UserCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { createOrUpdateClient, migrateExistingClients } from '@/services/clientService';
+import { deduplicateClients, getUniqueClients } from '@/services/clientDeduplicationService';
 import { formatPhoneForDisplay } from '@/utils/phoneNormalization';
 import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
@@ -30,6 +31,7 @@ const ClientManagement = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [deduplicating, setDeduplicating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [formData, setFormData] = useState({
@@ -45,18 +47,13 @@ const ClientManagement = () => {
       // Migrar clientes existentes para adicionar telefone normalizado
       migrateExistingClients(user.id);
     }
-  }, [user]);
+  }, [user, loadClients]);
 
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('company_id', user!.id)
-        .order('name');
-
-      if (error) throw error;
-      setClients(data || []);
+      // Usar função que retorna apenas clientes únicos
+      const uniqueClients = await getUniqueClients(user!.id);
+      setClients(uniqueClients || []);
     } catch (error) {
       devError('Erro ao carregar clientes:', error);
       toast({
@@ -67,7 +64,7 @@ const ClientManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSaveClient = async () => {
     if (!formData.name || !formData.phone) {
@@ -191,6 +188,35 @@ const ClientManagement = () => {
     window.open(whatsappUrl, '_blank');
   };
 
+  const handleDeduplicateClients = async () => {
+    setDeduplicating(true);
+    try {
+      const result = await deduplicateClients(user!.id);
+      
+      if (result.duplicatesFound === 0) {
+        toast({
+          title: "Nenhuma duplicata encontrada",
+          description: "Todos os clientes já estão únicos."
+        });
+      } else {
+        toast({
+          title: "Duplicatas removidas com sucesso!",
+          description: `${result.duplicatesRemoved} clientes duplicados foram removidos. ${result.clientsConsolidated} clientes foram consolidados.`
+        });
+        loadClients(); // Recarregar lista
+      }
+    } catch (error) {
+      devError('Erro ao remover duplicatas:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível remover as duplicatas.",
+        variant: "destructive"
+      });
+    } finally {
+      setDeduplicating(false);
+    }
+  };
+
   const handleExportToExcel = () => {
     if (clients.length === 0) {
       toast({
@@ -284,6 +310,16 @@ const ClientManagement = () => {
         </div>
 
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleDeduplicateClients}
+            disabled={deduplicating}
+            className="border-blue-300 text-blue-600 hover:bg-blue-50"
+          >
+            <UserCheck className="w-4 h-4 mr-2" />
+            {deduplicating ? 'Consolidando...' : 'Consolidar Duplicatas'}
+          </Button>
+
           <Button 
             variant="outline" 
             onClick={handleExportToExcel}

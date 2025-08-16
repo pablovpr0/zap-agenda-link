@@ -65,7 +65,7 @@ const ProfileCustomizationModal = ({
         setAddress((settings as any).address || '');
         setPhone((settings as any).phone || '');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro ao carregar dados do perfil:', error);
       toast({
         title: "Erro",
@@ -145,7 +145,7 @@ const ProfileCustomizationModal = ({
       });
       onSuccess();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro ao salvar perfil:', error);
       toast({
         title: "Erro",

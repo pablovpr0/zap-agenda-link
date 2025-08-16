@@ -50,7 +50,7 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
     if (isOpen && user) {
       loadSettings();
     }
-  }, [isOpen, user]);
+  }, [isOpen, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadSettings = async () => {
     if (!user) return;
@@ -75,7 +75,7 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
         setLunchEndTime(settings.lunch_break_end || '13:00');
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro ao carregar configurações:', error);
       toast({
         title: "Erro",
@@ -147,7 +147,7 @@ const CompanySettingsModal = ({ isOpen, onClose, onSuccess }: CompanySettingsMod
       onSuccess();
       onClose();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro ao salvar configurações:', error);
       toast({
         title: "Erro",

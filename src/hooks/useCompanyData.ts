@@ -50,7 +50,7 @@ export const useCompanyData = (companySlug: string) => {
       
       setCompanyData(companyDataObject);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError(error.message);
       toast({
         title: "Erro",

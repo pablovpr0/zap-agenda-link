@@ -2,12 +2,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { fetchCompanySettings } from '@/services/companySettingsService';
+// Removido import não utilizado
 import { generatePublicBookingUrl } from '@/lib/domainConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardData } from '@/types/dashboard';
 import { getNowInBrazil, getTodayInBrazil } from '@/utils/timezone';
-import { devLog, devError, devWarn, devInfo } from '@/utils/console';
+import { devLog, devError } from '@/utils/console';
 
 export const useDashboardData = (companyName?: string) => {
   const { user } = useAuth();
@@ -38,8 +38,17 @@ export const useDashboardData = (companyName?: string) => {
     try {
       setLoading(true);
       
-      // Fetch company settings
-      const settings = await fetchCompanySettings(user.id);
+      // Fetch company settings from the original table (for compatibility)
+      const { data: settings, error: settingsError } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('company_id', user.id)
+        .single();
+
+      if (settingsError && settingsError.code !== 'PGRST116') {
+        devError('Error fetching company settings:', settingsError);
+      }
+      
       setCompanySettings(settings);
       
       let publicUrl = '';

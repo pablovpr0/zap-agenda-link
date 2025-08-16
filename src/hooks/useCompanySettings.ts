@@ -3,13 +3,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 import { 
-  fetchCompanySettings, 
-  fetchCompanyProfile,
+  getCompanySettings,
   updateCompanySettings,
-  updateCompanyProfile,
-  saveAllSettings,
-  CompanySettingsUpdate,
-  ProfileUpdate
+  createDefaultSettings,
+  CompanySettings,
+  UpdateCompanySettingsParams
 } from '@/services/companySettingsService';
 
 // Interfaces para os dados do formulário
@@ -88,18 +86,15 @@ export const useCompanySettings = () => {
     try {
       setLoading(true);
       
-      // Buscar configurações e perfil em paralelo
-      const [settings, profile] = await Promise.all([
-        fetchCompanySettings(user.id),
-        fetchCompanyProfile(user.id)
-      ]);
+      // Buscar configurações da empresa
+      const settings = await getCompanySettings(user.id);
 
       if (settings) {
         // Mapear configurações gerais
         setGeneralSettings({
-          maxSimultaneousBookings: settings.monthly_appointments_limit || 3,
-          agendaTimeLimit: settings.advance_booking_limit || 30,
-          timeInterval: settings.appointment_interval || 30
+          maxSimultaneousBookings: settings.max_simultaneous_appointments || 3,
+          agendaTimeLimit: settings.monthly_appointments_limit || 30,
+          timeInterval: 30 // Valor padrão, pois não temos esse campo na nova estrutura
         });
 
         // Mapear slug
@@ -109,7 +104,7 @@ export const useCompanySettings = () => {
         setCompanyBasicData(prev => ({
           ...prev,
           phone: settings.phone || '',
-          address: settings.address || '',
+          address: '', // Campo não existe na nova estrutura
           instagramUrl: settings.instagram_url || '',
           customUrl: settings.slug || ''
         }));
@@ -140,17 +135,12 @@ export const useCompanySettings = () => {
         });
 
         setWorkingDays(newWorkingDays);
+      } else {
+        // Se não há configurações, criar padrões
+        await createDefaultSettings(user.id);
       }
 
-      if (profile) {
-        setCompanyBasicData(prev => ({
-          ...prev,
-          name: profile.company_name || '',
-          email: '' // Email não está no perfil, manter vazio
-        }));
-      }
-
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro ao carregar configurações:', error);
       toast({
         title: "Erro",
@@ -195,27 +185,24 @@ export const useCompanySettings = () => {
       const lunchEnd = firstActiveDay?.lunchEnd + ':00' || '13:00:00';
 
       // Preparar dados para atualização
-      const settingsUpdate: CompanySettingsUpdate = {
+      const settingsUpdate: Partial<UpdateCompanySettingsParams> = {
         working_days: workingDaysArray,
         working_hours_start: workingHoursStart,
         working_hours_end: workingHoursEnd,
-        appointment_interval: generalSettings.timeInterval,
-        advance_booking_limit: generalSettings.agendaTimeLimit,
-        monthly_appointments_limit: generalSettings.maxSimultaneousBookings,
+        monthly_appointments_limit: generalSettings.agendaTimeLimit,
+        max_simultaneous_appointments: generalSettings.maxSimultaneousBookings,
         lunch_break_enabled: hasLunchBreak,
         lunch_start_time: lunchStart,
         lunch_end_time: lunchEnd,
         phone: companyBasicData.phone,
-        address: companyBasicData.address,
         instagram_url: companyBasicData.instagramUrl
       };
 
-      const profileUpdate: ProfileUpdate = {
-        company_name: companyBasicData.name
-      };
-
-      // Salvar todas as configurações
-      await saveAllSettings(user.id, settingsUpdate, profileUpdate);
+      // Salvar configurações
+      await updateCompanySettings({
+        company_id: user.id,
+        ...settingsUpdate
+      });
 
       toast({
         title: "Configurações salvas!",
@@ -225,7 +212,7 @@ export const useCompanySettings = () => {
       // Disparar evento para atualizar outros componentes
       window.dispatchEvent(new CustomEvent('settingsUpdated'));
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro ao salvar configurações:', error);
       toast({
         title: "Erro",

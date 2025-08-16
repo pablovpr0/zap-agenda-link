@@ -61,7 +61,7 @@ const ScheduleSettings = ({
     if (user) {
       loadSchedules();
     }
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
   const loadSchedules = async () => {
     setLoading(true);
     devLog('🔄 Loading schedules for user:', user?.id);
@@ -99,7 +99,7 @@ const ScheduleSettings = ({
       }
       setSchedules(completeSchedules);
       devLog('✅ Schedules loaded successfully:', completeSchedules);
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('❌ Erro ao carregar horários:', error);
       setError(error.message || 'Erro desconhecido');
       toast({

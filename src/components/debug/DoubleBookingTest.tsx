@@ -81,7 +81,7 @@ const DoubleBookingTest = () => {
           description: "O sistema permitiu double-booking! Verifique a implementação.",
           variant: "destructive"
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (error.message?.includes('não está mais disponível') || 
             error.message?.includes('idx_appointments_unique_slot') ||
             error.code === '23505') {
@@ -101,7 +101,7 @@ const DoubleBookingTest = () => {
       addResult('Limpando dados de teste...', 'info');
       // Note: Em produção, você removeria os agendamentos de teste aqui
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       addResult(`Erro no teste: ${error.message}`, 'error');
       
       toast({

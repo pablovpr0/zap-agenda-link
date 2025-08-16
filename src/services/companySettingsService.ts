@@ -1,315 +1,281 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { devLog, devError, devWarn, devInfo } from '@/utils/console';
+import { devLog, devError } from '@/utils/console';
 
-export const fetchCompanySettings = async (userId: string) => {
-  devLog('🔍 fetchCompanySettings: Buscando configurações para usuário:', userId);
-  
-  try {
-    const { data, error } = await supabase
-      .from('company_settings')
-      .select('*')
-      .eq('company_id', userId)
-      .maybeSingle();
-
-    if (error) {
-      devError('❌ fetchCompanySettings: Erro:', error);
-      throw new Error(`Erro ao buscar configurações: ${error.message}`);
-    }
-
-    devLog('✅ fetchCompanySettings: Configurações encontradas:', data);
-    return data;
-  } catch (error: any) {
-    devError('❌ fetchCompanySettings: Erro no serviço:', error);
-    throw error;
-  }
-};
-
-export const createDefaultSettings = async (userId: string, companyName: string): Promise<void> => {
-  devLog('🚀 createDefaultSettings: Criando configurações padrão para:', userId, companyName);
-  
-  try {
-    // Verificar se já existem configurações
-    const existingSettings = await fetchCompanySettings(userId);
-    if (existingSettings) {
-      devLog('ℹ️ createDefaultSettings: Configurações já existem, pulando criação');
-      return;
-    }
-
-    // Gerar slug único
-    const slug = await generateUniqueSlug(companyName);
-    devLog('📝 createDefaultSettings: Slug gerado:', slug);
-    
-    const defaultSettings = {
-      company_id: userId,
-      slug,
-      working_days: [1, 2, 3, 4, 5], // Segunda a Sexta
-      working_hours_start: '09:00:00',
-      working_hours_end: '18:00:00',
-      appointment_interval: 30,
-      advance_booking_limit: 30,
-      monthly_appointments_limit: 10,
-      status_aberto: true,
-      lunch_break_enabled: false,
-      lunch_start_time: '12:00:00',
-      lunch_end_time: '13:00:00'
-    };
-
-    const { error } = await supabase
-      .from('company_settings')
-      .insert(defaultSettings);
-
-    if (error) {
-      devError('❌ createDefaultSettings: Erro ao inserir:', error);
-      throw new Error(`Erro ao criar configurações: ${error.message}`);
-    }
-
-    devLog('✅ createDefaultSettings: Configurações criadas com sucesso');
-  } catch (error: any) {
-    devError('❌ createDefaultSettings: Erro no serviço:', error);
-    throw error;
-  }
-};
-
-export const generateUniqueSlug = async (companyName: string): Promise<string> => {
-  try {
-    // Criar slug base
-    let slug = companyName
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-      .replace(/[^a-z0-9]/g, '-') // Substitui caracteres especiais por hífen
-      .replace(/-+/g, '-') // Remove hífens consecutivos
-      .replace(/^-|-$/g, '') // Remove hífens do início e fim
-      .substring(0, 50); // Limita tamanho
-
-    // Garantir que não está vazio
-    if (!slug) {
-      slug = 'empresa';
-    }
-
-    let counter = 0;
-    let finalSlug = slug;
-    
-    // Verificar se o slug já existe
-    while (await isSlugTaken(finalSlug)) {
-      counter++;
-      finalSlug = `${slug}-${counter}`;
-    }
-
-    return finalSlug;
-  } catch (error: any) {
-    devError('❌ generateUniqueSlug: Erro:', error);
-    // Retornar slug de fallback em caso de erro
-    return `empresa-${Date.now()}`;
-  }
-};
-
-export const isSlugTaken = async (slug: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase
-      .from('company_settings')
-      .select('slug')
-      .eq('slug', slug)
-      .maybeSingle();
-
-    if (error) {
-      devError('⚠️ isSlugTaken: Erro ao verificar slug:', error);
-      return false; // Assumir disponível se houver erro
-    }
-
-    return data !== null;
-  } catch (error: any) {
-    devError('❌ isSlugTaken: Erro no serviço:', error);
-    return false; // Assumir disponível se houver erro
-  }
-};
-
-export const updateCompanySlug = async (userId: string, newSlug: string): Promise<boolean> => {
-  try {
-    // Validar slug
-    const validation = validateSlug(newSlug);
-    if (!validation.isValid) {
-      throw new Error(validation.error);
-    }
-
-    // Verificar se já está em uso
-    if (await isSlugTaken(newSlug)) {
-      throw new Error('Este slug já está em uso por outra empresa');
-    }
-
-    const { error } = await supabase
-      .from('company_settings')
-      .update({ slug: newSlug })
-      .eq('company_id', userId);
-
-    if (error) {
-      devError('❌ updateCompanySlug: Erro ao atualizar:', error);
-      throw new Error(`Erro ao atualizar slug: ${error.message}`);
-    }
-
-    devLog('✅ updateCompanySlug: Slug atualizado com sucesso');
-    return true;
-  } catch (error: any) {
-    devError('❌ updateCompanySlug: Erro no serviço:', error);
-    throw error;
-  }
-};
-
-export const validateSlug = (slug: string): { isValid: boolean; error?: string } => {
-  if (!slug || slug.length < 3) {
-    return { isValid: false, error: 'Slug deve ter pelo menos 3 caracteres' };
-  }
-
-  if (slug.length > 50) {
-    return { isValid: false, error: 'Slug deve ter no máximo 50 caracteres' };
-  }
-
-  if (!/^[a-z0-9-]+$/.test(slug)) {
-    return { isValid: false, error: 'Slug pode conter apenas letras minúsculas, números e hífens' };
-  }
-
-  if (slug.startsWith('-') || slug.endsWith('-')) {
-    return { isValid: false, error: 'Slug não pode começar ou terminar com hífen' };
-  }
-
-  if (slug.includes('--')) {
-    return { isValid: false, error: 'Slug não pode conter hífens consecutivos' };
-  }
-
-  const reservedWords = ['admin', 'api', 'www', 'mail', 'ftp', 'localhost', 'root', 'support', 'help'];
-  if (reservedWords.includes(slug)) {
-    return { isValid: false, error: 'Este slug é uma palavra reservada' };
-  }
-
-  return { isValid: true };
-};
-
-// Interfaces para tipagem
-export interface CompanySettingsUpdate {
+export interface CompanySettings {
+  id: string;
+  company_id: string;
+  slug?: string;
+  logo_url?: string;
+  cover_image_url?: string;
+  theme_color?: string;
   working_days?: number[];
   working_hours_start?: string;
   working_hours_end?: string;
-  appointment_interval?: number;
-  advance_booking_limit?: number;
-  monthly_appointments_limit?: number;
   lunch_break_enabled?: boolean;
   lunch_start_time?: string;
   lunch_end_time?: string;
+  monthly_appointments_limit?: number;
+  max_simultaneous_appointments?: number;
   phone?: string;
-  address?: string;
+  whatsapp?: string;
+  description?: string;
   instagram_url?: string;
   welcome_message?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpdateCompanySettingsParams {
+  company_id: string;
+  slug?: string;
+  logo_url?: string;
+  cover_image_url?: string;
   theme_color?: string;
-  selected_theme_id?: string;
+  working_days?: number[];
+  working_hours_start?: string;
+  working_hours_end?: string;
+  lunch_break_enabled?: boolean;
+  lunch_start_time?: string;
+  lunch_end_time?: string;
+  monthly_appointments_limit?: number;
+  max_simultaneous_appointments?: number;
+  phone?: string;
+  whatsapp?: string;
+  description?: string;
+  instagram_url?: string;
+  welcome_message?: string;
 }
 
-export interface ProfileUpdate {
-  company_name?: string;
-  business_type?: string;
-  profile_image_url?: string;
-}
-
-// Função para atualizar configurações da empresa
-export const updateCompanySettings = async (
-  userId: string, 
-  settings: CompanySettingsUpdate
-): Promise<void> => {
-  devLog('🔄 updateCompanySettings: Atualizando configurações para usuário:', userId);
-  devLog('📝 updateCompanySettings: Dados:', settings);
-  
+/**
+ * Busca as configurações de uma empresa
+ */
+export const getCompanySettings = async (companyId: string): Promise<CompanySettings | null> => {
   try {
-    const { error } = await supabase
-      .from('company_settings')
-      .update({
-        ...settings,
-        updated_at: new Date().toISOString()
-      })
-      .eq('company_id', userId);
-
-    if (error) {
-      devError('❌ updateCompanySettings: Erro ao atualizar:', error);
-      throw new Error(`Erro ao atualizar configurações: ${error.message}`);
-    }
-
-    devLog('✅ updateCompanySettings: Configurações atualizadas com sucesso');
-  } catch (error: any) {
-    devError('❌ updateCompanySettings: Erro no serviço:', error);
-    throw error;
-  }
-};
-
-// Função para atualizar perfil da empresa
-export const updateCompanyProfile = async (
-  userId: string, 
-  profile: ProfileUpdate
-): Promise<void> => {
-  devLog('🔄 updateCompanyProfile: Atualizando perfil para usuário:', userId);
-  devLog('📝 updateCompanyProfile: Dados:', profile);
-  
-  try {
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        ...profile,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId);
-
-    if (error) {
-      devError('❌ updateCompanyProfile: Erro ao atualizar:', error);
-      throw new Error(`Erro ao atualizar perfil: ${error.message}`);
-    }
-
-    devLog('✅ updateCompanyProfile: Perfil atualizado com sucesso');
-  } catch (error: any) {
-    devError('❌ updateCompanyProfile: Erro no serviço:', error);
-    throw error;
-  }
-};
-
-// Função para buscar perfil da empresa
-export const fetchCompanyProfile = async (userId: string) => {
-  devLog('🔍 fetchCompanyProfile: Buscando perfil para usuário:', userId);
-  
-  try {
+    devLog('🔍 Buscando configurações da empresa:', companyId);
+    
     const { data, error } = await supabase
-      .from('profiles')
+      .from('company_settings')
       .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+      .eq('company_id', companyId)
+      .single();
 
     if (error) {
-      devError('❌ fetchCompanyProfile: Erro:', error);
-      throw new Error(`Erro ao buscar perfil: ${error.message}`);
+      if (error.code === 'PGRST116') {
+        // Não encontrou configurações, criar padrão
+        devLog('📝 Criando configurações padrão para empresa:', companyId);
+        return await createDefaultSettings(companyId);
+      }
+      throw error;
     }
 
-    devLog('✅ fetchCompanyProfile: Perfil encontrado:', data);
+    devLog('✅ Configurações encontradas:', data);
     return data;
-  } catch (error: any) {
-    devError('❌ fetchCompanyProfile: Erro no serviço:', error);
-    throw error;
+    
+  } catch (error) {
+    devError('❌ Erro ao buscar configurações:', error);
+    return null;
   }
 };
 
-// Função para salvar todas as configurações de uma vez
-export const saveAllSettings = async (
-  userId: string,
-  settings: CompanySettingsUpdate,
-  profile: ProfileUpdate
-): Promise<void> => {
-  devLog('💾 saveAllSettings: Salvando todas as configurações para usuário:', userId);
-  
+/**
+ * Cria configurações padrão para uma empresa
+ */
+export const createDefaultSettings = async (companyId: string): Promise<CompanySettings | null> => {
   try {
-    // Atualizar configurações e perfil em paralelo
-    await Promise.all([
-      updateCompanySettings(userId, settings),
-      updateCompanyProfile(userId, profile)
-    ]);
+    const defaultSettings = {
+      company_id: companyId,
+      working_days: [1, 2, 3, 4, 5], // Segunda a sexta
+      working_hours_start: '09:00:00',
+      working_hours_end: '18:00:00',
+      lunch_break_enabled: true,
+      lunch_start_time: '12:00:00',
+      lunch_end_time: '13:00:00',
+      monthly_appointments_limit: 50,
+      max_simultaneous_appointments: 3,
+      slug: `empresa-${companyId.slice(0, 8)}`,
+      theme_color: '#3B82F6'
+    };
 
-    devLog('✅ saveAllSettings: Todas as configurações salvas com sucesso');
-  } catch (error: any) {
-    devError('❌ saveAllSettings: Erro ao salvar:', error);
-    throw error;
+    const { data, error } = await supabase
+      .from('company_settings')
+      .insert(defaultSettings)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    devLog('✅ Configurações padrão criadas:', data);
+    return data;
+    
+  } catch (error) {
+    devError('❌ Erro ao criar configurações padrão:', error);
+    return null;
   }
+};
+
+/**
+ * Atualiza as configurações de uma empresa
+ */
+export const updateCompanySettings = async (params: UpdateCompanySettingsParams): Promise<CompanySettings | null> => {
+  try {
+    devLog('🔄 Atualizando configurações da empresa:', params);
+    
+    const { company_id, ...updateData } = params;
+    
+    const { data, error } = await supabase
+      .from('company_settings')
+      .update(updateData)
+      .eq('company_id', company_id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    devLog('✅ Configurações atualizadas:', data);
+    
+    // Disparar evento de atualização para sincronização em tempo real
+    await notifySettingsUpdate(company_id);
+    
+    return data;
+    
+  } catch (error) {
+    devError('❌ Erro ao atualizar configurações:', error);
+    return null;
+  }
+};
+
+/**
+ * Notifica sobre atualização de configurações via Realtime
+ */
+export const notifySettingsUpdate = async (companyId: string): Promise<void> => {
+  try {
+    // Enviar evento via Realtime para invalidar cache
+    const channel = supabase.channel(`company-settings-${companyId}`);
+    
+    await channel.send({
+      type: 'broadcast',
+      event: 'settings_updated',
+      payload: {
+        company_id: companyId,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+    devLog('📡 Evento de atualização enviado:', companyId);
+    
+  } catch (error) {
+    devError('❌ Erro ao enviar notificação:', error);
+  }
+};
+
+/**
+ * Gera horários disponíveis baseado nas configurações da empresa
+ */
+export const generateAvailableSlots = (
+  settings: CompanySettings,
+  date: Date,
+  existingAppointments: Array<{ appointment_time: string; service_duration?: number }>
+): string[] => {
+  const dayOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][date.getDay()];
+  const daySettings = settings.opening_hours[dayOfWeek];
+  
+  if (!daySettings || !daySettings.active) {
+    return [];
+  }
+  
+  const slots: string[] = [];
+  const [openHour, openMinute] = daySettings.open.split(':').map(Number);
+  const [closeHour, closeMinute] = daySettings.close.split(':').map(Number);
+  
+  let currentTime = openHour * 60 + openMinute; // em minutos
+  const closeTime = closeHour * 60 + closeMinute;
+  
+  while (currentTime < closeTime) {
+    const hour = Math.floor(currentTime / 60);
+    const minute = currentTime % 60;
+    const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    
+    // Verificar se não está no horário de almoço
+    if (settings.lunch_break.active) {
+      const [lunchStartHour, lunchStartMinute] = settings.lunch_break.start.split(':').map(Number);
+      const [lunchEndHour, lunchEndMinute] = settings.lunch_break.end.split(':').map(Number);
+      
+      const lunchStart = lunchStartHour * 60 + lunchStartMinute;
+      const lunchEnd = lunchEndHour * 60 + lunchEndMinute;
+      
+      if (currentTime >= lunchStart && currentTime < lunchEnd) {
+        currentTime += settings.slot_interval_minutes;
+        continue;
+      }
+    }
+    
+    // Verificar se não há conflito com agendamentos existentes
+    const hasConflict = existingAppointments.some(appointment => {
+      const [appHour, appMinute] = appointment.appointment_time.split(':').map(Number);
+      const appTime = appHour * 60 + appMinute;
+      const appDuration = appointment.service_duration || 30;
+      
+      return currentTime >= appTime && currentTime < (appTime + appDuration);
+    });
+    
+    if (!hasConflict) {
+      slots.push(timeString);
+    }
+    
+    currentTime += settings.slot_interval_minutes;
+  }
+  
+  return slots;
+};
+
+/**
+ * Verifica se uma data está dentro do limite de agendamento
+ */
+export const isDateWithinBookingLimit = (
+  settings: CompanySettings,
+  targetDate: Date
+): boolean => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const diffTime = targetDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  // Verificar se permite agendamento no mesmo dia
+  if (diffDays === 0 && !settings.same_day_booking) {
+    return false;
+  }
+  
+  // Verificar limite de dias futuros
+  if (diffDays > settings.advance_booking_limit) {
+    return false;
+  }
+  
+  return diffDays >= 0;
+};
+
+/**
+ * Subscreve a mudanças nas configurações da empresa
+ */
+export const subscribeToSettingsUpdates = (
+  companyId: string,
+  callback: (settings: CompanySettings) => void
+): (() => void) => {
+  const channel = supabase.channel(`company-settings-${companyId}`);
+  
+  channel
+    .on('broadcast', { event: 'settings_updated' }, async (payload) => {
+      devLog('📡 Configurações atualizadas via Realtime:', payload);
+      
+      // Recarregar configurações
+      const updatedSettings = await getCompanySettings(companyId);
+      if (updatedSettings) {
+        callback(updatedSettings);
+      }
+    })
+    .subscribe();
+  
+  return () => {
+    supabase.removeChannel(channel);
+  };
 };

@@ -41,7 +41,7 @@ const SlugSettings = ({ currentSlug, onSlugUpdate }: SlugSettingsProps) => {
         title: "Slug atualizado!",
         description: "Seu link personalizado foi atualizado com sucesso.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro",
         description: error.message || "Não foi possível atualizar o slug.",

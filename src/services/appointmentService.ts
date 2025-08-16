@@ -168,8 +168,8 @@ export const checkTimeConflict = async (
 export const createAppointment = async (
   formDataOrAppointment: any,
   companySettings?: any,
-  services?: any[],
-  professionals?: any[]
+  services?: unknown[],
+  professionals?: unknown[]
 ): Promise<any> => {
   // Se recebeu apenas um parâmetro (AppointmentData), usar a função original
   if (!companySettings) {
@@ -363,18 +363,34 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
 
     let clientId = appointmentData.client_id;
 
-    // CORREÇÃO: Usar o serviço de clientes com lógica de telefone único
+    // CORREÇÃO: Usar o serviço de clientes ROBUSTO para evitar erro 409
     if (!clientId && appointmentData.client_name && appointmentData.client_phone) {
-      const { createOrUpdateClient } = await import('./clientService');
-      
-      const { client } = await createOrUpdateClient(appointmentData.company_id, {
-        name: appointmentData.client_name,
-        phone: appointmentData.client_phone,
-        email: appointmentData.client_email || undefined
-      });
+      try {
+        const { createOrUpdateClient } = await import('./clientService');
+        
+        const { client } = await createOrUpdateClient(appointmentData.company_id, {
+          name: appointmentData.client_name,
+          phone: appointmentData.client_phone,
+          email: appointmentData.client_email || undefined
+        });
 
-      clientId = client.id;
-      devLog(`📞 [CORREÇÃO DUPLICAÇÃO] Cliente processado: ${client.name} (${client.phone}) - ID: ${client.id}`);
+        clientId = client.id;
+        devLog(`📞 [CORREÇÃO DUPLICAÇÃO] Cliente processado: ${client.name} (${client.phone}) - ID: ${client.id}`);
+      } catch (clientError) {
+        // Fallback para serviço robusto se o normal falhar
+        devWarn('⚠️ [APPOINTMENTSERVICE] Erro no serviço normal, usando versão robusta');
+        
+        const { createOrUpdateClientRobust } = await import('./clientServiceRobust');
+        
+        const { client } = await createOrUpdateClientRobust(appointmentData.company_id, {
+          name: appointmentData.client_name,
+          phone: appointmentData.client_phone,
+          email: appointmentData.client_email || undefined
+        });
+
+        clientId = client.id;
+        devLog(`📞 [CORREÇÃO ROBUSTA] Cliente processado via fallback: ${client.name} - ID: ${client.id}`);
+      }
     }
 
     if (!clientId) {

@@ -29,7 +29,7 @@ export const fetchProfile = async (userId: string): Promise<Profile | null> => {
 
     devLog('✅ fetchProfile: Perfil encontrado:', data ? 'Sim' : 'Não');
     return data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     devError('❌ fetchProfile: Erro no serviço:', error);
     throw error;
   }
@@ -63,7 +63,7 @@ export const upsertProfile = async (userId: string, profileData: Partial<Profile
 
     devLog('✅ upsertProfile: Perfil salvo com sucesso');
     return data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     devError('❌ upsertProfile: Erro no serviço:', error);
     throw error;
   }

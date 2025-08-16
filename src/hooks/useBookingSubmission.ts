@@ -211,7 +211,7 @@ export const useBookingSubmission = (
       devLog('✅ [OTIMIZADO] Agendamento concluído com sucesso');
       return true;
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('❌ [OTIMIZADO] Erro no processo de agendamento:', error);
       
       let errorMessage = "Não foi possível realizar o agendamento. Tente novamente.";

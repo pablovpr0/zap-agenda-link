@@ -55,12 +55,14 @@ serve(async (req) => {
         break;
       case "invoice.payment_succeeded":
       case "invoice.payment_failed":
-        const invoice = event.data.object as Stripe.Invoice;
-        if (invoice.subscription) {
-          subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
-          customerId = subscription.customer as string;
+        {
+          const invoice = event.data.object as Stripe.Invoice;
+          if (invoice.subscription) {
+            subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+            customerId = subscription.customer as string;
+          }
+          break;
         }
-        break;
       default:
         logStep("Unhandled event type", { eventType: event.type });
         return new Response(JSON.stringify({ received: true }), { status: 200 });

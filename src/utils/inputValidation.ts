@@ -2,14 +2,8 @@
 // Comprehensive input validation and sanitization utilities
 import { getNowInBrazil } from '@/utils/timezone';
 
-export const sanitizeText = (input: string): string => {
-  if (!input) return '';
-  
-  return input
-    .trim()
-    .replace(/[<>]/g, '') // Remove angle brackets to prevent basic XSS
-    .replace(/\s+/g, ' '); // Normalize whitespace
-};
+export const sanitizeText = (input: string): string => 
+  input?.trim().replace(/[<>]/g, '').replace(/\s+/g, ' ') || '';
 
 export const validateName = (name: string): { isValid: boolean; error?: string; sanitized?: string } => {
   if (!name) {
@@ -51,6 +45,22 @@ export const validatePhone = (phone: string): { isValid: boolean; error?: string
   }
   
   return { isValid: true, sanitized };
+};
+
+export const isPhoneComplete = (phone: string): boolean => {
+  const digitsOnly = phone?.replace(/\D/g, '') || '';
+  return digitsOnly.length === 10 || digitsOnly.length === 11;
+};
+
+export const isPhoneValidFormat = (phone: string): boolean => {
+  const digitsOnly = phone?.replace(/\D/g, '') || '';
+  
+  if (digitsOnly.length !== 10 && digitsOnly.length !== 11) return false;
+  
+  const ddd = parseInt(digitsOnly.substring(0, 2));
+  if (ddd < 11 || ddd > 99) return false;
+  
+  return digitsOnly.length === 10 || digitsOnly[2] === '9';
 };
 
 export const validateEmail = (email: string): { isValid: boolean; error?: string; sanitized?: string } => {
@@ -121,9 +131,9 @@ export const validateBookingForm = (formData: {
   selectedTime: string;
   selectedService: string;
   selectedProfessional?: string;
-}): { isValid: boolean; errors: string[]; sanitizedData?: any } => {
+}): { isValid: boolean; errors: string[]; sanitizedData?: Record<string, unknown> } => {
   const errors: string[] = [];
-  const sanitizedData: any = {};
+  const sanitizedData: Record<string, unknown> = {};
   
   // Validate name
   const nameValidation = validateName(formData.clientName);

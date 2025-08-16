@@ -5,6 +5,9 @@ import { useAvailableTimes } from '@/hooks/useAvailableTimes';
 import { useBookingSubmission } from '@/hooks/useBookingSubmission';
 import { useBookingLimitsCheck } from '@/hooks/useBookingLimitsCheck';
 import { usePublicBooking } from '@/hooks/usePublicBooking';
+import { usePublicCompanySettings } from '@/hooks/useCompanySettingsRealtime';
+import { generateDynamicSchedule } from '@/services/dynamicScheduleService';
+import { validateBookingRequest, createBookingWithConcurrencyControl } from '@/services/bookingConcurrencyService';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ClientForm from './ClientForm';
@@ -13,14 +16,23 @@ import DateSelection from '@/components/time-slot-picker/DateSelection';
 import TimeSelection from './TimeSelection';
 import BookingLimitsIndicator from './BookingLimitsIndicator';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, User } from 'lucide-react';
+import { Calendar, Clock, User, AlertCircle } from 'lucide-react';
 import { devLog } from '@/utils/console';
 import { BookingFormData } from '@/types/publicBooking';
 import { formatInBrazilTimezone } from '@/utils/timezone';
+import { isPhoneValidFormat } from '@/utils/inputValidation';
 
 const ModernBookingForm = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
   const { companySettings, services, professionals } = usePublicBooking(companySlug || '');
+  
+  // Usar as novas configurações dinâmicas
+  const { 
+    settings: dynamicSettings, 
+    isLoading: settingsLoading,
+    isDateAllowed,
+    isDayActive 
+  } = usePublicCompanySettings(companySettings?.company_id || '');
   
   const [formData, setFormData] = useState<BookingFormData>({
     clientName: '',
@@ -32,56 +44,125 @@ const ModernBookingForm = () => {
     selectedProfessional: ''
   });
 
-  const {
-    generateAvailableDates,
-    generateAvailableTimes,
-    availableTimes,
-    isLoading: timesLoading,
-    refreshTimes,
-    isConnected,
-    isSyncing,
-    lastSync,
-    nextRefresh
-  } = useAvailableTimes(companySettings);
+  const [availableTimesLocal, setAvailableTimesLocal] = useState<string[]>([]);
+  const [timesLoading, setTimesLoading] = useState(false);
+
+  // Função para carregar horários usando as configurações dinâmicas
+  const loadDynamicTimes = useCallback(async (selectedDate: string) => {
+    if (!dynamicSettings || !companySettings?.company_id) return;
+    
+    setTimesLoading(true);
+    try {
+      const times = await generateDynamicSchedule(
+        companySettings.company_id,
+        dynamicSettings,
+        selectedDate
+      );
+      setAvailableTimesLocal(times);
+    } catch (error) {
+      devLog('❌ Erro ao carregar horários dinâmicos:', error);
+      setAvailableTimesLocal([]);
+    } finally {
+      setTimesLoading(false);
+    }
+  }, [dynamicSettings, companySettings?.company_id]);
+
+  const refreshTimes = useCallback(() => {
+    if (formData.selectedDate) {
+      loadDynamicTimes(formData.selectedDate);
+    }
+  }, [formData.selectedDate, loadDynamicTimes]);
 
   const { limits, isLoading: limitsLoading, refreshLimits } = useBookingLimitsCheck(
     companySettings?.company_id || '',
     formData.clientPhone
   );
 
-  const { submitBooking, submitting, validationStep } = useBookingSubmission(
-    companySettings,
-    services,
-    professionals,
-    () => {
-      // Callback após sucesso - limpar form e atualizar tudo
-      setFormData({
-        clientName: '',
-        clientPhone: '',
-        clientEmail: '',
-        selectedDate: '',
-        selectedTime: '',
-        selectedService: '',
-        selectedProfessional: ''
+  const [submitting, setSubmitting] = useState(false);
+  const [validationStep, setValidationStep] = useState<string>('');
+
+  // Função para submeter agendamento com controle de concorrência
+  const submitBookingWithConcurrency = useCallback(async (data: BookingFormData): Promise<boolean> => {
+    if (!companySettings?.company_id) return false;
+    
+    setSubmitting(true);
+    setValidationStep('Validando dados...');
+    
+    try {
+      // Validação prévia
+      setValidationStep('Verificando disponibilidade...');
+      const validation = await validateBookingRequest(
+        companySettings.company_id,
+        data.clientPhone,
+        data.selectedDate,
+        data.selectedTime,
+        30 // duração padrão
+      );
+
+      if (!validation.isValid) {
+        alert(validation.errors.join('\n'));
+        return false;
+      }
+
+      // Criar agendamento
+      setValidationStep('Criando agendamento...');
+      const result = await createBookingWithConcurrencyControl({
+        company_id: companySettings.company_id,
+        client_name: data.clientName,
+        client_phone: data.clientPhone,
+        client_email: data.clientEmail,
+        appointment_date: data.selectedDate,
+        appointment_time: data.selectedTime,
+        service_id: data.selectedService,
+        service_duration: 30,
+        professional_id: data.selectedProfessional
       });
-      refreshTimes();
-      refreshLimits();
+
+      if (result.success) {
+        // Limpar formulário
+        setFormData({
+          clientName: '',
+          clientPhone: '',
+          clientEmail: '',
+          selectedDate: '',
+          selectedTime: '',
+          selectedService: '',
+          selectedProfessional: ''
+        });
+        
+        // Atualizar horários
+        refreshTimes();
+        refreshLimits();
+        
+        alert('Agendamento realizado com sucesso!');
+        return true;
+      } else {
+        alert(result.error || 'Erro ao criar agendamento');
+        return false;
+      }
+      
+    } catch (error) {
+      devLog('❌ Erro no agendamento:', error);
+      alert('Erro interno ao processar agendamento');
+      return false;
+    } finally {
+      setSubmitting(false);
+      setValidationStep('');
     }
-  );
+  }, [companySettings?.company_id, refreshTimes, refreshLimits]);
 
+  // Carregar horários quando data ou telefone mudarem
   useEffect(() => {
-    generateAvailableDates();
-  }, [companySettings, generateAvailableDates]);
-
-  useEffect(() => {
-    if (formData.selectedDate && companySettings) {
-      generateAvailableTimes(formData.selectedDate);
+    if (formData.selectedDate && dynamicSettings && isPhoneValidFormat(formData.clientPhone)) {
+      loadDynamicTimes(formData.selectedDate);
+    } else {
+      setAvailableTimesLocal([]);
     }
-  }, [formData.selectedDate, companySettings, generateAvailableTimes]);
+  }, [formData.selectedDate, dynamicSettings, formData.clientPhone, loadDynamicTimes]);
 
-  // Refresh limites quando telefone mudar
+  // Refresh limites quando telefone mudar - só se estiver completo e válido
   useEffect(() => {
-    if (formData.clientPhone && formData.clientPhone.length >= 10) {
+    if (isPhoneValidFormat(formData.clientPhone)) {
       refreshLimits();
     }
   }, [formData.clientPhone, refreshLimits]);
@@ -91,10 +172,11 @@ const ModernBookingForm = () => {
     
     // Validação final antes de submeter
     if (!limits?.canBook) {
+      alert('Limite de agendamentos atingido');
       return;
     }
 
-    const success = await submitBooking(formData);
+    const success = await submitBookingWithConcurrency(formData);
     if (success) {
       devLog('✅ Agendamento realizado com sucesso');
     }
@@ -165,7 +247,23 @@ const ModernBookingForm = () => {
             <DateSelection
               selectedDate={formData.selectedDate}
               onDateSelect={(date) => setFormData(prev => ({ ...prev, selectedDate: date, selectedTime: '' }))}
-              generateAvailableDates={generateAvailableDates}
+              generateAvailableDates={async () => {
+                if (!dynamicSettings) return [];
+                
+                const dates: Date[] = [];
+                const today = new Date();
+                
+                for (let i = 0; i <= dynamicSettings.advance_booking_limit; i++) {
+                  const date = new Date(today);
+                  date.setDate(today.getDate() + i);
+                  
+                  if (isDateAllowed(date)) {
+                    dates.push(date);
+                  }
+                }
+                
+                return dates;
+              }}
             />
           </div>
 
@@ -176,17 +274,32 @@ const ModernBookingForm = () => {
                 <Clock className="w-4 h-4" />
                 Escolha o Horário
               </h3>
-              <TimeSelection
-                availableTimes={availableTimes}
-                selectedTime={formData.selectedTime}
-                onTimeSelect={(time) => setFormData(prev => ({ ...prev, selectedTime: time }))}
-                isLoading={timesLoading}
-                onRefresh={refreshTimes}
-                isConnected={isConnected}
-                isSyncing={isSyncing}
-                lastSync={lastSync}
-                nextRefresh={nextRefresh}
-              />
+              
+              {!isPhoneValidFormat(formData.clientPhone) ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-amber-800">
+                    <AlertCircle className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      Complete o telefone para ver os horários disponíveis
+                    </span>
+                  </div>
+                  <p className="text-xs text-amber-700 mt-1">
+                    Digite um telefone válido no formato (11) 99999-9999
+                  </p>
+                </div>
+              ) : (
+                <TimeSelection
+                  availableTimes={availableTimesLocal}
+                  selectedTime={formData.selectedTime}
+                  onTimeSelect={(time) => setFormData(prev => ({ ...prev, selectedTime: time }))}
+                  isLoading={timesLoading}
+                  onRefresh={refreshTimes}
+                  isConnected={true}
+                  isSyncing={false}
+                  lastSync={new Date()}
+                  nextRefresh={0}
+                />
+              )}
             </div>
           )}
 

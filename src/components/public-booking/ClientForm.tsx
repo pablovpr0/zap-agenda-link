@@ -1,7 +1,8 @@
 
-import { User, Phone, Mail } from 'lucide-react';
+import { User, Phone, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { isPhoneValidFormat, isPhoneComplete } from '@/utils/inputValidation';
 
 interface ClientFormProps {
   clientName: string;
@@ -44,10 +45,35 @@ const ClientForm = ({
             value={clientPhone}
             onChange={(e) => onClientPhoneChange(e.target.value)}
             placeholder="(11) 99999-9999"
-            className="pl-10"
+            className={`pl-10 pr-10 ${
+              clientPhone && isPhoneComplete(clientPhone) 
+                ? isPhoneValidFormat(clientPhone)
+                  ? 'border-green-500 focus:border-green-500' 
+                  : 'border-red-500 focus:border-red-500'
+                : ''
+            }`}
             required
           />
+          {clientPhone && isPhoneComplete(clientPhone) && (
+            <div className="absolute right-3 top-3">
+              {isPhoneValidFormat(clientPhone) ? (
+                <CheckCircle className="w-4 h-4 text-green-500" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-red-500" />
+              )}
+            </div>
+          )}
         </div>
+        {clientPhone && isPhoneComplete(clientPhone) && !isPhoneValidFormat(clientPhone) && (
+          <p className="text-sm text-red-600">
+            Formato de telefone inválido. Use: (11) 99999-9999
+          </p>
+        )}
+        {clientPhone && isPhoneComplete(clientPhone) && isPhoneValidFormat(clientPhone) && (
+          <p className="text-sm text-green-600">
+            ✓ Telefone válido - horários serão carregados
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">

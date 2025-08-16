@@ -10,6 +10,7 @@ import TimeSelection from '@/components/public-booking/TimeSelection';
 import ClientForm from '@/components/public-booking/ClientForm';
 import { Service } from '@/types/publicBooking';
 import { devLog, devError, devWarn, devInfo } from '@/utils/console';
+import { isPhoneValidFormat } from '@/utils/inputValidation';
 
 interface BookingFormProps {
   services: Service[];
@@ -40,10 +41,10 @@ const BookingForm = ({
   const [clientEmail, setClientEmail] = useState('');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
-  // Load available times when date or service changes
+  // Load available times when date or service changes - só se telefone estiver válido
   useEffect(() => {
     const loadAvailableTimes = async () => {
-      if (selectedDate) {
+      if (selectedDate && isPhoneValidFormat(clientPhone)) {
         // Encontrar duração do serviço selecionado
         const selectedServiceData = services.find(s => s.id === selectedService);
         const serviceDuration = selectedServiceData?.duration;
@@ -63,7 +64,7 @@ const BookingForm = ({
     };
 
     loadAvailableTimes();
-  }, [selectedDate, selectedService, generateAvailableTimes, services, selectedTime]);
+  }, [selectedDate, selectedService, generateAvailableTimes, services, selectedTime, clientPhone]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,11 +121,33 @@ const BookingForm = ({
 
           {/* Horário */}
           {selectedDate && (
-            <TimeSelection
-              availableTimes={availableTimes}
-              selectedTime={selectedTime}
-              onTimeSelect={setSelectedTime}
-            />
+            <>
+              {!isPhoneValidFormat(clientPhone) ? (
+                <div className="space-y-3">
+                  <Label className="text-gray-700 font-semibold flex items-center gap-2 text-lg">
+                    <Clock className="w-5 h-5 text-green-500" />
+                    Escolha o horário
+                  </Label>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-amber-800">
+                      <MessageCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        Complete o telefone para ver os horários disponíveis
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-700 mt-1">
+                      Digite um telefone válido no formato (11) 99999-9999
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <TimeSelection
+                  availableTimes={availableTimes}
+                  selectedTime={selectedTime}
+                  onTimeSelect={setSelectedTime}
+                />
+              )}
+            </>
           )}
 
           {/* Dados do cliente */}

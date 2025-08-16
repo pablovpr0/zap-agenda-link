@@ -71,7 +71,7 @@ const CoverSettings = () => {
 
       // Disparar evento para atualizar outros componentes
       window.dispatchEvent(new CustomEvent('coverImageUpdated'));
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro ao salvar foto de capa:', error);
       toast({
         title: "Erro",

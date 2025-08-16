@@ -43,7 +43,7 @@ const ServiceManagement = () => {
     if (user) {
       loadServices();
     }
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadServices = async () => {
     setLoading(true);

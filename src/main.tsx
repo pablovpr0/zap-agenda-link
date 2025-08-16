@@ -38,7 +38,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 } else if ('serviceWorker' in navigator && import.meta.env.DEV) {
   // In development, unregister any existing service workers to avoid conflicts
   navigator.serviceWorker.getRegistrations().then(function(registrations) {
-    for(let registration of registrations) {
+    for(const registration of registrations) {
       registration.unregister();
     }
   });

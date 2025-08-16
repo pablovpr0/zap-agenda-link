@@ -12,8 +12,18 @@ import { ArrowLeft, User, Phone, MessageSquare, Calendar, Clock } from 'lucide-r
 import { toast } from '@/hooks/use-toast';
 import { addDays } from 'date-fns';
 
+interface BookingData {
+  clientName: string;
+  clientPhone: string;
+  clientEmail?: string;
+  selectedDate: string;
+  selectedTime: string;
+  selectedService: string;
+  notes?: string;
+}
+
 interface BookingFormProps {
-  onComplete: (data: any) => void;
+  onComplete: (data: BookingData) => void;
   onBack: () => void;
 }
 

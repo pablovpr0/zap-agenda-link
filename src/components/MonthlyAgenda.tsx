@@ -127,7 +127,7 @@ const MonthlyAgenda = ({ onBack }: MonthlyAgendaProps) => {
   };
 
   // Transformar appointments para o formato esperado pelo AppointmentDialog
-  const transformAppointments = (rawAppointments: any[]): MonthlyAppointment[] => {
+  const transformAppointments = (rawAppointments: unknown[]): MonthlyAppointment[] => {
     return rawAppointments.map(apt => ({
       id: apt.id,
       appointment_time: apt.appointment_time,

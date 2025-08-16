@@ -97,7 +97,7 @@ export const useCoverImageUpload = ({
       }
 
       return urlData.publicUrl;
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro no upload:', error);
       toast({
         title: "Erro no upload",

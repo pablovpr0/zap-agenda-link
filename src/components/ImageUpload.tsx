@@ -69,7 +69,7 @@ const ImageUpload = ({
       };
       reader.readAsDataURL(file);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro no upload:', error);
       toast({
         title: "Erro no upload",

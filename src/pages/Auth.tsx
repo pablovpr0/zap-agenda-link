@@ -166,7 +166,7 @@ const Auth = () => {
         title: "Login realizado com sucesso!",
         description: "Bem-vindo de volta!"
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro inesperado",
         description: "Ocorreu um erro inesperado. Tente novamente.",
@@ -205,7 +205,7 @@ const Auth = () => {
         title: "Conta criada!",
         description: "Verifique seu email para confirmar a conta."
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro inesperado",
         description: "Ocorreu um erro inesperado. Tente novamente.",

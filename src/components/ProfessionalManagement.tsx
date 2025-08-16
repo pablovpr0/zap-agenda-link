@@ -30,7 +30,7 @@ const ProfessionalManagement = () => {
     if (user) {
       loadProfessionals();
     }
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadProfessionals = async () => {
     if (!user) return;

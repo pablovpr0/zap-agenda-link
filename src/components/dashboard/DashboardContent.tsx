@@ -7,9 +7,7 @@ import RecentAppointmentsList from './RecentAppointmentsList';
 import RevenueCard from './RevenueCard';
 import MonthlyAgenda from '../MonthlyAgenda';
 import ReportsButton from '../reports/ReportsButton';
-import { useDashboardData } from '@/hooks/useDashboardData';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
-import { Settings } from 'lucide-react';
 interface DashboardContentProps {
   companyName: string;
   onShowAppointments: () => void;
@@ -18,6 +16,16 @@ interface DashboardContentProps {
   onShowSettings: () => void;
   onShowMonthlyAgenda: () => void;
   onRefreshData: () => void;
+  data?: {
+    todayAppointments: number;
+    totalClients: number;
+    monthlyRevenue: number;
+    completionRate: number;
+    bookingLink: string;
+    recentAppointments: unknown[];
+    todayAppointmentsList: unknown[];
+  };
+  loading?: boolean;
 }
 const DashboardContent = ({
   companyName,
@@ -26,12 +34,18 @@ const DashboardContent = ({
   onShowServices,
   onShowSettings,
   onShowMonthlyAgenda,
-  onRefreshData
+  onRefreshData,
+  data = {
+    todayAppointments: 0,
+    totalClients: 0,
+    monthlyRevenue: 0,
+    completionRate: 0,
+    bookingLink: '',
+    recentAppointments: [],
+    todayAppointmentsList: []
+  },
+  loading = false
 }: DashboardContentProps) => {
-  const {
-    data,
-    loading
-  } = useDashboardData();
   const {
     linkCopied,
     handleCopyLink,

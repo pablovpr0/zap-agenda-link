@@ -58,7 +58,7 @@ const CompanySetup = () => {
         if (profile.business_type) setBusinessType(profile.business_type);
       }
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Error checking profile:', error);
       setError('Erro ao verificar perfil existente');
     } finally {
@@ -129,7 +129,7 @@ const CompanySetup = () => {
         navigate('/', { replace: true });
       }, 1500);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Error in company setup:', error);
       
       const errorMessage = error?.message || "Erro inesperado ao configurar empresa";

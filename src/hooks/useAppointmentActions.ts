@@ -29,7 +29,7 @@ export const useAppointmentActions = () => {
       });
 
       if (onSuccess) onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro ao excluir agendamento:', error);
       toast({
         title: "Erro",
@@ -60,7 +60,7 @@ export const useAppointmentActions = () => {
       });
 
       if (onSuccess) onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro ao cancelar agendamento:', error);
       toast({
         title: "Erro",
@@ -106,7 +106,7 @@ export const useAppointmentActions = () => {
       });
 
       if (onSuccess) onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro ao atualizar agendamento:', error);
       toast({
         title: "Erro",
@@ -140,7 +140,7 @@ export const useAppointmentActions = () => {
       });
 
       if (onSuccess) onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro ao marcar como concluído:', error);
       toast({
         title: "Erro",

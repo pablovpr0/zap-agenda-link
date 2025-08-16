@@ -21,7 +21,7 @@ export const useRevenue = () => {
     try {
       const revenue = await calculateDailyRevenue(user.id, targetDate);
       setDailyRevenue(revenue);
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro ao carregar receita diária:', error);
       toast({
         title: "Erro",
@@ -46,7 +46,7 @@ export const useRevenue = () => {
     try {
       const revenue = await calculateMonthlyRevenue(user.id, targetYear, targetMonth);
       setMonthlyRevenue(revenue);
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro ao carregar receita mensal:', error);
       toast({
         title: "Erro",
@@ -63,7 +63,7 @@ export const useRevenue = () => {
     if (user) {
       loadDailyRevenue();
     }
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Escutar eventos de agendamento concluído para atualizar receita automaticamente
   useEffect(() => {

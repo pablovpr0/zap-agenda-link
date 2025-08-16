@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { devLog, devError, devWarn, devInfo } from '@/utils/console';
+import { devError } from '@/utils/console';
 
 interface AuthContextType {
   user: User | null;
@@ -32,30 +32,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
     const initializeAuth = async () => {
       try {
-        // Get initial session
         const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         
-        if (error) {
-          devError('Error getting initial session:', error);
-        }
+        if (error) devError('Error getting initial session:', error);
 
         if (isMounted) {
           setSession(initialSession);
           setUser(initialSession?.user ?? null);
-          setInitialized(true);
           setIsLoading(false);
         }
 
-        // Set up auth state listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, session) => {
+          (event, session) => {
             if (isMounted) {
               setSession(session);
               setUser(session?.user ?? null);
@@ -67,35 +61,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return () => subscription.unsubscribe();
       } catch (error) {
         devError('Error initializing auth:', error);
-        if (isMounted) {
-          setIsLoading(false);
-          setInitialized(true);
-        }
+        if (isMounted) setIsLoading(false);
       }
     };
 
     initializeAuth();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
   const signIn = async (email: string, password: string): Promise<{ error?: Error }> => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      
       if (error) {
         devError('SignIn error:', error);
         return { error: new Error(error.message) };
       }
-
       return {};
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('SignIn catch error:', error);
       return { error: new Error('Erro inesperado ao fazer login') };
     } finally {
@@ -106,16 +90,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signUp = async (email: string, password: string, name: string): Promise<{ error?: Error }> => {
     try {
       setIsLoading(true);
-      const redirectUrl = `${window.location.origin}/`;
-      
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            company_name: name,
-          }
+          emailRedirectTo: `${window.location.origin}/`,
+          data: { company_name: name }
         }
       });
 
@@ -123,9 +103,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         devError('SignUp error:', error);
         return { error: new Error(error.message) };
       }
-
       return {};
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('SignUp catch error:', error);
       return { error: new Error('Erro inesperado ao criar conta') };
     } finally {
@@ -137,12 +116,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       const { error } = await supabase.auth.signOut();
-      if (error) {
-        devError('SignOut error:', error);
-        throw new Error(error.message);
-      }
-    } catch (error: any) {
-      devError('SignOut catch error:', error);
+      if (error) throw new Error(error.message);
+    } catch (error: unknown) {
+      devError('SignOut error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -152,19 +128,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const resetPassword = async (email: string): Promise<{ error?: Error }> => {
     try {
       setIsLoading(true);
-      const redirectUrl = `${window.location.origin}/auth`;
-      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
+        redirectTo: `${window.location.origin}/auth`
       });
 
       if (error) {
         devError('Reset password error:', error);
         return { error: new Error(error.message) };
       }
-
       return {};
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Reset password catch error:', error);
       return { error: new Error('Erro inesperado ao redefinir senha') };
     } finally {
@@ -175,7 +148,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value = {
     user,
     session,
-    isLoading: isLoading || !initialized,
+    isLoading,
     signIn,
     signUp,
     signOut,

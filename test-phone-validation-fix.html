@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Correção Validação de Telefone</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-case {
+            background: #f5f5f5;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        code {
+            background: #e9ecef;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .phone-input {
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            width: 200px;
+        }
+        .valid {
+            border-color: #28a745;
+        }
+        .invalid {
+            border-color: #dc3545;
+        }
+        .incomplete {
+            border-color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Teste - Correção do Fluxo de Agendamento</h1>
+    
+    <div class="test-case success">
+        <h2>✅ Problema Identificado e Corrigido</h2>
+        <p><strong>Problema:</strong> O sistema estava carregando horários automaticamente assim que o usuário começava a digitar o telefone, causando requisições desnecessárias e erros de agendamento.</p>
+        <p><strong>Solução:</strong> Implementada validação completa do telefone antes de permitir o carregamento dos horários.</p>
+    </div>
+
+    <div class="test-case">
+        <h2>🔍 Validações Implementadas</h2>
+        <h3>1. Função <code>isPhoneComplete()</code></h3>
+        <p>Verifica se o telefone tem 10 ou 11 dígitos (formato brasileiro)</p>
+        
+        <h3>2. Função <code>isPhoneValidFormat()</code></h3>
+        <p>Valida:</p>
+        <ul>
+            <li>Número correto de dígitos (10 ou 11)</li>
+            <li>DDD válido (11-99)</li>
+            <li>Para números de 11 dígitos, terceiro dígito deve ser 9</li>
+        </ul>
+    </div>
+
+    <div class="test-case">
+        <h2>📱 Teste Interativo de Validação</h2>
+        <p>Digite um telefone para testar a validação:</p>
+        <input type="tel" id="phoneTest" class="phone-input" placeholder="(11) 99999-9999">
+        <div id="phoneStatus" style="margin-top: 10px;"></div>
+        
+        <h3>Exemplos de teste:</h3>
+        <ul>
+            <li><code>11</code> - ❌ Incompleto</li>
+            <li><code>1199999</code> - ❌ Incompleto</li>
+            <li><code>11999999999</code> - ✅ Válido (11 dígitos)</li>
+            <li><code>1199999999</code> - ✅ Válido (10 dígitos)</li>
+            <li><code>(11) 99999-9999</code> - ✅ Válido (formatado)</li>
+            <li><code>0199999999</code> - ❌ DDD inválido</li>
+            <li><code>11899999999</code> - ❌ Terceiro dígito inválido</li>
+        </ul>
+    </div>
+
+    <div class="test-case">
+        <h2>🔄 Fluxo Corrigido</h2>
+        <ol>
+            <li><strong>Cliente digita telefone:</strong> Sistema não carrega horários ainda</li>
+            <li><strong>Telefone incompleto:</strong> Mostra feedback visual (amarelo)</li>
+            <li><strong>Telefone inválido:</strong> Mostra erro (vermelho)</li>
+            <li><strong>Telefone válido:</strong> Mostra sucesso (verde) e carrega horários</li>
+            <li><strong>Seleção de data:</strong> Só carrega horários se telefone válido</li>
+        </ol>
+    </div>
+
+    <div class="test-case">
+        <h2>📋 Arquivos Modificados</h2>
+        <ul>
+            <li><code>src/utils/inputValidation.ts</code> - Adicionadas funções de validação</li>
+            <li><code>src/components/public-booking/ModernBookingForm.tsx</code> - Lógica de carregamento corrigida</li>
+            <li><code>src/components/public-booking/BookingForm.tsx</code> - Lógica de carregamento corrigida</li>
+            <li><code>src/components/public-booking/ClientForm.tsx</code> - Feedback visual adicionado</li>
+        </ul>
+    </div>
+
+    <div class="test-case success">
+        <h2>🎯 Resultados Esperados</h2>
+        <ul>
+            <li>✅ Horários só carregam após telefone completo e válido</li>
+            <li>✅ Feedback visual claro para o usuário</li>
+            <li>✅ Redução de requisições desnecessárias</li>
+            <li>✅ Eliminação de erros de agendamento por telefone inválido</li>
+            <li>✅ Funciona tanto no link público quanto na área interna</li>
+        </ul>
+    </div>
+
+    <div class="test-case warning">
+        <h2>⚠️ Pontos de Atenção para Teste</h2>
+        <ol>
+            <li>Testar com diferentes formatos de telefone</li>
+            <li>Verificar se horários não carregam com telefone incompleto</li>
+            <li>Confirmar que agendamento funciona após telefone válido</li>
+            <li>Testar tanto no link público quanto na área do comerciante</li>
+            <li>Verificar se mensagens de feedback aparecem corretamente</li>
+        </ol>
+    </div>
+
+    <script>
+        // Simulação das funções de validação para teste
+        function isPhoneComplete(phone) {
+            if (!phone) return false;
+            const digitsOnly = phone.replace(/\D/g, '');
+            return digitsOnly.length === 10 || digitsOnly.length === 11;
+        }
+
+        function isPhoneValidFormat(phone) {
+            if (!phone) return false;
+            
+            const digitsOnly = phone.replace(/\D/g, '');
+            
+            if (digitsOnly.length !== 10 && digitsOnly.length !== 11) {
+                return false;
+            }
+            
+            const ddd = digitsOnly.substring(0, 2);
+            const dddNumber = parseInt(ddd);
+            if (dddNumber < 11 || dddNumber > 99) {
+                return false;
+            }
+            
+            if (digitsOnly.length === 11 && digitsOnly[2] !== '9') {
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Teste interativo
+        document.getElementById('phoneTest').addEventListener('input', function(e) {
+            const phone = e.target.value;
+            const statusDiv = document.getElementById('phoneStatus');
+            const input = e.target;
+            
+            if (!phone) {
+                statusDiv.innerHTML = '';
+                input.className = 'phone-input';
+                return;
+            }
+            
+            if (!isPhoneComplete(phone)) {
+                statusDiv.innerHTML = '<span style="color: #ffc107;">⚠️ Telefone incompleto - continue digitando</span>';
+                input.className = 'phone-input incomplete';
+            } else if (!isPhoneValidFormat(phone)) {
+                statusDiv.innerHTML = '<span style="color: #dc3545;">❌ Formato inválido - verifique DDD e número</span>';
+                input.className = 'phone-input invalid';
+            } else {
+                statusDiv.innerHTML = '<span style="color: #28a745;">✅ Telefone válido - horários seriam carregados</span>';
+                input.className = 'phone-input valid';
+            }
+        });
+    </script>
+</body>
+</html>

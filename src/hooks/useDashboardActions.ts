@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { devLog, devError, devWarn, devInfo } from '@/utils/console';
+import { devLog, devError } from '@/utils/console';
 
 export const useDashboardActions = (bookingLink: string) => {
   const [linkCopied, setLinkCopied] = useState(false);

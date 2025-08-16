@@ -9,8 +9,16 @@ import { useClientAuth } from '@/hooks/useClientAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { devLog, devError, devWarn, devInfo } from '@/utils/console';
 
+interface CompanyData {
+  id: string;
+  name: string;
+  logo_url?: string;
+  primary_color?: string;
+  secondary_color?: string;
+}
+
 interface ClientLoginProps {
-  companyData: any;
+  companyData: CompanyData;
   onLoginSuccess: () => void;
 }
 

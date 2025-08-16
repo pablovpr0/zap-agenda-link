@@ -154,7 +154,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
         loadServices(),
         loadProfessionals()
       ]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro",
         description: "Não foi possível carregar os dados.",
@@ -352,7 +352,7 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess }: NewAppointmentModal
       onSuccess();
       onClose();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       devError('Erro ao criar agendamento:', error);
       toast({
         title: "Erro",
