@@ -193,34 +193,41 @@ const validateClientBookingLimit = async (
 ): Promise<{ canBook: boolean; message?: string }> => {
   try {
     // Buscar configurações da empresa
-    const { data: settings, error: settingsError } = await supabase
+    const settingsResult = await supabase
       .from('company_settings')
       .select('max_simultaneous_appointments')
       .eq('company_id', companyId)
       .single();
 
-    if (settingsError) {
+    if (settingsResult.error) {
       devWarn('⚠️ Erro ao buscar configurações, usando limite padrão');
     }
 
-    const maxAppointments = settings?.max_simultaneous_appointments || 3;
+    const maxAppointments = settingsResult.data?.max_simultaneous_appointments || 3;
 
     // Contar agendamentos ativos do cliente
-    const { data: activeAppointments, error } = await supabase
+    const today = getTodayInBrazil();
+    
+    let appointmentsQuery = supabase
       .from('appointments')
-      .select('id')
+      .select('id', { count: 'exact' })
       .eq('company_id', companyId)
       .eq('client_phone', clientPhone)
       .in('status', ['confirmed', 'scheduled'])
-      .gte('appointment_date', getTodayInBrazil())
-      .neq('id', excludeAppointmentId || '');
+      .gte('appointment_date', today);
 
-    if (error) {
-      devError('❌ Erro ao verificar limite de agendamentos:', error);
+    if (excludeAppointmentId) {
+      appointmentsQuery = appointmentsQuery.neq('id', excludeAppointmentId);
+    }
+
+    const appointmentsResult = await appointmentsQuery;
+
+    if (appointmentsResult.error) {
+      devError('❌ Erro ao verificar limite de agendamentos:', appointmentsResult.error);
       return { canBook: true }; // Em caso de erro, permitir agendamento
     }
 
-    const currentCount = activeAppointments?.length || 0;
+    const currentCount = appointmentsResult.count || 0;
     const canBook = currentCount < maxAppointments;
 
     devLog(`📊 Cliente tem ${currentCount}/${maxAppointments} agendamentos ativos`);
