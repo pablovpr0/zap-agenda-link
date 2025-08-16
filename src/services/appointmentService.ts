@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { formatDatabaseTimestamp, getNowInBrazil, getTodayInBrazil } from '@/utils/timezone';
 import { formatAppointmentDateWithWeekday } from '@/utils/dateUtils';
@@ -207,34 +206,37 @@ const validateClientBookingLimit = async (
     const maxAppointments = settings?.max_simultaneous_appointments || 3;
     const today = getTodayInBrazil();
 
-    // Query simplificada com tipo explícito
-    const queryResult = await supabase
+    // Query simplificada - usando tipo any para evitar problemas de inferência
+    const { data: appointments, error } = await supabase
       .from('appointments')
-      .select('*')
+      .select('id, status')
       .eq('company_id', companyId)
       .eq('client_phone', clientPhone)
       .gte('appointment_date', today);
 
-    if (queryResult.error) {
-      devError('❌ Erro ao verificar limite de agendamentos:', queryResult.error);
+    if (error) {
+      devError('❌ Erro ao verificar limite de agendamentos:', error);
       return { canBook: true };
     }
 
-    // Usar os dados de forma mais direta
-    const allAppointments = queryResult.data || [];
+    // Processar dados com tipo explícito
+    const appointmentList: any[] = appointments || [];
     
-    // Filtrar agendamentos ativos
-    const activeAppointments = allAppointments.filter(appointment => {
-      const status = appointment.status || 'confirmed';
+    // Filtrar agendamentos ativos usando forEach para evitar problemas de tipo
+    let activeCount = 0;
+    appointmentList.forEach((apt) => {
+      const status = apt.status || 'confirmed';
       const isActive = ['confirmed', 'scheduled'].includes(status);
-      const shouldExclude = excludeAppointmentId && appointment.id === excludeAppointmentId;
-      return isActive && !shouldExclude;
+      const shouldExclude = excludeAppointmentId && apt.id === excludeAppointmentId;
+      
+      if (isActive && !shouldExclude) {
+        activeCount++;
+      }
     });
 
-    const currentCount = activeAppointments.length;
-    const canBook = currentCount < maxAppointments;
+    const canBook = activeCount < maxAppointments;
 
-    devLog(`📊 Cliente tem ${currentCount}/${maxAppointments} agendamentos ativos`);
+    devLog(`📊 Cliente tem ${activeCount}/${maxAppointments} agendamentos ativos`);
 
     return {
       canBook,
