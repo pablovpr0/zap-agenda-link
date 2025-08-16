@@ -187,16 +187,15 @@ const validateClientBookingLimit = async (
     const maxAppointments = settings?.max_simultaneous_appointments || 3;
     const today = getTodayInBrazil();
 
-    // Query simplificada usando raw SQL para evitar problemas de tipo
-    const { data: appointments } = await supabase
-      .rpc('get_client_active_appointments', {
-        p_company_id: companyId,
-        p_client_phone: clientPhone,
-        p_from_date: today,
-        p_exclude_appointment_id: excludeAppointmentId || null
-      });
+    // Usar função helper simplificada
+    const { countClientActiveAppointments } = await import('@/utils/appointmentHelpers');
+    const activeCount = await countClientActiveAppointments(
+      companyId,
+      clientPhone,
+      today,
+      excludeAppointmentId
+    );
 
-    const activeCount = appointments || 0;
     const canBook = activeCount < maxAppointments;
 
     devLog(`📊 Cliente tem ${activeCount}/${maxAppointments} agendamentos ativos`);
