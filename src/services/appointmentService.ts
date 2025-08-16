@@ -1,5 +1,6 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { brazilDateTimeToUtc, formatDatabaseTimestamp, getNowInBrazil } from '@/utils/timezone';
+import { formatDatabaseTimestamp, getNowInBrazil, getTodayInBrazil } from '@/utils/timezone';
 import { formatAppointmentDateWithWeekday } from '@/utils/dateUtils';
 import { createOrUpdateClient } from './clientService';
 import { isTimeSlotAvailable } from './availableTimesService';
@@ -21,8 +22,6 @@ export interface AppointmentData {
   created_at?: string;
   updated_at?: string;
 }
-
-
 
 /**
  * Busca agendamentos de uma empresa formatando timestamps para horário do Brasil
@@ -60,7 +59,6 @@ export const getCompanyAppointments = async (companyId: string, startDate?: stri
       ...appointment,
       created_at_formatted: formatDatabaseTimestamp(appointment.created_at),
       updated_at_formatted: formatDatabaseTimestamp(appointment.updated_at),
-      // appointment_date e appointment_time já estão no horário local
     }));
 
     return formattedAppointments || [];
@@ -75,9 +73,7 @@ export const getCompanyAppointments = async (companyId: string, startDate?: stri
  * Busca agendamentos do dia atual no horário do Brasil
  */
 export const getTodayAppointments = async (companyId: string) => {
-  const { getTodayInBrazil } = await import('@/utils/timezone');
   const today = getTodayInBrazil();
-  
   return getCompanyAppointments(companyId, today, today);
 };
 
@@ -90,9 +86,6 @@ export const updateAppointment = async (appointmentId: string, updates: Partial<
       ...updates,
       updated_at: new Date().toISOString()
     };
-
-    // Se está atualizando data/hora, manter no horário local
-    // (não precisa converter para UTC pois os campos são date/time locais)
 
     const { data, error } = await supabase
       .from('appointments')
@@ -220,7 +213,7 @@ const validateClientBookingLimit = async (
       .eq('company_id', companyId)
       .eq('client_phone', clientPhone)
       .in('status', ['confirmed', 'scheduled'])
-      .gte('appointment_date', getTodayInBrazil().split('T')[0]);
+      .gte('appointment_date', getTodayInBrazil());
 
     if (excludeAppointmentId) {
       query = query.neq('id', excludeAppointmentId);
@@ -252,7 +245,7 @@ const validateClientBookingLimit = async (
 /**
  * Cria um novo agendamento com validações completas
  */
-const createAppointmentOriginal = async (appointmentData: AppointmentData) => {
+const createAppointmentOriginal = async (appointmentData: AppointmentData): Promise<any> => {
   try {
     devLog('🔄 Criando agendamento:', {
       company_id: appointmentData.company_id,
@@ -369,7 +362,7 @@ export const createAppointment = async (
 ): Promise<any> => {
   // Se recebeu apenas um parâmetro (AppointmentData), usar a função original
   if (!companySettings) {
-    return createAppointmentOriginal(formDataOrAppointment);
+    return createAppointmentOriginal(formDataOrAppointment as AppointmentData);
   }
 
   // Se recebeu múltiplos parâmetros, processar como BookingFormData
