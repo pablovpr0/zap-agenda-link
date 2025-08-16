@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { formatDatabaseTimestamp, getNowInBrazil, getTodayInBrazil } from '@/utils/timezone';
 import { formatAppointmentDateWithWeekday } from '@/utils/dateUtils';
@@ -207,21 +206,21 @@ const validateClientBookingLimit = async (
     const maxAppointments = settings?.max_simultaneous_appointments || 3;
     const today = getTodayInBrazil();
 
-    // Executar query básica primeiro
-    const { data: rawAppointments, error } = await supabase
+    // Query mais simples para evitar problemas de tipo
+    const result = await supabase
       .from('appointments')
       .select('id, status')
       .eq('company_id', companyId)
       .eq('client_phone', clientPhone)
       .gte('appointment_date', today);
 
-    if (error) {
-      devError('❌ Erro ao verificar limite de agendamentos:', error);
+    if (result.error) {
+      devError('❌ Erro ao verificar limite de agendamentos:', result.error);
       return { canBook: true };
     }
 
     // Filtrar em JavaScript para evitar problemas de tipo
-    const activeAppointments = (rawAppointments || []).filter(apt => {
+    const activeAppointments = (result.data || []).filter((apt: any) => {
       // Verificar status ativo
       const status = apt.status || 'confirmed';
       const isActive = ['confirmed', 'scheduled'].includes(status);
