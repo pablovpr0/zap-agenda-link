@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { formatDatabaseTimestamp, getNowInBrazil, getTodayInBrazil } from '@/utils/timezone';
 import { formatAppointmentDateWithWeekday } from '@/utils/dateUtils';
@@ -206,42 +207,51 @@ const validateClientBookingLimit = async (
     const maxAppointments = settings?.max_simultaneous_appointments || 3;
     const today = getTodayInBrazil();
 
-    // Query simplificada - usando tipo any para evitar problemas de inferência
-    const { data: appointments, error } = await supabase
-      .from('appointments')
-      .select('id, status')
-      .eq('company_id', companyId)
-      .eq('client_phone', clientPhone)
-      .gte('appointment_date', today);
+    // Query com rpc ou função mais simples para evitar problemas de tipo
+    try {
+      const appointmentsQuery = supabase
+        .from('appointments')
+        .select('id, status')
+        .eq('company_id', companyId)
+        .eq('client_phone', clientPhone)
+        .gte('appointment_date', today);
 
-    if (error) {
-      devError('❌ Erro ao verificar limite de agendamentos:', error);
+      // Executar query de forma mais direta
+      const result = await appointmentsQuery;
+      
+      if (result.error) {
+        devError('❌ Erro ao verificar limite de agendamentos:', result.error);
+        return { canBook: true };
+      }
+
+      // Processar dados manualmente
+      let activeCount = 0;
+      
+      if (result.data) {
+        for (const apt of result.data) {
+          const status = apt.status || 'confirmed';
+          const isActive = ['confirmed', 'scheduled'].includes(status);
+          const shouldExclude = excludeAppointmentId && apt.id === excludeAppointmentId;
+          
+          if (isActive && !shouldExclude) {
+            activeCount++;
+          }
+        }
+      }
+
+      const canBook = activeCount < maxAppointments;
+
+      devLog(`📊 Cliente tem ${activeCount}/${maxAppointments} agendamentos ativos`);
+
+      return {
+        canBook,
+        message: canBook ? undefined : `Limite de ${maxAppointments} agendamentos simultâneos atingido`
+      };
+
+    } catch (queryError) {
+      devError('❌ Erro na query de agendamentos:', queryError);
       return { canBook: true };
     }
-
-    // Processar dados com tipo explícito
-    const appointmentList: any[] = appointments || [];
-    
-    // Filtrar agendamentos ativos usando forEach para evitar problemas de tipo
-    let activeCount = 0;
-    appointmentList.forEach((apt) => {
-      const status = apt.status || 'confirmed';
-      const isActive = ['confirmed', 'scheduled'].includes(status);
-      const shouldExclude = excludeAppointmentId && apt.id === excludeAppointmentId;
-      
-      if (isActive && !shouldExclude) {
-        activeCount++;
-      }
-    });
-
-    const canBook = activeCount < maxAppointments;
-
-    devLog(`📊 Cliente tem ${activeCount}/${maxAppointments} agendamentos ativos`);
-
-    return {
-      canBook,
-      message: canBook ? undefined : `Limite de ${maxAppointments} agendamentos simultâneos atingido`
-    };
 
   } catch (error) {
     devError('❌ Erro na validação de limite:', error);
