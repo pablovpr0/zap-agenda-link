@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { formatDatabaseTimestamp, getNowInBrazil, getTodayInBrazil } from '@/utils/timezone';
 import { formatAppointmentDateWithWeekday } from '@/utils/dateUtils';
@@ -193,41 +194,41 @@ const validateClientBookingLimit = async (
 ): Promise<{ canBook: boolean; message?: string }> => {
   try {
     // Buscar configurações da empresa
-    const settingsResult = await supabase
+    const { data: settings, error: settingsError } = await supabase
       .from('company_settings')
       .select('max_simultaneous_appointments')
       .eq('company_id', companyId)
-      .single();
+      .maybeSingle();
 
-    if (settingsResult.error) {
+    if (settingsError) {
       devWarn('⚠️ Erro ao buscar configurações, usando limite padrão');
     }
 
-    const maxAppointments = settingsResult.data?.max_simultaneous_appointments || 3;
+    const maxAppointments = settings?.max_simultaneous_appointments || 3;
 
-    // Contar agendamentos ativos do cliente
+    // Contar agendamentos ativos do cliente usando uma query simples
     const today = getTodayInBrazil();
     
-    let appointmentsQuery = supabase
+    let baseQuery = supabase
       .from('appointments')
-      .select('id', { count: 'exact' })
+      .select('id')
       .eq('company_id', companyId)
       .eq('client_phone', clientPhone)
       .in('status', ['confirmed', 'scheduled'])
       .gte('appointment_date', today);
 
     if (excludeAppointmentId) {
-      appointmentsQuery = appointmentsQuery.neq('id', excludeAppointmentId);
+      baseQuery = baseQuery.neq('id', excludeAppointmentId);
     }
 
-    const appointmentsResult = await appointmentsQuery;
+    const { data: appointments, error } = await baseQuery;
 
-    if (appointmentsResult.error) {
-      devError('❌ Erro ao verificar limite de agendamentos:', appointmentsResult.error);
+    if (error) {
+      devError('❌ Erro ao verificar limite de agendamentos:', error);
       return { canBook: true }; // Em caso de erro, permitir agendamento
     }
 
-    const currentCount = appointmentsResult.count || 0;
+    const currentCount = appointments?.length || 0;
     const canBook = currentCount < maxAppointments;
 
     devLog(`📊 Cliente tem ${currentCount}/${maxAppointments} agendamentos ativos`);
