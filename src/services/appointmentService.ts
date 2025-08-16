@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { formatDatabaseTimestamp, getNowInBrazil, getTodayInBrazil } from '@/utils/timezone';
 import { formatAppointmentDateWithWeekday } from '@/utils/dateUtils';
@@ -206,28 +207,28 @@ const validateClientBookingLimit = async (
     const maxAppointments = settings?.max_simultaneous_appointments || 3;
     const today = getTodayInBrazil();
 
-    // Query simplificada para evitar tipo complexo
-    const query = supabase
+    // Executar query básica primeiro
+    const { data: rawAppointments, error } = await supabase
       .from('appointments')
-      .select('id')
+      .select('id, status')
       .eq('company_id', companyId)
       .eq('client_phone', clientPhone)
       .gte('appointment_date', today);
-
-    // Executar query
-    const { data: allAppointments, error } = await query;
 
     if (error) {
       devError('❌ Erro ao verificar limite de agendamentos:', error);
       return { canBook: true };
     }
 
-    // Filtrar por status e excludeAppointmentId em JavaScript
-    const activeAppointments = (allAppointments || []).filter(apt => {
-      // Assumindo que appointments sem status são 'confirmed'
-      const status = (apt as any).status || 'confirmed';
+    // Filtrar em JavaScript para evitar problemas de tipo
+    const activeAppointments = (rawAppointments || []).filter(apt => {
+      // Verificar status ativo
+      const status = apt.status || 'confirmed';
       const isActive = ['confirmed', 'scheduled'].includes(status);
+      
+      // Verificar se deve ser excluído
       const shouldExclude = excludeAppointmentId && apt.id === excludeAppointmentId;
+      
       return isActive && !shouldExclude;
     });
 
