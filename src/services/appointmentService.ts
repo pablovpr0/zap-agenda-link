@@ -204,30 +204,34 @@ const validateClientBookingLimit = async (
     }
 
     const maxAppointments = settings?.max_simultaneous_appointments || 3;
-
-    // Contar agendamentos ativos do cliente usando query simplificada
     const today = getTodayInBrazil();
-    
-    // Executar query sem encadeamento condicional complexo
-    const { data: appointments, error } = await supabase
+
+    // Query simplificada para evitar tipo complexo
+    const query = supabase
       .from('appointments')
       .select('id')
       .eq('company_id', companyId)
       .eq('client_phone', clientPhone)
-      .in('status', ['confirmed', 'scheduled'])
       .gte('appointment_date', today);
+
+    // Executar query
+    const { data: allAppointments, error } = await query;
 
     if (error) {
       devError('❌ Erro ao verificar limite de agendamentos:', error);
-      return { canBook: true }; // Em caso de erro, permitir agendamento
+      return { canBook: true };
     }
 
-    // Filtrar excludeAppointmentId se necessário
-    const filteredAppointments = excludeAppointmentId 
-      ? appointments?.filter(apt => apt.id !== excludeAppointmentId)
-      : appointments;
+    // Filtrar por status e excludeAppointmentId em JavaScript
+    const activeAppointments = (allAppointments || []).filter(apt => {
+      // Assumindo que appointments sem status são 'confirmed'
+      const status = (apt as any).status || 'confirmed';
+      const isActive = ['confirmed', 'scheduled'].includes(status);
+      const shouldExclude = excludeAppointmentId && apt.id === excludeAppointmentId;
+      return isActive && !shouldExclude;
+    });
 
-    const currentCount = filteredAppointments?.length || 0;
+    const currentCount = activeAppointments.length;
     const canBook = currentCount < maxAppointments;
 
     devLog(`📊 Cliente tem ${currentCount}/${maxAppointments} agendamentos ativos`);
