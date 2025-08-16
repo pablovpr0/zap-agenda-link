@@ -193,12 +193,14 @@ const validateClientBookingLimit = async (
   excludeAppointmentId?: string
 ): Promise<{ canBook: boolean; message?: string }> => {
   try {
-    // Buscar configurações da empresa
-    const { data: settings, error: settingsError } = await supabase
+    // Buscar configurações da empresa - tipo explícito
+    const settingsQuery = supabase
       .from('company_settings')
       .select('max_simultaneous_appointments')
       .eq('company_id', companyId)
       .single();
+
+    const { data: settings, error: settingsError } = await settingsQuery;
 
     if (settingsError) {
       devWarn('⚠️ Erro ao buscar configurações, usando limite padrão');
@@ -206,8 +208,8 @@ const validateClientBookingLimit = async (
 
     const maxAppointments = settings?.max_simultaneous_appointments || 3;
 
-    // Contar agendamentos ativos do cliente
-    let query = supabase
+    // Contar agendamentos ativos do cliente - query simples
+    const baseQuery = supabase
       .from('appointments')
       .select('id')
       .eq('company_id', companyId)
@@ -215,11 +217,12 @@ const validateClientBookingLimit = async (
       .in('status', ['confirmed', 'scheduled'])
       .gte('appointment_date', getTodayInBrazil());
 
-    if (excludeAppointmentId) {
-      query = query.neq('id', excludeAppointmentId);
-    }
+    // Aplicar filtro de exclusão se necessário
+    const finalQuery = excludeAppointmentId 
+      ? baseQuery.neq('id', excludeAppointmentId)
+      : baseQuery;
 
-    const { data: activeAppointments, error } = await query;
+    const { data: activeAppointments, error } = await finalQuery;
 
     if (error) {
       devError('❌ Erro ao verificar limite de agendamentos:', error);
@@ -254,13 +257,15 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData): Prom
       appointment_time: appointmentData.appointment_time
     });
 
-    // 1. Buscar duração do serviço
-    const { data: serviceData, error: serviceError } = await supabase
+    // 1. Buscar duração do serviço - tipo explícito
+    const serviceQuery = supabase
       .from('services')
       .select('duration, name')
       .eq('id', appointmentData.service_id)
       .eq('company_id', appointmentData.company_id)
       .single();
+
+    const { data: serviceData, error: serviceError } = await serviceQuery;
 
     if (serviceError || !serviceData) {
       throw new Error('Serviço não encontrado');
@@ -313,24 +318,28 @@ const createAppointmentOriginal = async (appointmentData: AppointmentData): Prom
       throw new Error('Client ID é obrigatório para criar agendamento');
     }
 
-    // 5. Criar agendamento
-    const { data, error } = await supabase
+    // 5. Criar agendamento - tipo explícito
+    const insertData = {
+      company_id: appointmentData.company_id,
+      client_id: clientId,
+      service_id: appointmentData.service_id,
+      professional_id: appointmentData.professional_id,
+      appointment_date: appointmentData.appointment_date,
+      appointment_time: appointmentData.appointment_time,
+      duration: serviceDuration,
+      status: appointmentData.status || 'confirmed',
+      notes: appointmentData.notes,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const insertQuery = supabase
       .from('appointments')
-      .insert({
-        company_id: appointmentData.company_id,
-        client_id: clientId,
-        service_id: appointmentData.service_id,
-        professional_id: appointmentData.professional_id,
-        appointment_date: appointmentData.appointment_date,
-        appointment_time: appointmentData.appointment_time,
-        duration: serviceDuration,
-        status: appointmentData.status || 'confirmed',
-        notes: appointmentData.notes,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+      .insert(insertData)
       .select()
       .single();
+
+    const { data, error } = await insertQuery;
 
     if (error) {
       // Tratar erros específicos
